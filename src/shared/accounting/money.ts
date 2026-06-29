@@ -37,3 +37,16 @@ export function formatCents(cents: number): string {
 export function formatMoney(cents: number, currency: Currency): string {
   return `${formatCents(cents)} ${currency}`
 }
+
+/**
+ * Parse a user-entered money string (major units, e.g. "1,250.50") into integer
+ * cents. Returns null for empty/invalid input. Grouping commas are ignored.
+ * Used by money input fields; the parsed cents are what we store.
+ */
+export function parseMoneyToCents(input: string): number | null {
+  const cleaned = input.trim().replace(/,/g, '')
+  if (cleaned === '') return null
+  const value = Number(cleaned)
+  if (!Number.isFinite(value)) return null
+  return roundCents(value * 100)
+}

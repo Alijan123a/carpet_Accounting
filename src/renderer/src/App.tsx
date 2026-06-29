@@ -5,6 +5,7 @@ import { Placeholder } from '@renderer/pages/Placeholder'
 import { Settings } from '@renderer/pages/Settings'
 import { DevTest } from '@renderer/pages/DevTest'
 import { ClientsModule } from '@renderer/features/clients/ClientsModule'
+import { CarpetsModule } from '@renderer/features/carpets/CarpetsModule'
 import type { Route } from '@renderer/config/nav'
 
 function App(): JSX.Element {
@@ -15,6 +16,8 @@ function App(): JSX.Element {
       <AppLayout current={route} onNavigate={setRoute}>
         {route === 'clients' ? (
           <ClientsModule />
+        ) : route === 'carpets' ? (
+          <CarpetsModule />
         ) : route === 'settings' ? (
           <Settings />
         ) : route === 'dev' ? (

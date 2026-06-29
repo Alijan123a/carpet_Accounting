@@ -29,7 +29,13 @@
     "actions": "Actions",
     "back": "Back",
     "loadMore": "Load more",
-    "optional": "optional"
+    "optional": "optional",
+    "archive": "Archive",
+    "restore": "Restore",
+    "delete": "Delete",
+    "create": "Create",
+    "rename": "Rename",
+    "manage": "Manage"
   },
   "settings": {
     "title": "Settings",
@@ -100,5 +106,52 @@
       "reversal": "Reversal",
       "adjustment": "Adjustment"
     }
+  },
+  "carpets": {
+    "title": "Carpets",
+    "add": "Add Carpet",
+    "edit": "Edit Carpet",
+    "searchPlaceholder": "Search label or grade…",
+    "empty": "No carpets found.",
+    "total": "{{total}} total",
+    "manageStatuses": "Manage statuses",
+    "label": "Label #",
+    "length": "Length",
+    "width": "Width",
+    "area": "Area",
+    "sortGrade": "Sort grade",
+    "currency": "Currency",
+    "pricePerMeter": "Price / meter",
+    "effectivePerMeter": "Effective price / meter",
+    "deduction": "Sort deduction",
+    "totalPrice": "Total price",
+    "status": "Status",
+    "profit": "Profit",
+    "seller": "Bought from (seller)",
+    "noSeller": "— none (no purchase recorded) —",
+    "buyDate": "Purchase date",
+    "labelRequired": "Label number is required.",
+    "labelTaken": "That label number is already used.",
+    "deductionExceeds": "Deduction exceeds price/meter — effective price is treated as 0.",
+    "dimsRequired": "Length and width must be greater than 0.",
+    "buyInfo": "Purchase",
+    "sellInfo": "Sale",
+    "notSold": "Not sold yet.",
+    "boughtFrom": "Bought from",
+    "soldTo": "Sold to",
+    "financialsLocked": "A purchase is recorded for this carpet; financial fields are locked. Reverse the purchase to change them.",
+    "allStatuses": "All statuses",
+    "allGrades": "All grades",
+    "createdAt": "Added"
+  },
+  "statusMgr": {
+    "title": "Carpet statuses",
+    "add": "Add status",
+    "labelFa": "Label (Dari)",
+    "labelEn": "Label (English)",
+    "defaultBadge": "default",
+    "cannotDeleteDefault": "Default statuses cannot be deleted.",
+    "inUse": "This status is in use by one or more carpets.",
+    "labelsRequired": "Both labels are required."
   }
 }

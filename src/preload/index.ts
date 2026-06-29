@@ -20,6 +20,24 @@ const api = {
 
   transactions: {
     reverse: (id: number) => ipcRenderer.invoke('transactions:reverse', id)
+  },
+
+  // Carpets module (Phase 3).
+  carpets: {
+    list: (params: unknown) => ipcRenderer.invoke('carpets:list', params),
+    get: (id: number) => ipcRenderer.invoke('carpets:get', id),
+    create: (input: unknown) => ipcRenderer.invoke('carpets:create', input),
+    update: (id: number, input: unknown) => ipcRenderer.invoke('carpets:update', id, input),
+    archive: (id: number) => ipcRenderer.invoke('carpets:archive', id),
+    restore: (id: number) => ipcRenderer.invoke('carpets:restore', id),
+    sortGrades: () => ipcRenderer.invoke('carpets:sortGrades')
+  },
+
+  carpetStatuses: {
+    list: () => ipcRenderer.invoke('carpetStatuses:list'),
+    create: (input: unknown) => ipcRenderer.invoke('carpetStatuses:create', input),
+    rename: (id: number, input: unknown) => ipcRenderer.invoke('carpetStatuses:rename', id, input),
+    remove: (id: number) => ipcRenderer.invoke('carpetStatuses:remove', id)
   }
 }
 

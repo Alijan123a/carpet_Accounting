@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { roundCents, formatCents, formatMoney } from '../money'
+import { roundCents, formatCents, formatMoney, parseMoneyToCents } from '../money'
 
 describe('roundCents', () => {
   it('rounds to the nearest whole cent', () => {
@@ -29,5 +29,20 @@ describe('formatCents / formatMoney (display only)', () => {
   it('appends the currency code', () => {
     expect(formatMoney(4550, 'AFN')).toBe('45.50 AFN')
     expect(formatMoney(32000, 'USD')).toBe('320.00 USD')
+  })
+})
+
+describe('parseMoneyToCents', () => {
+  it('parses major-unit strings into integer cents', () => {
+    expect(parseMoneyToCents('45.50')).toBe(4550)
+    expect(parseMoneyToCents('1,000')).toBe(100000)
+    expect(parseMoneyToCents('0')).toBe(0)
+    expect(parseMoneyToCents('1250.5')).toBe(125050)
+  })
+
+  it('returns null for empty or invalid input', () => {
+    expect(parseMoneyToCents('')).toBeNull()
+    expect(parseMoneyToCents('   ')).toBeNull()
+    expect(parseMoneyToCents('abc')).toBeNull()
   })
 })
