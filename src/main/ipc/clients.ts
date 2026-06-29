@@ -2,8 +2,8 @@ import { ipcMain } from 'electron'
 import { and, or, eq, like, inArray, gte, lte, desc, sql, type SQL } from 'drizzle-orm'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
-import { reverseTransaction } from '../accounting/ledger'
-import type { PerCurrency, Currency } from '../../shared/accounting'
+import { reverseTransaction, postTransaction } from '../accounting/ledger'
+import { postingAmountCents, type PerCurrency, type Currency } from '../../shared/accounting'
 import type {
   ClientProfileInput,
   ClientsListParams,
@@ -11,7 +11,8 @@ import type {
   ClientListItem,
   ClientTransactionsParams,
   ClientTransactionsResult,
-  TransactionView
+  TransactionView,
+  PaymentInput
 } from '../../shared/contracts'
 
 type DB = BetterSQLite3Database<typeof schema>
@@ -67,6 +68,23 @@ function toListItem(row: schema.ClientRow, balances: PerCurrency): ClientListIte
     createdAt: row.createdAt,
     balances
   }
+}
+
+/**
+ * Add a flexible (partial / installment) payment as an IMMUTABLE transaction.
+ * Direction encodes who paid whom; the sign convention reduces the open balance
+ * for that currency. AFN and USD never mix.
+ */
+export function addPayment(db: DB, input: PaymentInput): number {
+  const kind = input.direction === 'fromClient' ? 'paymentFromClient' : 'paymentToClient'
+  return postTransaction(db, {
+    clientId: input.clientId,
+    type: 'payment',
+    currency: input.currency,
+    amountCents: postingAmountCents({ kind, amountCents: input.amountCents }),
+    transactionDate: input.transactionDate ?? Date.now(),
+    note: input.note ?? null
+  })
 }
 
 /** Statement query (client transactions with carpet/material labels). */
@@ -216,6 +234,8 @@ export function registerClientsIpc(getDb: () => DB): void {
   ipcMain.handle('clients:transactions', (_e, params: ClientTransactionsParams): ClientTransactionsResult =>
     queryTransactions(getDb(), params)
   )
+
+  ipcMain.handle('clients:addPayment', (_e, input: PaymentInput): number => addPayment(getDb(), input))
 
   // Immutable ledger: a transaction is undone by POSTING a reversal, never edited.
   ipcMain.handle('transactions:reverse', (_e, id: number): number => {

@@ -3,7 +3,8 @@ import { join } from 'path'
 import { initDatabase, closeDatabase, getDatabase, getRawDatabase, reapplyMigrations } from './db'
 import { devResetSeedCompute } from './accounting/ledger'
 import { registerClientsIpc, probeClients } from './ipc/clients'
-import { registerCarpetsIpc, probeCarpets } from './ipc/carpets'
+import { registerCarpetsIpc, probeCarpets, probeFullFlow } from './ipc/carpets'
+import { registerMaterialsIpc, probeMaterials } from './ipc/materials'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -59,6 +60,9 @@ app.whenReady().then(() => {
   // Carpets module (Phase 3).
   registerCarpetsIpc(getDatabase)
 
+  // Material / sales / payments (Phase 4).
+  registerMaterialsIpc(getDatabase)
+
   // TEMPORARY (Phase 1): when QALEEN_DEV_AUTOSEED=1, seed sample data and log
   // the computed report so the accounting numbers can be verified headlessly.
   if (process.env['QALEEN_DEV_AUTOSEED'] === '1') {
@@ -73,6 +77,10 @@ app.whenReady().then(() => {
       console.log('QALEEN_DEV_CLIENTS_BEGIN' + JSON.stringify(probe) + 'QALEEN_DEV_CLIENTS_END')
       const carpetProbe = probeCarpets(getDatabase())
       console.log('QALEEN_DEV_CARPETS_BEGIN' + JSON.stringify(carpetProbe) + 'QALEEN_DEV_CARPETS_END')
+      const flow = probeFullFlow(getDatabase())
+      console.log('QALEEN_DEV_FLOW_BEGIN' + JSON.stringify(flow) + 'QALEEN_DEV_FLOW_END')
+      const matProbe = probeMaterials(getDatabase())
+      console.log('QALEEN_DEV_MAT_BEGIN' + JSON.stringify(matProbe) + 'QALEEN_DEV_MAT_END')
     } catch (e) {
       console.error('[dev] autoseed failed:', e)
     }

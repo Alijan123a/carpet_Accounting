@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Pencil, Plus, Archive, ArchiveRestore, SlidersHorizontal } from 'lucide-react'
+import { Pencil, Plus, Archive, ArchiveRestore, SlidersHorizontal, Tag } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { cn } from '@renderer/lib/utils'
@@ -11,6 +11,7 @@ import type { CarpetListItem, CarpetStatus, CarpetDetailView } from '@shared/con
 import { statusLabel, statusLabelByKey } from './statusLabel'
 import { CarpetFormDialog } from './CarpetFormDialog'
 import { StatusesDialog } from './StatusesDialog'
+import { SellCarpetDialog } from './SellCarpetDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
@@ -45,6 +46,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
   const [formOpen, setFormOpen] = useState(false)
   const [editCarpet, setEditCarpet] = useState<CarpetDetailView | null>(null)
   const [statusesOpen, setStatusesOpen] = useState(false)
+  const [sellTarget, setSellTarget] = useState<CarpetListItem | null>(null)
 
   const rowsRef = useRef<CarpetListItem[]>([])
   const loadingRef = useRef(false)
@@ -248,6 +250,20 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
                       <Profit cents={c.profitCents} />
                     </span>
                     <span className="flex justify-end gap-1">
+                      {!c.sold && !c.archived && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title={t('sale.sellAction', 'Sell')}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSellTarget(c)
+                          }}
+                        >
+                          <Tag className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -284,6 +300,15 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
 
       <CarpetFormDialog open={formOpen} onOpenChange={setFormOpen} carpet={editCarpet} onSaved={refresh} />
       <StatusesDialog open={statusesOpen} onOpenChange={setStatusesOpen} onChanged={loadMeta} />
+      <SellCarpetDialog
+        open={sellTarget !== null}
+        onOpenChange={(o) => !o && setSellTarget(null)}
+        carpet={sellTarget}
+        onSold={() => {
+          setSellTarget(null)
+          refresh()
+        }}
+      />
     </div>
   )
 }

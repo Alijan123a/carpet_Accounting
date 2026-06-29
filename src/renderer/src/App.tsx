@@ -6,6 +6,7 @@ import { Settings } from '@renderer/pages/Settings'
 import { DevTest } from '@renderer/pages/DevTest'
 import { ClientsModule } from '@renderer/features/clients/ClientsModule'
 import { CarpetsModule } from '@renderer/features/carpets/CarpetsModule'
+import { MaterialsModule } from '@renderer/features/materials/MaterialsModule'
 import type { Route } from '@renderer/config/nav'
 
 function App(): JSX.Element {
@@ -18,6 +19,8 @@ function App(): JSX.Element {
           <ClientsModule />
         ) : route === 'carpets' ? (
           <CarpetsModule />
+        ) : route === 'material' ? (
+          <MaterialsModule />
         ) : route === 'settings' ? (
           <Settings />
         ) : route === 'dev' ? (

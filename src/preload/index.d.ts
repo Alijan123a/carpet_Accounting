@@ -1,5 +1,11 @@
 import type { DevReport } from '../shared/accounting'
-import type { ClientsApi, TransactionsApi, CarpetsApi, CarpetStatusesApi } from '../shared/contracts'
+import type {
+  ClientsApi,
+  TransactionsApi,
+  CarpetsApi,
+  CarpetStatusesApi,
+  MaterialsApi
+} from '../shared/contracts'
 
 export interface Api {
   getVersion: () => Promise<string>
@@ -9,6 +15,7 @@ export interface Api {
   transactions: TransactionsApi
   carpets: CarpetsApi
   carpetStatuses: CarpetStatusesApi
+  materials: MaterialsApi
 }
 
 declare global {

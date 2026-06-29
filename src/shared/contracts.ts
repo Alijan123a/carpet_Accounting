@@ -79,6 +79,7 @@ export interface ClientsApi {
   archive: (id: number) => Promise<{ ok: boolean; reason?: string }>
   restore: (id: number) => Promise<void>
   transactions: (params: ClientTransactionsParams) => Promise<ClientTransactionsResult>
+  addPayment: (input: PaymentInput) => Promise<number>
 }
 
 export interface TransactionsApi {
@@ -182,6 +183,7 @@ export interface CarpetsApi {
   archive: (id: number) => Promise<void>
   restore: (id: number) => Promise<void>
   sortGrades: () => Promise<string[]>
+  sell: (input: CarpetSellInput) => Promise<{ ok: boolean; reason?: string }>
 }
 
 export interface CarpetStatusesApi {
@@ -189,4 +191,96 @@ export interface CarpetStatusesApi {
   create: (input: CarpetStatusInput) => Promise<{ ok: boolean; reason?: string }>
   rename: (id: number, input: CarpetStatusInput) => Promise<void>
   remove: (id: number) => Promise<{ ok: boolean; reason?: string }>
+}
+
+// --- Carpet sale (Phase 4) --------------------------------------------------
+
+export interface CarpetSellInput {
+  carpetId: number
+  buyerClientId: number
+  sellPricePerMeterCents: number
+  sellSortDeductionCents: number
+  transactionDate?: number | null
+}
+
+// --- Payments (Phase 4) -----------------------------------------------------
+
+export type PaymentDirection = 'fromClient' | 'toClient'
+
+export interface PaymentInput {
+  clientId: number
+  currency: Currency
+  amountCents: number
+  direction: PaymentDirection
+  transactionDate?: number | null
+  note?: string | null
+}
+
+// --- Material / Tar (Phase 4) -----------------------------------------------
+
+export interface MaterialInput {
+  name: string
+  currency: Currency
+}
+
+export interface MaterialLineInput {
+  materialId: number
+  direction: 'buy' | 'sell'
+  clientId: number
+  kilograms: number
+  pricePerKgCents: number
+  transactionDate?: number | null
+}
+
+export interface MaterialListItem {
+  id: number
+  name: string
+  currency: Currency
+  archived: boolean
+  boughtKg: number
+  soldKg: number
+  stockKg: number
+  /** Aggregate profit in cents (weighted-average buy cost). */
+  profitCents: number
+}
+
+export interface MaterialLineView {
+  id: number
+  direction: 'buy' | 'sell'
+  clientId: number
+  clientName: string | null
+  kilograms: number
+  pricePerKgCents: number
+  totalCents: number
+  currency: Currency
+  transactionDate: number
+  transactionId: number | null
+  /** Profit for a sell line (vs weighted-avg buy cost); null for buy lines. */
+  lineProfitCents: number | null
+}
+
+export interface MaterialDetailView extends MaterialListItem {
+  avgBuyPerKgCents: number
+  lines: MaterialLineView[]
+}
+
+export interface MaterialsListParams {
+  search?: string
+  includeArchived?: boolean
+  limit: number
+  offset: number
+}
+
+export interface MaterialsListResult {
+  rows: MaterialListItem[]
+  total: number
+}
+
+export interface MaterialsApi {
+  list: (params: MaterialsListParams) => Promise<MaterialsListResult>
+  get: (id: number) => Promise<MaterialDetailView | null>
+  create: (input: MaterialInput) => Promise<number>
+  addLine: (input: MaterialLineInput) => Promise<number>
+  archive: (id: number) => Promise<void>
+  restore: (id: number) => Promise<void>
 }

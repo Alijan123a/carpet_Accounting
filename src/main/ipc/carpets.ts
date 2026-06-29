@@ -4,6 +4,7 @@ import { alias } from 'drizzle-orm/sqlite-core'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
 import { getClientBalances } from '../accounting/ledger'
+import { addPayment } from './clients'
 import { carpetTotalPriceCents, carpetProfitCents, postingAmountCents } from '../../shared/accounting'
 import type {
   CarpetInput,
@@ -13,7 +14,8 @@ import type {
   CarpetsListParams,
   CarpetsListResult,
   CarpetStatus,
-  CarpetStatusInput
+  CarpetStatusInput,
+  CarpetSellInput
 } from '../../shared/contracts'
 
 type DB = BetterSQLite3Database<typeof schema>
@@ -210,6 +212,52 @@ export function updateCarpet(db: DB, id: number, input: CarpetEditInput): { ok: 
   }
 }
 
+/**
+ * Sell an in-warehouse carpet: records the sell side, marks it sold, and posts
+ * the IMMUTABLE sale transaction in the buyer's account — all in one db
+ * transaction. The sale currency is the carpet's own currency (a carpet has a
+ * single currency, so buy/sell profit stays coherent and AFN/USD never mix).
+ */
+export function sellCarpet(db: DB, input: CarpetSellInput): { ok: boolean; reason?: string } {
+  const carpet = db.select().from(schema.carpets).where(eq(schema.carpets.id, input.carpetId)).get()
+  if (!carpet) return { ok: false, reason: 'not_found' }
+  if (carpet.sellTransactionId != null) return { ok: false, reason: 'already_sold' }
+
+  const sellTotal = carpetTotalPriceCents(input.sellPricePerMeterCents, input.sellSortDeductionCents, carpet.area)
+  const now = Date.now()
+  db.transaction((tx) => {
+    const txId = Number(
+      tx
+        .insert(schema.transactions)
+        .values({
+          clientId: input.buyerClientId,
+          type: 'sale',
+          currency: carpet.currency,
+          amountCents: postingAmountCents({ kind: 'sale', amountCents: sellTotal }),
+          carpetId: carpet.id,
+          transactionDate: input.transactionDate ?? now,
+          createdAt: now,
+          note: `Sold carpet ${carpet.labelNumber}`
+        })
+        .run().lastInsertRowid
+    )
+    tx
+      .update(schema.carpets)
+      .set({
+        status: 'sold',
+        sellPricePerMeterCents: input.sellPricePerMeterCents,
+        sellSortDeductionCents: input.sellSortDeductionCents,
+        sellTotalPriceCents: sellTotal,
+        soldToClientId: input.buyerClientId,
+        sellTransactionId: txId,
+        soldAt: now
+      })
+      .where(eq(schema.carpets.id, carpet.id))
+      .run()
+  })
+  return { ok: true }
+}
+
 function slugify(s: string): string {
   return (
     s
@@ -228,6 +276,7 @@ export function registerCarpetsIpc(getDb: () => DB): void {
   ipcMain.handle('carpets:get', (_e, id: number) => getCarpet(getDb(), id))
   ipcMain.handle('carpets:create', (_e, input: CarpetInput) => createCarpet(getDb(), input))
   ipcMain.handle('carpets:update', (_e, id: number, input: CarpetEditInput) => updateCarpet(getDb(), id, input))
+  ipcMain.handle('carpets:sell', (_e, input: CarpetSellInput) => sellCarpet(getDb(), input))
 
   ipcMain.handle('carpets:archive', (_e, id: number) => {
     getDb().update(schema.carpets).set({ archived: true, archivedAt: Date.now() }).where(eq(schema.carpets.id, id)).run()
@@ -304,4 +353,57 @@ export function probeCarpets(db: DB): {
   const created = res.id ? getCarpet(db, res.id) : null
   const after = getClientBalances(db, sellerId).AFN
   return { created, sellerBalanceBefore: before, sellerBalanceAfter: after }
+}
+
+/**
+ * TEMPORARY: end-to-end probe — buy a carpet from client A, sell it to client B,
+ * take a partial payment from B; report both AFN balances (before/after) and the
+ * carpet profit.
+ */
+export function probeFullFlow(db: DB): {
+  carpetLabel: string
+  carpetProfitCents: number | null
+  aBeforeAFN: number
+  aAfterAFN: number
+  bBeforeAFN: number
+  bAfterAFN: number
+} {
+  const ids = db.select({ id: schema.clients.id }).from(schema.clients).orderBy(schema.clients.id).all()
+  const A = ids[0]?.id ?? 0 // supplier
+  const B = ids[1]?.id ?? A // buyer
+  const now = Date.now()
+  const aBeforeAFN = getClientBalances(db, A).AFN
+  const bBeforeAFN = getClientBalances(db, B).AFN
+
+  const created = createCarpet(db, {
+    labelNumber: 'C-FLOW',
+    length: 2,
+    width: 3, // area 6
+    sortGrade: 'A',
+    currency: 'AFN',
+    pricePerMeterCents: 80000, // buy 800.00/m -> total 4800.00
+    sortDeductionCents: 0,
+    status: 'in_warehouse',
+    boughtFromClientId: A,
+    transactionDate: now
+  })
+  const carpetId = created.id ?? 0
+  sellCarpet(db, {
+    carpetId,
+    buyerClientId: B,
+    sellPricePerMeterCents: 120000, // sell 1200.00/m -> total 7200.00 -> profit 2400.00
+    sellSortDeductionCents: 0,
+    transactionDate: now
+  })
+  addPayment(db, { clientId: B, currency: 'AFN', amountCents: 200000, direction: 'fromClient', transactionDate: now })
+
+  const detail = getCarpet(db, carpetId)
+  return {
+    carpetLabel: 'C-FLOW',
+    carpetProfitCents: detail?.profitCents ?? null,
+    aBeforeAFN,
+    aAfterAFN: getClientBalances(db, A).AFN,
+    bBeforeAFN,
+    bAfterAFN: getClientBalances(db, B).AFN
+  }
 }
