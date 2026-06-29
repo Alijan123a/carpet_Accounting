@@ -50,3 +50,13 @@ export function parseMoneyToCents(input: string): number | null {
   if (!Number.isFinite(value)) return null
   return roundCents(value * 100)
 }
+
+/**
+ * Inverse of {@link parseMoneyToCents}: integer cents -> a plain major-unit
+ * string suitable for pre-filling a numeric input (e.g. 4550 -> "45.5"). This
+ * is the single place the cents->input conversion lives so dialogs never do the
+ * arithmetic inline.
+ */
+export function centsToInput(cents: number): string {
+  return (cents / 100).toString()
+}

@@ -49,6 +49,30 @@ const api = {
     create: (input: unknown) => ipcRenderer.invoke('carpetStatuses:create', input),
     rename: (id: number, input: unknown) => ipcRenderer.invoke('carpetStatuses:rename', id, input),
     remove: (id: number) => ipcRenderer.invoke('carpetStatuses:remove', id)
+  },
+
+  // Expenses (Phase 5).
+  expenses: {
+    list: (params: unknown) => ipcRenderer.invoke('expenses:list', params),
+    create: (input: unknown) => ipcRenderer.invoke('expenses:create', input),
+    update: (id: number, input: unknown) => ipcRenderer.invoke('expenses:update', id, input),
+    remove: (id: number) => ipcRenderer.invoke('expenses:remove', id),
+    categories: () => ipcRenderer.invoke('expenses:categories')
+  },
+
+  // Dashboard (Phase 5).
+  dashboard: {
+    summary: (params: unknown) => ipcRenderer.invoke('dashboard:summary', params)
+  },
+
+  // Reports (Phase 5).
+  reports: {
+    run: (id: string, params: unknown) => ipcRenderer.invoke('reports:run', { id, params })
+  },
+
+  // PDF export (Phase 5).
+  pdf: {
+    save: (fileName: string, bytes: Uint8Array) => ipcRenderer.invoke('pdf:save', fileName, bytes)
   }
 }
 

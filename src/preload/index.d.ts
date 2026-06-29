@@ -4,7 +4,11 @@ import type {
   TransactionsApi,
   CarpetsApi,
   CarpetStatusesApi,
-  MaterialsApi
+  MaterialsApi,
+  ExpensesApi,
+  DashboardApi,
+  ReportsApi,
+  PdfApi
 } from '../shared/contracts'
 
 export interface Api {
@@ -16,6 +20,10 @@ export interface Api {
   carpets: CarpetsApi
   carpetStatuses: CarpetStatusesApi
   materials: MaterialsApi
+  expenses: ExpensesApi
+  dashboard: DashboardApi
+  reports: ReportsApi
+  pdf: PdfApi
 }
 
 declare global {

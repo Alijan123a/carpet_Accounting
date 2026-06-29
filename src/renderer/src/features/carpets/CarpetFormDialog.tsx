@@ -13,6 +13,7 @@ import { useSettings } from '@renderer/store/settings'
 import { startOfDayEpoch } from '@renderer/lib/date'
 import {
   parseMoneyToCents,
+  centsToInput,
   formatCents,
   effectivePricePerMeterCents,
   carpetTotalPriceCents
@@ -60,8 +61,8 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
     setWidth(carpet ? String(carpet.width) : '')
     setSortGrade(carpet?.sortGrade ?? '')
     setCurrency(carpet?.currency ?? 'AFN')
-    setPpm(carpet ? String(carpet.pricePerMeterCents / 100) : '')
-    setDeduction(carpet ? String(carpet.sortDeductionCents / 100) : '')
+    setPpm(carpet ? centsToInput(carpet.pricePerMeterCents) : '')
+    setDeduction(carpet ? centsToInput(carpet.sortDeductionCents) : '')
     setStatus(carpet?.status ?? 'in_warehouse')
     setSellerId('')
     setBuyDate(todayStr())

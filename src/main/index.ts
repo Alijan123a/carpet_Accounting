@@ -5,6 +5,10 @@ import { devResetSeedCompute } from './accounting/ledger'
 import { registerClientsIpc, probeClients } from './ipc/clients'
 import { registerCarpetsIpc, probeCarpets, probeFullFlow } from './ipc/carpets'
 import { registerMaterialsIpc, probeMaterials } from './ipc/materials'
+import { registerExpensesIpc } from './ipc/expenses'
+import { registerDashboardIpc, dashboardSummary } from './ipc/dashboard'
+import { registerReportsIpc, runReport } from './ipc/reports'
+import { registerPdfIpc } from './ipc/pdf'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -63,6 +67,12 @@ app.whenReady().then(() => {
   // Material / sales / payments (Phase 4).
   registerMaterialsIpc(getDatabase)
 
+  // Expenses, dashboard, reports, PDF export (Phase 5).
+  registerExpensesIpc(getDatabase)
+  registerDashboardIpc(getDatabase)
+  registerReportsIpc(getDatabase)
+  registerPdfIpc()
+
   // TEMPORARY (Phase 1): when QALEEN_DEV_AUTOSEED=1, seed sample data and log
   // the computed report so the accounting numbers can be verified headlessly.
   if (process.env['QALEEN_DEV_AUTOSEED'] === '1') {
@@ -81,6 +91,40 @@ app.whenReady().then(() => {
       console.log('QALEEN_DEV_FLOW_BEGIN' + JSON.stringify(flow) + 'QALEEN_DEV_FLOW_END')
       const matProbe = probeMaterials(getDatabase())
       console.log('QALEEN_DEV_MAT_BEGIN' + JSON.stringify(matProbe) + 'QALEEN_DEV_MAT_END')
+      const dash = dashboardSummary(getDatabase(), 0, Number.MAX_SAFE_INTEGER)
+      console.log(
+        'QALEEN_DEV_DASH_BEGIN' +
+          JSON.stringify({
+            receivables: dash.receivables,
+            payables: dash.payables,
+            warehouseCount: dash.warehouseCount,
+            materialStockKg: dash.materialStockKg,
+            periodProfit: dash.periodProfit
+          }) +
+          'QALEEN_DEV_DASH_END'
+      )
+      const stmt = runReport(getDatabase(), 'clientStatement', { clientId: 2 })
+      console.log('QALEEN_DEV_STMT_BEGIN' + JSON.stringify(stmt) + 'QALEEN_DEV_STMT_END')
+      const reportIds = [
+        'clientStatement',
+        'warehouse',
+        'periodicProfit',
+        'soldList',
+        'purchasedList',
+        'receivablesPayables',
+        'stagnant',
+        'topClients',
+        'turnover'
+      ] as const
+      const smoke = reportIds.map((id) => {
+        try {
+          const r = runReport(getDatabase(), id, { clientId: 2, days: 0, by: 'profit', granularity: 'month' })
+          return { id, sections: r.sections.length, rows: r.sections.reduce((s, sec) => s + sec.rows.length, 0) }
+        } catch (e) {
+          return { id, error: e instanceof Error ? e.message : String(e) }
+        }
+      })
+      console.log('QALEEN_DEV_REPORTS_BEGIN' + JSON.stringify(smoke) + 'QALEEN_DEV_REPORTS_END')
     } catch (e) {
       console.error('[dev] autoseed failed:', e)
     }

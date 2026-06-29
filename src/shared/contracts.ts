@@ -2,7 +2,8 @@
  * IPC contracts shared between the Electron main process (producer) and the
  * renderer (consumer). Pure types only — no runtime dependencies.
  */
-import type { Currency, PerCurrency, TransactionType } from './accounting'
+import type { Currency, PerCurrency, TransactionType, PeriodProfitResult } from './accounting'
+import type { ReportId, ReportParams, ReportResult } from './reports'
 
 // --- Clients ----------------------------------------------------------------
 
@@ -283,4 +284,79 @@ export interface MaterialsApi {
   addLine: (input: MaterialLineInput) => Promise<number>
   archive: (id: number) => Promise<void>
   restore: (id: number) => Promise<void>
+}
+
+// --- Expenses (Phase 5) -----------------------------------------------------
+
+export interface ExpenseInput {
+  category: string
+  amountCents: number
+  currency: Currency
+  expenseDate: number
+  note?: string | null
+}
+
+export interface ExpenseView {
+  id: number
+  category: string
+  amountCents: number
+  currency: Currency
+  expenseDate: number
+  note: string | null
+  createdAt: number
+}
+
+export interface ExpensesListParams {
+  search?: string
+  category?: string | 'all'
+  currency?: Currency | 'all'
+  fromDate?: number | null
+  toDate?: number | null
+  limit: number
+  offset: number
+}
+
+export interface ExpensesListResult {
+  rows: ExpenseView[]
+  total: number
+}
+
+export interface ExpensesApi {
+  list: (params: ExpensesListParams) => Promise<ExpensesListResult>
+  create: (input: ExpenseInput) => Promise<number>
+  update: (id: number, input: ExpenseInput) => Promise<void>
+  remove: (id: number) => Promise<void>
+  categories: () => Promise<string[]>
+}
+
+// --- Dashboard (Phase 5) ----------------------------------------------------
+
+export interface TurnoverPoint {
+  period: string
+  afn: number
+  usd: number
+}
+
+export interface DashboardSummary {
+  receivables: PerCurrency
+  payables: PerCurrency
+  warehouseCount: number
+  materialStockKg: number
+  periodProfit: { AFN: PeriodProfitResult; USD: PeriodProfitResult }
+  turnover: TurnoverPoint[]
+}
+
+export interface DashboardApi {
+  summary: (params: { fromDate: number; toDate: number }) => Promise<DashboardSummary>
+}
+
+// --- Reports + PDF (Phase 5) ------------------------------------------------
+
+export interface ReportsApi {
+  run: (id: ReportId, params: ReportParams) => Promise<ReportResult>
+}
+
+export interface PdfApi {
+  /** Persist PDF bytes via a native Save dialog. */
+  save: (fileName: string, bytes: Uint8Array) => Promise<{ ok: boolean; path?: string; canceled?: boolean }>
 }
