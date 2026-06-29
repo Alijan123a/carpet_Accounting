@@ -4,6 +4,7 @@ import { AppLayout } from '@renderer/components/layout/AppLayout'
 import { Placeholder } from '@renderer/pages/Placeholder'
 import { Settings } from '@renderer/pages/Settings'
 import { DevTest } from '@renderer/pages/DevTest'
+import { ClientsModule } from '@renderer/features/clients/ClientsModule'
 import type { Route } from '@renderer/config/nav'
 
 function App(): JSX.Element {
@@ -12,7 +13,9 @@ function App(): JSX.Element {
   return (
     <AppSettingsProvider>
       <AppLayout current={route} onNavigate={setRoute}>
-        {route === 'settings' ? (
+        {route === 'clients' ? (
+          <ClientsModule />
+        ) : route === 'settings' ? (
           <Settings />
         ) : route === 'dev' ? (
           <DevTest />

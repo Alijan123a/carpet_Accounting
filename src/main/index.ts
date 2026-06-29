@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { initDatabase, closeDatabase, getDatabase, getRawDatabase, reapplyMigrations } from './db'
 import { devResetSeedCompute } from './accounting/ledger'
+import { registerClientsIpc, probeClients } from './ipc/clients'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -51,6 +52,9 @@ app.whenReady().then(() => {
     devResetSeedCompute(getDatabase(), (sql) => getRawDatabase().exec(sql), reapplyMigrations)
   )
 
+  // Clients module (Phase 2).
+  registerClientsIpc(getDatabase)
+
   // TEMPORARY (Phase 1): when QALEEN_DEV_AUTOSEED=1, seed sample data and log
   // the computed report so the accounting numbers can be verified headlessly.
   if (process.env['QALEEN_DEV_AUTOSEED'] === '1') {
@@ -61,6 +65,8 @@ app.whenReady().then(() => {
         reapplyMigrations
       )
       console.log('QALEEN_DEV_REPORT_BEGIN' + JSON.stringify(report) + 'QALEEN_DEV_REPORT_END')
+      const probe = probeClients(getDatabase())
+      console.log('QALEEN_DEV_CLIENTS_BEGIN' + JSON.stringify(probe) + 'QALEEN_DEV_CLIENTS_END')
     } catch (e) {
       console.error('[dev] autoseed failed:', e)
     }

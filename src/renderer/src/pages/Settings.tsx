@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@renderer/components/ui/button'
-import { useSettings, type Theme } from '@renderer/store/settings'
+import { useSettings, type Theme, type Calendar } from '@renderer/store/settings'
 import type { Language } from '@renderer/i18n'
 
 function Field({
@@ -26,7 +26,7 @@ function Field({
 
 export function Settings(): JSX.Element {
   const { t } = useTranslation()
-  const { theme, language, setTheme, setLanguage } = useSettings()
+  const { theme, language, calendar, setTheme, setLanguage, setCalendar } = useSettings()
   const [version, setVersion] = useState('0.1.0')
 
   useEffect(() => {
@@ -40,6 +40,10 @@ export function Settings(): JSX.Element {
   const languages: { value: Language; label: string }[] = [
     { value: 'fa', label: 'دری / فارسی' },
     { value: 'en', label: 'English' }
+  ]
+  const calendars: { value: Calendar; label: string }[] = [
+    { value: 'shamsi', label: t('settings.shamsi', 'Hijri Shamsi') },
+    { value: 'gregorian', label: t('settings.gregorian', 'Gregorian') }
   ]
 
   return (
@@ -77,6 +81,22 @@ export function Settings(): JSX.Element {
             variant={language === opt.value ? 'default' : 'outline'}
             size="sm"
             onClick={() => setLanguage(opt.value)}
+          >
+            {opt.label}
+          </Button>
+        ))}
+      </Field>
+
+      <Field
+        title={t('settings.calendar', 'Calendar')}
+        description={t('settings.calendarDesc', 'Calendar used to display dates across the app.')}
+      >
+        {calendars.map((opt) => (
+          <Button
+            key={opt.value}
+            variant={calendar === opt.value ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setCalendar(opt.value)}
           >
             {opt.label}
           </Button>
