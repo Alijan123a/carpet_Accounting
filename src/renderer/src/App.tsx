@@ -3,6 +3,7 @@ import { AppSettingsProvider } from '@renderer/providers/AppSettingsProvider'
 import { AppLayout } from '@renderer/components/layout/AppLayout'
 import { Placeholder } from '@renderer/pages/Placeholder'
 import { Settings } from '@renderer/pages/Settings'
+import { DevTest } from '@renderer/pages/DevTest'
 import type { Route } from '@renderer/config/nav'
 
 function App(): JSX.Element {
@@ -11,7 +12,13 @@ function App(): JSX.Element {
   return (
     <AppSettingsProvider>
       <AppLayout current={route} onNavigate={setRoute}>
-        {route === 'settings' ? <Settings /> : <Placeholder route={route} />}
+        {route === 'settings' ? (
+          <Settings />
+        ) : route === 'dev' ? (
+          <DevTest />
+        ) : (
+          <Placeholder route={route} />
+        )}
       </AppLayout>
     </AppSettingsProvider>
   )

@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
-import { initDatabase, closeDatabase } from './db'
+import { initDatabase, closeDatabase, getDatabase, getRawDatabase, reapplyMigrations } from './db'
+import { devResetSeedCompute } from './accounting/ledger'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -44,6 +45,26 @@ app.whenReady().then(() => {
 
   // Basic IPC handlers used by the shell.
   ipcMain.handle('app:getVersion', () => app.getVersion())
+
+  // TEMPORARY (Phase 1 dev page): reseed sample data and return computed numbers.
+  ipcMain.handle('dev:resetSeedCompute', () =>
+    devResetSeedCompute(getDatabase(), (sql) => getRawDatabase().exec(sql), reapplyMigrations)
+  )
+
+  // TEMPORARY (Phase 1): when QALEEN_DEV_AUTOSEED=1, seed sample data and log
+  // the computed report so the accounting numbers can be verified headlessly.
+  if (process.env['QALEEN_DEV_AUTOSEED'] === '1') {
+    try {
+      const report = devResetSeedCompute(
+        getDatabase(),
+        (sql) => getRawDatabase().exec(sql),
+        reapplyMigrations
+      )
+      console.log('QALEEN_DEV_REPORT_BEGIN' + JSON.stringify(report) + 'QALEEN_DEV_REPORT_END')
+    } catch (e) {
+      console.error('[dev] autoseed failed:', e)
+    }
+  }
 
   createWindow()
 

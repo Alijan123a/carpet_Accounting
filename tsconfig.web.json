@@ -19,7 +19,8 @@
     "baseUrl": ".",
     "types": ["vite/client"],
     "paths": {
-      "@renderer/*": ["src/renderer/src/*"]
+      "@renderer/*": ["src/renderer/src/*"],
+      "@shared/*": ["src/shared/*"]
     }
   },
   "include": [
