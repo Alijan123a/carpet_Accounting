@@ -278,8 +278,14 @@ export function registerCarpetsIpc(getDb: () => DB): void {
   ipcMain.handle('carpets:update', (_e, id: number, input: CarpetEditInput) => updateCarpet(getDb(), id, input))
   ipcMain.handle('carpets:sell', (_e, input: CarpetSellInput) => sellCarpet(getDb(), input))
 
-  ipcMain.handle('carpets:archive', (_e, id: number) => {
-    getDb().update(schema.carpets).set({ archived: true, archivedAt: Date.now() }).where(eq(schema.carpets.id, id)).run()
+  // A carpet is only sensibly archived once it has been SOLD (CLAUDE.md / Phase 6).
+  ipcMain.handle('carpets:archive', (_e, id: number): { ok: boolean; reason?: string } => {
+    const db = getDb()
+    const carpet = db.select().from(schema.carpets).where(eq(schema.carpets.id, id)).get()
+    if (!carpet) return { ok: false, reason: 'not_found' }
+    if (carpet.sellTransactionId == null) return { ok: false, reason: 'not_sold' }
+    db.update(schema.carpets).set({ archived: true, archivedAt: Date.now() }).where(eq(schema.carpets.id, id)).run()
+    return { ok: true }
   })
   ipcMain.handle('carpets:restore', (_e, id: number) => {
     getDb().update(schema.carpets).set({ archived: false, archivedAt: null }).where(eq(schema.carpets.id, id)).run()

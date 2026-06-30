@@ -181,7 +181,7 @@ export interface CarpetsApi {
   get: (id: number) => Promise<CarpetDetailView | null>
   create: (input: CarpetInput) => Promise<{ ok: boolean; id?: number; reason?: string }>
   update: (id: number, input: CarpetEditInput) => Promise<{ ok: boolean; reason?: string }>
-  archive: (id: number) => Promise<void>
+  archive: (id: number) => Promise<{ ok: boolean; reason?: string }>
   restore: (id: number) => Promise<void>
   sortGrades: () => Promise<string[]>
   sell: (input: CarpetSellInput) => Promise<{ ok: boolean; reason?: string }>
@@ -359,4 +359,56 @@ export interface ReportsApi {
 export interface PdfApi {
   /** Persist PDF bytes via a native Save dialog. */
   save: (fileName: string, bytes: Uint8Array) => Promise<{ ok: boolean; path?: string; canceled?: boolean }>
+}
+
+// --- Archive / Auth / Config / Backup (Phase 6) -----------------------------
+
+export interface ArchiveLists {
+  clients: { id: number; name: string }[]
+  carpets: { id: number; label: string; currency: Currency; totalPriceCents: number; status: string }[]
+  materials: { id: number; name: string; currency: Currency; stockKg: number }[]
+}
+
+export interface ArchiveApi {
+  list: () => Promise<ArchiveLists>
+}
+
+export interface AuthStatus {
+  isSet: boolean
+  unlocked: boolean
+}
+
+export interface AuthApi {
+  status: () => Promise<AuthStatus>
+  setup: (password: string) => Promise<{ ok: boolean; reason?: string }>
+  verify: (password: string) => Promise<{ ok: boolean }>
+  change: (oldPassword: string, newPassword: string) => Promise<{ ok: boolean; reason?: string }>
+}
+
+export type BackupFrequency = 'off' | 'onClose' | 'daily'
+
+export interface AppConfig {
+  backupFolder: string
+  backupFrequency: BackupFrequency
+  backupRetention: number
+  lastAutoBackup: number | null
+}
+
+export interface ConfigApi {
+  get: () => Promise<AppConfig>
+  set: (patch: Partial<AppConfig>) => Promise<AppConfig>
+}
+
+export interface BackupInfo {
+  name: string
+  path: string
+  size: number
+  mtime: number
+}
+
+export interface BackupApi {
+  now: () => Promise<{ ok: boolean; path?: string; canceled?: boolean; reason?: string }>
+  list: () => Promise<BackupInfo[]>
+  chooseFolder: () => Promise<{ ok: boolean; folder?: string; canceled?: boolean }>
+  restore: () => Promise<{ ok: boolean; canceled?: boolean; reason?: string; restored?: string }>
 }

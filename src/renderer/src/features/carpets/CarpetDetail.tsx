@@ -46,9 +46,13 @@ export function CarpetDetail({
     if (!carpet) return
     setBusy(true)
     try {
-      if (carpet.archived) await window.api.carpets.restore(carpet.id)
-      else await window.api.carpets.archive(carpet.id)
-      refresh()
+      if (carpet.archived) {
+        await window.api.carpets.restore(carpet.id)
+        refresh()
+      } else {
+        const res = await window.api.carpets.archive(carpet.id)
+        if (res.ok) refresh() // archive button is only shown for sold carpets
+      }
     } finally {
       setBusy(false)
     }
@@ -94,10 +98,12 @@ export function CarpetDetail({
             <Pencil className="h-4 w-4" />
             {t('common.edit', 'Edit')}
           </Button>
-          <Button variant="outline" size="sm" onClick={toggleArchive} disabled={busy}>
-            {carpet.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-            {carpet.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
-          </Button>
+          {(carpet.archived || carpet.sold) && (
+            <Button variant="outline" size="sm" onClick={toggleArchive} disabled={busy}>
+              {carpet.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+              {carpet.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
+            </Button>
+          )}
         </div>
       </div>
 

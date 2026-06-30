@@ -73,6 +73,33 @@ const api = {
   // PDF export (Phase 5).
   pdf: {
     save: (fileName: string, bytes: Uint8Array) => ipcRenderer.invoke('pdf:save', fileName, bytes)
+  },
+
+  // Archive (Phase 6).
+  archive: {
+    list: () => ipcRenderer.invoke('archive:list')
+  },
+
+  // Password protection (Phase 6).
+  auth: {
+    status: () => ipcRenderer.invoke('auth:status'),
+    setup: (password: string) => ipcRenderer.invoke('auth:setup', password),
+    verify: (password: string) => ipcRenderer.invoke('auth:verify', password),
+    change: (oldPassword: string, newPassword: string) => ipcRenderer.invoke('auth:change', oldPassword, newPassword)
+  },
+
+  // App config (Phase 6).
+  config: {
+    get: () => ipcRenderer.invoke('config:get'),
+    set: (patch: unknown) => ipcRenderer.invoke('config:set', patch)
+  },
+
+  // Backup (Phase 6).
+  backup: {
+    now: () => ipcRenderer.invoke('backup:now'),
+    list: () => ipcRenderer.invoke('backup:list'),
+    chooseFolder: () => ipcRenderer.invoke('backup:chooseFolder'),
+    restore: () => ipcRenderer.invoke('backup:restore')
   }
 }
 

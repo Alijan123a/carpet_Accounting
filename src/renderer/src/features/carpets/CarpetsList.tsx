@@ -124,9 +124,13 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
   }
 
   async function toggleArchive(c: CarpetListItem): Promise<void> {
-    if (c.archived) await window.api.carpets.restore(c.id)
-    else await window.api.carpets.archive(c.id)
-    refresh()
+    if (c.archived) {
+      await window.api.carpets.restore(c.id)
+      refresh()
+      return
+    }
+    const res = await window.api.carpets.archive(c.id)
+    if (res.ok) refresh() // archive is only offered for sold carpets, so this should succeed
   }
 
   return (
@@ -276,18 +280,20 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        title={c.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          void toggleArchive(c)
-                        }}
-                      >
-                        {c.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-                      </Button>
+                      {(c.archived || c.sold) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title={c.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void toggleArchive(c)
+                          }}
+                        >
+                          {c.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                        </Button>
+                      )}
                     </span>
                   </div>
                 )

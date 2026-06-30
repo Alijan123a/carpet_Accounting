@@ -8,6 +8,11 @@ import { runMigrations } from './migrate'
 let sqlite: Database.Database | null = null
 let db: BetterSQLite3Database<typeof schema> | null = null
 
+/** Absolute path of the live SQLite database file (per-user app data). */
+export function getDatabasePath(): string {
+  return join(app.getPath('userData'), 'qaleen-trader.db')
+}
+
 /**
  * Open the SQLite database and configure it for performance.
  * Per CLAUDE.md performance rules, WAL mode is enabled from day one.
@@ -16,7 +21,7 @@ let db: BetterSQLite3Database<typeof schema> | null = null
 export function initDatabase(): BetterSQLite3Database<typeof schema> {
   if (db) return db
 
-  const dbPath = join(app.getPath('userData'), 'qaleen-trader.db')
+  const dbPath = getDatabasePath()
   sqlite = new Database(dbPath)
 
   // Performance / durability pragmas (NON-NEGOTIABLE: WAL mode).

@@ -8,7 +8,11 @@ import type {
   ExpensesApi,
   DashboardApi,
   ReportsApi,
-  PdfApi
+  PdfApi,
+  ArchiveApi,
+  AuthApi,
+  ConfigApi,
+  BackupApi
 } from '../shared/contracts'
 
 export interface Api {
@@ -24,6 +28,10 @@ export interface Api {
   dashboard: DashboardApi
   reports: ReportsApi
   pdf: PdfApi
+  archive: ArchiveApi
+  auth: AuthApi
+  config: ConfigApi
+  backup: BackupApi
 }
 
 declare global {

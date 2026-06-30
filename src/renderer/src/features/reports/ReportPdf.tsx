@@ -1,16 +1,16 @@
 import { Document, Page, View, Text, StyleSheet, Font, pdf } from '@react-pdf/renderer'
-import VazirRegular from '@renderer/assets/fonts/Vazirmatn-Regular.ttf'
-import VazirBold from '@renderer/assets/fonts/Vazirmatn-Bold.ttf'
+import { VAZIR_REGULAR_DATA_URI, VAZIR_BOLD_DATA_URI } from './fontData'
 import type { RenderedReport } from '@shared/reports'
 
 // Vazirmatn covers Latin + Persian/Arabic, so it is used for both languages.
-// Bundled locally (offline). fontkit performs Arabic shaping from the font's
-// GSUB tables; the document direction handles RTL ordering.
+// Registered from embedded base64 data URIs (no fetch) so it works both in dev
+// and under file:// in the packaged app. fontkit performs Arabic shaping from
+// the font's GSUB tables; the document direction handles RTL ordering.
 Font.register({
   family: 'Vazirmatn',
   fonts: [
-    { src: VazirRegular, fontWeight: 'normal' },
-    { src: VazirBold, fontWeight: 'bold' }
+    { src: VAZIR_REGULAR_DATA_URI, fontWeight: 'normal' },
+    { src: VAZIR_BOLD_DATA_URI, fontWeight: 'bold' }
   ]
 })
 

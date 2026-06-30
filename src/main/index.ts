@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
+import { unlinkSync } from 'fs'
 import { initDatabase, closeDatabase, getDatabase, getRawDatabase, reapplyMigrations } from './db'
 import { devResetSeedCompute } from './accounting/ledger'
 import { registerClientsIpc, probeClients } from './ipc/clients'
@@ -9,6 +10,10 @@ import { registerExpensesIpc } from './ipc/expenses'
 import { registerDashboardIpc, dashboardSummary } from './ipc/dashboard'
 import { registerReportsIpc, runReport } from './ipc/reports'
 import { registerPdfIpc } from './ipc/pdf'
+import { registerArchiveIpc, archiveLists } from './ipc/archive'
+import { registerAuthIpc, probeAuthCrypto } from './auth'
+import { registerConfigIpc } from './config'
+import { registerBackupIpc, backupOnQuit, autoBackupDailyIfDue, validateSqlite } from './backup'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -73,6 +78,13 @@ app.whenReady().then(() => {
   registerReportsIpc(getDatabase)
   registerPdfIpc()
 
+  // Archive, auth, config, backup (Phase 6).
+  registerArchiveIpc(getDatabase)
+  registerAuthIpc()
+  registerConfigIpc()
+  registerBackupIpc()
+  void autoBackupDailyIfDue()
+
   // TEMPORARY (Phase 1): when QALEEN_DEV_AUTOSEED=1, seed sample data and log
   // the computed report so the accounting numbers can be verified headlessly.
   if (process.env['QALEEN_DEV_AUTOSEED'] === '1') {
@@ -125,6 +137,42 @@ app.whenReady().then(() => {
         }
       })
       console.log('QALEEN_DEV_REPORTS_BEGIN' + JSON.stringify(smoke) + 'QALEEN_DEV_REPORTS_END')
+
+      // Phase 6 probes.
+      console.log('QALEEN_DEV_AUTH_BEGIN' + JSON.stringify(probeAuthCrypto()) + 'QALEEN_DEV_AUTH_END')
+
+      const raw = getRawDatabase()
+      raw.exec('UPDATE materials SET archived = 1, archived_at = 0 WHERE id = 1')
+      const archivedList = archiveLists(getDatabase())
+      raw.exec('UPDATE materials SET archived = 0, archived_at = NULL WHERE id = 1')
+      const afterRestore = archiveLists(getDatabase())
+      console.log(
+        'QALEEN_DEV_ARCHIVE_BEGIN' +
+          JSON.stringify({
+            archivedMaterials: archivedList.materials.length,
+            sample: archivedList.materials[0] ?? null,
+            afterRestore: afterRestore.materials.length
+          }) +
+          'QALEEN_DEV_ARCHIVE_END'
+      )
+
+      void (async () => {
+        const dest = join(app.getPath('userData'), 'qaleen-probe-backup.db')
+        try {
+          await getRawDatabase().backup(dest)
+          const valid = validateSqlite(dest)
+          try {
+            unlinkSync(dest)
+          } catch {
+            /* ignore */
+          }
+          console.log('QALEEN_DEV_BACKUP_BEGIN' + JSON.stringify({ backupOk: true, valid }) + 'QALEEN_DEV_BACKUP_END')
+        } catch (err) {
+          console.log(
+            'QALEEN_DEV_BACKUP_BEGIN' + JSON.stringify({ backupOk: false, error: String(err) }) + 'QALEEN_DEV_BACKUP_END'
+          )
+        }
+      })()
     } catch (e) {
       console.error('[dev] autoseed failed:', e)
     }
@@ -144,5 +192,7 @@ app.on('window-all-closed', () => {
 })
 
 app.on('will-quit', () => {
+  // Automatic backup (onClose/daily) before the DB is closed.
+  backupOnQuit()
   closeDatabase()
 })

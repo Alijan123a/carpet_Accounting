@@ -1,0 +1,46 @@
+appId: com.qaleen.trader
+productName: Qaleen Trader
+copyright: Copyright © Qaleen Trader
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - out/**
+  - '!**/*.map'
+
+# better-sqlite3 already carries the Electron-ABI prebuilt binary (fetched via
+# prebuild-install). Do NOT rebuild native modules at packaging time — this
+# machine has no C++ compiler, and the prebuilt binary is correct.
+npmRebuild: false
+
+# Native .node modules can't be loaded from inside the asar archive.
+asarUnpack:
+  - '**/*.node'
+
+win:
+  target:
+    - nsis
+  artifactName: ${productName}-${version}-setup.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Qaleen Trader
+
+# To build for macOS / Linux, run on that OS (or with a CI runner):
+#   npm run dist        # builds for the current OS
+# macOS target: dmg (category finance). Linux target: AppImage.
+mac:
+  target:
+    - dmg
+  category: public.app-category.finance
+
+linux:
+  target:
+    - AppImage
+  category: Office
