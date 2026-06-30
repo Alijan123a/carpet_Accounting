@@ -96,7 +96,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSaved }: Props)
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex w-full rounded-lg border border-input bg-card shadow-soft px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </label>
           {error && <p className="text-sm text-destructive">{error}</p>}

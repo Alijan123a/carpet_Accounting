@@ -72,7 +72,7 @@ export function CarpetDetail({
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold">{carpet.labelNumber}</h2>
+              <h2 className="text-2xl font-bold tracking-tight">{carpet.labelNumber}</h2>
               <span className="rounded bg-accent px-2 py-0.5 text-xs text-accent-foreground">
                 {statusLabelByKey(statuses, carpet.status, language)}
               </span>
@@ -174,7 +174,7 @@ export function CarpetDetail({
 
 function Card({ title, children }: { title: string; children: ReactNode }): JSX.Element {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-card">
       <h3 className="mb-2 text-sm font-semibold">{title}</h3>
       <div className="space-y-1.5">{children}</div>
     </div>

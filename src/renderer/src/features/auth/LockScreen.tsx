@@ -54,17 +54,14 @@ export function LockScreen({
   }
 
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-background text-foreground">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg">
-        <div className="mb-4 flex items-center gap-3">
-          <span
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-white"
-            style={{ background: 'hsl(var(--laaki))' }}
-          >
-            <Lock className="h-5 w-5" />
+    <div className="app-bg flex h-screen w-screen items-center justify-center p-6 text-foreground">
+      <div className="w-full max-w-sm rounded-2xl border border-border/70 bg-card p-7 shadow-card-hover">
+        <div className="mb-5 flex flex-col items-center gap-3 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-gradient text-white shadow-glow">
+            <Lock className="h-6 w-6" />
           </span>
           <div>
-            <div className="text-base font-semibold">{t('app.name', 'Qaleen Trader')}</div>
+            <div className="text-lg font-bold tracking-tight">{t('app.name', 'Qaleen Trader')}</div>
             <div className="text-xs text-muted-foreground">
               {mode === 'setup' ? t('auth.setupTitle', 'Set a password') : t('auth.unlockTitle', 'Enter password')}
             </div>
@@ -96,7 +93,7 @@ export function LockScreen({
             />
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button className="w-full" onClick={submit} disabled={busy}>
+          <Button variant="brand" className="w-full" onClick={submit} disabled={busy}>
             {mode === 'setup' ? t('auth.set', 'Set password') : t('auth.unlock', 'Unlock')}
           </Button>
         </div>

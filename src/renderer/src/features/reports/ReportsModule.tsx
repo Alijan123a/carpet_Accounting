@@ -121,7 +121,7 @@ export function ReportsModule(): JSX.Element {
   return (
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold">{t('reports.title', 'Reports')}</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t('reports.title', 'Reports')}</h2>
         <Button variant="outline" onClick={exportPdf} disabled={!rendered || exporting}>
           <FileDown className="h-4 w-4" />
           {t('reports.export', 'Export PDF')}
@@ -129,12 +129,12 @@ export function ReportsModule(): JSX.Element {
       </div>
 
       {/* Filters */}
-      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-3">
+      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-border/70 bg-card p-3 shadow-card">
         <Field label={t('reports.title', 'Report')}>
           <select
             value={reportId}
             onChange={(e) => setReportId(e.target.value as ReportId)}
-            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+            className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
           >
             {REPORTS.map((r) => (
               <option key={r.id} value={r.id}>
@@ -149,7 +149,7 @@ export function ReportsModule(): JSX.Element {
             <select
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
             >
               <option value="">—</option>
               {clients.map((c) => (
@@ -180,7 +180,7 @@ export function ReportsModule(): JSX.Element {
             <select
               value={by}
               onChange={(e) => setBy(e.target.value as 'purchase' | 'profit')}
-              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
             >
               <option value="purchase">{t('reports.volume', 'Volume')}</option>
               <option value="profit">{t('reports.byProfit', 'Profit')}</option>
@@ -192,7 +192,7 @@ export function ReportsModule(): JSX.Element {
             <select
               value={granularity}
               onChange={(e) => setGranularity(e.target.value as 'day' | 'month')}
-              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
             >
               <option value="month">{t('reports.monthly', 'Monthly')}</option>
               <option value="day">{t('reports.daily', 'Daily')}</option>

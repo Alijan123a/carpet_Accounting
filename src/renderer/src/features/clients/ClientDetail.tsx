@@ -161,7 +161,7 @@ export function ClientDetail({
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold">{client?.name ?? '…'}</h2>
+              <h2 className="text-2xl font-bold tracking-tight">{client?.name ?? '…'}</h2>
               {client?.archived && (
                 <span className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                   {t('clients.archivedBadge', 'Archived')}
@@ -203,13 +203,13 @@ export function ClientDetail({
 
       {/* Balances (two currencies, separate) */}
       <div className="mb-2 grid grid-cols-2 gap-3 sm:max-w-md">
-        <div className="rounded-lg border border-border bg-card p-3">
+        <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-card">
           <div className="text-xs text-muted-foreground">{t('clients.balanceAFN', 'AFN balance')}</div>
           <div className="text-lg">
             <BalanceAmount cents={balances.AFN} />
           </div>
         </div>
-        <div className="rounded-lg border border-border bg-card p-3">
+        <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-card">
           <div className="text-xs text-muted-foreground">{t('clients.balanceUSD', 'USD balance')}</div>
           <div className="text-lg">
             <BalanceAmount cents={balances.USD} />
@@ -238,7 +238,7 @@ export function ClientDetail({
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
-            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+            className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
           >
             <option value="all">{t('common.all', 'All')}</option>
             {TX_TYPES.map((ty) => (
@@ -251,8 +251,8 @@ export function ClientDetail({
       </div>
 
       {/* Statement table */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border">
-        <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-card text-xs font-medium text-muted-foreground')}>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
+        <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
           <span>{t('statement.date', 'Date')}</span>
           <span>{t('statement.type', 'Type')}</span>
           <span>{t('statement.currency', 'Cur')}</span>

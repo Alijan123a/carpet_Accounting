@@ -30,7 +30,7 @@ export function DevTest(): JSX.Element {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">Phase 1 — Accounting Core Verification</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Phase 1 — Accounting Core Verification</h2>
         <p className="text-sm text-muted-foreground">
           Reseeds sample data and prints computed balances &amp; profit. AFN and USD are kept
           separate. This page is temporary.

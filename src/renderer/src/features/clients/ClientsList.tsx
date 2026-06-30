@@ -87,7 +87,7 @@ export function ClientsList({ onSelect }: { onSelect: (id: number) => void }): J
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">{t('clients.title', 'Clients')}</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t('clients.title', 'Clients')}</h2>
           <p className="text-xs text-muted-foreground">
             {t('clients.total', { total, defaultValue: '{{total}} total' })}
           </p>
@@ -121,9 +121,9 @@ export function ClientsList({ onSelect }: { onSelect: (id: number) => void }): J
         </label>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border">
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
         {/* Header */}
-        <div className={cn(GRID, 'h-10 border-b border-border bg-card text-xs font-medium text-muted-foreground')}>
+        <div className={cn(GRID, 'h-10 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
           <span>{t('clients.name', 'Name')}</span>
           <span>{t('clients.phone', 'Phone')}</span>
           <span className="text-end">AFN</span>

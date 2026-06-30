@@ -98,7 +98,7 @@ export function MaterialLineDialog({
             <select
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
             >
               <option value="">—</option>
               {clients.map((c) => (
@@ -125,7 +125,7 @@ export function MaterialLineDialog({
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </label>
 
-          <div className="rounded-lg border border-border bg-card p-3 text-sm">
+          <div className="rounded-2xl border border-border/70 bg-card p-3 text-sm shadow-card">
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t('material.lineTotal', 'Total')}</span>
               <span className="font-mono tabular-nums">

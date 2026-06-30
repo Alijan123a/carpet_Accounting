@@ -69,7 +69,7 @@ export function MaterialDetail({
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold">{material.name}</h2>
+              <h2 className="text-2xl font-bold tracking-tight">{material.name}</h2>
               <span className="rounded bg-accent px-2 py-0.5 text-xs text-accent-foreground">{cur}</span>
               {material.archived && (
                 <span className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
@@ -113,8 +113,8 @@ export function MaterialDetail({
       </div>
 
       {/* Lines */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border">
-        <div className={cn(LINE_GRID, 'h-9 shrink-0 border-b border-border bg-card text-xs font-medium text-muted-foreground')}>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
+        <div className={cn(LINE_GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
           <span>{t('material.date', 'Date')}</span>
           <span>{t('material.direction', 'Dir.')}</span>
           <span>{t('material.client', 'Client')}</span>
@@ -181,7 +181,7 @@ function Stat({
   colorClass?: string
 }): JSX.Element {
   return (
-    <div className="rounded-lg border border-border bg-card p-3">
+    <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-card">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className={cn('font-mono tabular-nums', strong && 'text-lg font-semibold', colorClass)}>{value}</div>
     </div>

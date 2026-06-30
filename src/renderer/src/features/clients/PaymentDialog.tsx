@@ -91,7 +91,7 @@ export function PaymentDialog({
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value as Currency)}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
               >
                 <option value="AFN">AFN</option>
                 <option value="USD">USD</option>
@@ -104,7 +104,7 @@ export function PaymentDialog({
             <select
               value={direction}
               onChange={(e) => setDirection(e.target.value as PaymentDirection)}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
             >
               <option value="fromClient">{t('payment.fromClient', 'Client paid us')}</option>
               <option value="toClient">{t('payment.toClient', 'We paid client')}</option>

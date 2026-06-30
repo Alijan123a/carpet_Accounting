@@ -169,7 +169,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
               value={currency}
               onChange={(e) => setCurrency(e.target.value as Currency)}
               disabled={locked}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm disabled:opacity-50"
+              className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm disabled:opacity-50"
             >
               <option value="AFN">AFN</option>
               <option value="USD">USD</option>
@@ -179,7 +179,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
             >
               {statuses.map((s) => (
                 <option key={s.id} value={s.key}>
@@ -209,7 +209,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
               <select
                 value={sellerId}
                 onChange={(e) => setSellerId(e.target.value)}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
               >
                 <option value="">{t('carpets.noSeller', '— none —')}</option>
                 {clients.map((c) => (
@@ -228,7 +228,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
         )}
 
         {/* Live calculation summary */}
-        <div className="grid grid-cols-3 gap-3 rounded-lg border border-border bg-card p-3 text-sm">
+        <div className="grid grid-cols-3 gap-3 rounded-2xl border border-border/70 bg-card p-3 text-sm shadow-card">
           <Calc label={t('carpets.area', 'Area')} value={`${calc.area.toFixed(2)} m²`} />
           <Calc
             label={t('carpets.effectivePerMeter', 'Effective / meter')}

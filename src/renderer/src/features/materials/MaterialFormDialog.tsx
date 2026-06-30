@@ -65,7 +65,7 @@ export function MaterialFormDialog({
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value as Currency)}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
             >
               <option value="AFN">AFN</option>
               <option value="USD">USD</option>

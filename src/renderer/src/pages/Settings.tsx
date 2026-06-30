@@ -20,7 +20,7 @@ function Field({
   children: ReactNode
 }): JSX.Element {
   return (
-    <div className="flex items-center justify-between gap-6 rounded-lg border border-border bg-card p-4">
+    <div className="flex items-center justify-between gap-6 rounded-2xl border border-border/70 bg-card p-4 shadow-card">
       <div>
         <div className="text-sm font-medium">{title}</div>
         {description && <div className="text-xs text-muted-foreground">{description}</div>}
@@ -141,7 +141,7 @@ export function Settings(): JSX.Element {
   return (
     <div className="mx-auto max-w-2xl space-y-4 pb-10">
       <div>
-        <h2 className="text-xl font-semibold">{t('settings.title', 'Settings')}</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t('settings.title', 'Settings')}</h2>
         <p className="text-sm text-muted-foreground">{t('settings.subtitle', 'Preferences are saved automatically.')}</p>
       </div>
 
@@ -189,7 +189,7 @@ export function Settings(): JSX.Element {
             <select
               value={config.backupFrequency}
               onChange={(e) => patchConfig({ backupFrequency: e.target.value as BackupFrequency })}
-              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
             >
               <option value="off">{t('settings.freqOff', 'Off')}</option>
               <option value="onClose">{t('settings.freqOnClose', 'On app close')}</option>
@@ -222,7 +222,7 @@ export function Settings(): JSX.Element {
 
       {/* Security */}
       <SectionTitle>{t('settings.security', 'Security')}</SectionTitle>
-      <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+      <div className="space-y-3 rounded-2xl border border-border/70 bg-card p-4 shadow-card">
         <div className="text-sm font-medium">{t('settings.changePassword', 'Change password')}</div>
         <Input type="password" value={curPw} onChange={(e) => setCurPw(e.target.value)} placeholder={t('settings.currentPassword', 'Current password')} />
         <Input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder={t('settings.newPassword', 'New password')} />

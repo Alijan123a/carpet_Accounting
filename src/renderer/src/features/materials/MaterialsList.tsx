@@ -84,7 +84,7 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">{t('material.title', 'Material (Tar)')}</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t('material.title', 'Material (Tar)')}</h2>
           <p className="text-xs text-muted-foreground">{t('material.total', { total, defaultValue: '{{total}} total' })}</p>
         </div>
         <Button onClick={() => setFormOpen(true)}>
@@ -111,8 +111,8 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
         </label>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border">
-        <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-card text-xs font-medium text-muted-foreground')}>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
+        <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
           <span>{t('material.name', 'Name')}</span>
           <span>{t('material.currency', 'Cur')}</span>
           <span className="text-end">{t('material.boughtKg', 'Bought')}</span>

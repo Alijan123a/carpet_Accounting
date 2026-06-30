@@ -137,7 +137,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">{t('carpets.title', 'Carpets')}</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t('carpets.title', 'Carpets')}</h2>
           <p className="text-xs text-muted-foreground">{t('carpets.total', { total, defaultValue: '{{total}} total' })}</p>
         </div>
         <div className="flex gap-2">
@@ -167,7 +167,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+          className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
         >
           <option value="all">{t('carpets.allStatuses', 'All statuses')}</option>
           {statuses.map((s) => (
@@ -179,7 +179,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
         <select
           value={gradeFilter}
           onChange={(e) => setGradeFilter(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+          className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
         >
           <option value="all">{t('carpets.allGrades', 'All grades')}</option>
           {grades.map((g) => (
@@ -199,10 +199,10 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
         </label>
       </div>
 
-      <div className="flex min-h-0 flex-1 overflow-x-auto rounded-lg border border-border">
+      <div className="flex min-h-0 flex-1 overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-card">
         <div className={cn(MIN_W, 'flex flex-1 flex-col')}>
           {/* header sits outside the vertical scroll element; both scroll horizontally together */}
-          <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-card text-xs font-medium text-muted-foreground')}>
+          <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
               <span>{t('carpets.label', 'Label #')}</span>
               <span className="text-end">{t('carpets.length', 'L')}</span>
               <span className="text-end">{t('carpets.width', 'W')}</span>

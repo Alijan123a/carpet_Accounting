@@ -11,7 +11,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ current, onNavigate, children }: AppLayoutProps): JSX.Element {
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
+    <div className="app-bg flex h-screen w-screen overflow-hidden text-foreground">
       <Sidebar current={current} onNavigate={onNavigate} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar current={current} />

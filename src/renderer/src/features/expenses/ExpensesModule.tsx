@@ -113,7 +113,7 @@ export function ExpensesModule(): JSX.Element {
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">{t('expenses.title', 'Expenses')}</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t('expenses.title', 'Expenses')}</h2>
           <p className="text-xs text-muted-foreground">{t('expenses.total', { total, defaultValue: '{{total}} total' })}</p>
         </div>
         <Button
@@ -134,7 +134,7 @@ export function ExpensesModule(): JSX.Element {
           placeholder={t('expenses.searchPlaceholder', 'Search category or note…')}
           className="h-9 max-w-xs"
         />
-        <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
+        <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm">
           <option value="all">{t('expenses.allCategories', 'All categories')}</option>
           {categories.map((c) => (
             <option key={c} value={c}>
@@ -142,7 +142,7 @@ export function ExpensesModule(): JSX.Element {
             </option>
           ))}
         </select>
-        <select value={currency} onChange={(e) => setCurrency(e.target.value as Currency | 'all')} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
+        <select value={currency} onChange={(e) => setCurrency(e.target.value as Currency | 'all')} className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm">
           <option value="all">{t('expenses.allCurrencies', 'All currencies')}</option>
           <option value="AFN">AFN</option>
           <option value="USD">USD</option>
@@ -151,8 +151,8 @@ export function ExpensesModule(): JSX.Element {
         <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9 w-40" />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border">
-        <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-card text-xs font-medium text-muted-foreground')}>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
+        <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
           <span>{t('expenses.date', 'Date')}</span>
           <span>{t('expenses.category', 'Category')}</span>
           <span>{t('expenses.currency', 'Cur')}</span>

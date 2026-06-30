@@ -16,7 +16,7 @@ function SectionTable({ section }: { section: RenderedSection }): JSX.Element {
   const template = `repeat(${section.columns.length}, minmax(0, 1fr))`
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
+    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
       {section.title && (
         <div className="border-b border-border bg-card px-3 py-2 text-sm font-semibold">{section.title}</div>
       )}

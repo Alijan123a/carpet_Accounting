@@ -9,7 +9,7 @@ export function Placeholder({ route }: { route: Route }): JSX.Element {
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
       {Icon ? <Icon className="mb-4 h-10 w-10 text-muted-foreground" /> : null}
-      <h2 className="text-xl font-semibold">
+      <h2 className="text-2xl font-bold tracking-tight">
         {item ? t(item.i18nKey, item.label) : ''}
       </h2>
       <p className="mt-2 max-w-md text-sm text-muted-foreground">

@@ -39,7 +39,7 @@ export function ArchivePage(): JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">{t('nav.archive', 'Archive')}</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t('nav.archive', 'Archive')}</h2>
         <p className="text-xs text-muted-foreground">{t('archive.subtitle', 'Archived items are hidden from active views but never deleted, and still appear in date-ranged reports.')}</p>
       </div>
 
@@ -90,7 +90,7 @@ function Section({ title, children }: { title: string; children: ReactNode }): J
   return (
     <section>
       <h3 className="mb-2 text-sm font-semibold">{title}</h3>
-      <div className="overflow-hidden rounded-lg border border-border">{children}</div>
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">{children}</div>
     </section>
   )
 }
