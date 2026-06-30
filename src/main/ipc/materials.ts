@@ -188,7 +188,8 @@ export function addMaterialLine(db: DB, input: MaterialLineInput): number {
           materialLineId: lineId,
           transactionDate: input.transactionDate ?? now,
           createdAt: now,
-          note: `${input.direction === 'buy' ? 'Bought' : 'Sold'} ${input.kilograms}kg ${material.name}`
+          // Auto-note in Dari (single Afghan trader; see CLAUDE.md §6).
+          note: `${input.direction === 'buy' ? 'خرید' : 'فروش'} ${input.kilograms} کیلو ${material.name}`
         })
         .run().lastInsertRowid
     )

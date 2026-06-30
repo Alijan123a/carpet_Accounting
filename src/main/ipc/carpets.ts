@@ -157,7 +157,8 @@ export function createCarpet(db: DB, input: CarpetInput): { ok: boolean; id?: nu
               carpetId,
               transactionDate: input.transactionDate ?? now,
               createdAt: now,
-              note: `Bought carpet ${input.labelNumber.trim()}`
+              // Auto-note in Dari (single Afghan trader; see CLAUDE.md §6).
+              note: `خرید قالین نمبر ${input.labelNumber.trim()}`
             })
             .run().lastInsertRowid
         )
@@ -237,7 +238,8 @@ export function sellCarpet(db: DB, input: CarpetSellInput): { ok: boolean; reaso
           carpetId: carpet.id,
           transactionDate: input.transactionDate ?? now,
           createdAt: now,
-          note: `Sold carpet ${carpet.labelNumber}`
+          // Auto-note in Dari (single Afghan trader; see CLAUDE.md §6).
+          note: `فروش قالین نمبر ${carpet.labelNumber}`
         })
         .run().lastInsertRowid
     )

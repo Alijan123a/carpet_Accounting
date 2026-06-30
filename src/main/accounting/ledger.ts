@@ -69,7 +69,11 @@ export function reverseTransaction(db: DB, transactionId: number): number {
   if (original.type === 'reversal') {
     throw new Error(`Cannot reverse a reversal (#${transactionId})`)
   }
-  const reversal = buildReversal({ ...original, id: original.id } as LedgerTransaction & { id: number })
+  // Auto-note in Dari (single Afghan trader; see CLAUDE.md §6). Derive it from
+  // the original note so the reversal describes the item it undoes, e.g.
+  // "واپسی فروش قالین نمبر C-001" or "واپسی خرید ۵ کیلو تار سفید".
+  const note = original.note ? `واپسی ${original.note}` : `واپسی تراکنش #${original.id}`
+  const reversal = buildReversal({ ...original, id: original.id } as LedgerTransaction & { id: number }, { note })
   return postTransaction(db, reversal)
 }
 
