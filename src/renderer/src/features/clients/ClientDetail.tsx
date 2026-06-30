@@ -12,6 +12,7 @@ import type { TransactionType } from '@shared/accounting'
 import { BalanceAmount } from './BalanceAmount'
 import { ClientFormDialog } from './ClientFormDialog'
 import { PaymentDialog } from './PaymentDialog'
+import { TransactionDetailDialog } from './TransactionDetailDialog'
 import { ConfirmDialog } from '@renderer/components/ConfirmDialog'
 
 const PAGE_SIZE = 100
@@ -47,6 +48,7 @@ export function ClientDetail({
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [reverseTarget, setReverseTarget] = useState<TransactionView | null>(null)
+  const [detailTx, setDetailTx] = useState<TransactionView | null>(null)
 
   const rowsRef = useRef<TransactionView[]>([])
   const loadingRef = useRef(false)
@@ -276,7 +278,12 @@ export function ClientDetail({
               return (
                 <div
                   key={tx.id}
-                  className={cn(GRID, 'absolute start-0 top-0 w-full border-b border-border text-sm')}
+                  onDoubleClick={() => setDetailTx(tx)}
+                  title={t('txDetail.openHint', 'Double-click for full details')}
+                  className={cn(
+                    GRID,
+                    'absolute start-0 top-0 w-full cursor-pointer border-b border-border text-sm hover:bg-accent/50'
+                  )}
                   style={{ height: `${ROW_HEIGHT}px`, transform: `translateY(${vi.start}px)` }}
                 >
                   <span className="text-muted-foreground">{formatDate(tx.transactionDate, calendar)}</span>
@@ -294,6 +301,7 @@ export function ClientDetail({
                         size="icon"
                         className="h-8 w-8"
                         title={t('statement.reverse', 'Reverse')}
+                        onDoubleClick={(e) => e.stopPropagation()}
                         onClick={() => setReverseTarget(tx)}
                       >
                         <Undo2 className="h-4 w-4" />
@@ -310,6 +318,7 @@ export function ClientDetail({
 
       <ClientFormDialog open={editOpen} onOpenChange={setEditOpen} client={client} onSaved={refreshAll} />
       <PaymentDialog open={paymentOpen} onOpenChange={setPaymentOpen} clientId={clientId} onSaved={refreshAll} />
+      <TransactionDetailDialog tx={detailTx} open={detailTx !== null} onOpenChange={(o) => !o && setDetailTx(null)} />
       <ConfirmDialog
         open={archiveOpen}
         onOpenChange={setArchiveOpen}

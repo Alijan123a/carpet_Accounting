@@ -104,6 +104,7 @@
   },
   "clients": {
     "title": "Clients",
+    "openHint": "Double-click to open",
     "add": "Add Client",
     "edit": "Edit Client",
     "name": "Name",
@@ -156,6 +157,14 @@
       "reversal": "Reversal",
       "adjustment": "Adjustment"
     }
+  },
+  "txDetail": {
+    "title": "Transaction details",
+    "openHint": "Double-click for full details",
+    "id": "ID",
+    "transactionDate": "Transaction date",
+    "createdAt": "Recorded at",
+    "reverses": "Reverses"
   },
   "carpets": {
     "title": "Carpets",

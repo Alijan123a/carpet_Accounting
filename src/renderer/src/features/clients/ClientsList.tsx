@@ -144,7 +144,8 @@ export function ClientsList({ onSelect }: { onSelect: (id: number) => void }): J
                 <div
                   key={c.id}
                   role="button"
-                  onClick={() => onSelect(c.id)}
+                  onDoubleClick={() => onSelect(c.id)}
+                  title={t('clients.openHint', 'Double-click to open')}
                   className={cn(
                     GRID,
                     'absolute start-0 top-0 w-full cursor-pointer border-b border-border text-sm hover:bg-accent/50'
