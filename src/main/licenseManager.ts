@@ -140,4 +140,5 @@ export async function isActivated(): Promise<LicenseStatus> {
 export function registerLicenseIpc(): void {
   ipcMain.handle('license:status', () => isActivated())
   ipcMain.handle('license:activate', (_e, key: string) => activate(key))
+  ipcMain.handle('license:fingerprint', () => getMachineFingerprint())
 }

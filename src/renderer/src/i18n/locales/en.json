@@ -86,7 +86,12 @@
     "passwordChanged": "Password changed.",
     "wrongCurrent": "Current password is incorrect.",
     "statuses": "Carpet statuses",
-    "statusesDesc": "Add or rename the statuses used by carpets."
+    "statusesDesc": "Add or rename the statuses used by carpets.",
+    "license": "License",
+    "deviceFingerprint": "Device fingerprint",
+    "deviceFingerprintDesc": "A unique ID of this computer. Share it with support if you need to transfer your license to another device.",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "auth": {
     "setupTitle": "Set a password",

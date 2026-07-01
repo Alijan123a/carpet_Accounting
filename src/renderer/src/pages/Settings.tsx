@@ -51,10 +51,26 @@ export function Settings(): JSX.Element {
   const [confirmPw, setConfirmPw] = useState('')
   const [pwMsg, setPwMsg] = useState<string | null>(null)
 
+  // device fingerprint (for support / license transfer)
+  const [fingerprint, setFingerprint] = useState('')
+  const [copied, setCopied] = useState(false)
+
   useEffect(() => {
     window.api.getVersion().then(setVersion).catch(() => undefined)
     window.api.config.get().then(setConfig).catch(() => undefined)
+    window.api.license.fingerprint().then(setFingerprint).catch(() => undefined)
   }, [])
+
+  async function copyFingerprint(): Promise<void> {
+    if (!fingerprint) return
+    try {
+      await navigator.clipboard.writeText(fingerprint)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      /* clipboard unavailable — the value is selectable as a fallback */
+    }
+  }
 
   async function patchConfig(patch: Partial<AppConfig>): Promise<void> {
     setConfig(await window.api.config.set(patch))
@@ -231,6 +247,26 @@ export function Settings(): JSX.Element {
         <Button size="sm" onClick={changePassword} disabled={busy}>
           {t('settings.changePassword', 'Change password')}
         </Button>
+      </div>
+
+      {/* License */}
+      <SectionTitle>{t('settings.license', 'License')}</SectionTitle>
+      <div className="space-y-2 rounded-2xl border border-border/70 bg-card p-4 shadow-card">
+        <div className="text-sm font-medium">{t('settings.deviceFingerprint', 'Device fingerprint')}</div>
+        <div className="text-xs text-muted-foreground">
+          {t(
+            'settings.deviceFingerprintDesc',
+            'A unique ID of this computer. Share it with support if you need to transfer your license to another device.'
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <code className="min-w-0 flex-1 select-all break-all rounded-lg border border-input bg-muted/40 px-3 py-2 font-mono text-xs">
+            {fingerprint || '…'}
+          </code>
+          <Button variant="outline" size="sm" onClick={copyFingerprint} disabled={!fingerprint}>
+            {copied ? t('settings.copied', 'Copied') : t('settings.copy', 'Copy')}
+          </Button>
+        </div>
       </div>
 
       {/* Carpet statuses */}

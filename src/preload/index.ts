@@ -91,7 +91,8 @@ const api = {
   // License / device lock.
   license: {
     status: () => ipcRenderer.invoke('license:status'),
-    activate: (key: string) => ipcRenderer.invoke('license:activate', key)
+    activate: (key: string) => ipcRenderer.invoke('license:activate', key),
+    fingerprint: () => ipcRenderer.invoke('license:fingerprint')
   },
 
   // App config (Phase 6).

@@ -396,6 +396,8 @@ export interface LicenseStatus {
 export interface LicenseApi {
   status: () => Promise<LicenseStatus>
   activate: (key: string) => Promise<{ ok: boolean; reason?: LicenseStatus['reason'] }>
+  /** This machine's hardware fingerprint (SHA-256 hex) — for support/license transfer. */
+  fingerprint: () => Promise<string>
 }
 
 export type BackupFrequency = 'off' | 'onClose' | 'daily'
