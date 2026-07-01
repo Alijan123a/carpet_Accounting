@@ -31,6 +31,9 @@ interface Props {
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10)
 
+/** Sort grades are a fixed set (A, B, C). */
+const SORT_GRADES: string[] = ['A', 'B', 'C']
+
 export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props): JSX.Element {
   const { t } = useTranslation()
   const language = useSettings((s) => s.language)
@@ -83,6 +86,13 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
     const totalCents = carpetTotalPriceCents(ppmCents, dedCents, area)
     return { area, ppmCents, dedCents, effectiveCents, totalCents, exceeds: dedCents > ppmCents }
   }, [length, width, ppm, deduction])
+
+  // Fixed A/B/C list; keep any legacy value already on the carpet so editing it
+  // never silently drops an out-of-list grade.
+  const gradeOptions = useMemo(
+    () => (sortGrade && !SORT_GRADES.includes(sortGrade) ? [sortGrade, ...SORT_GRADES] : SORT_GRADES),
+    [sortGrade]
+  )
 
   async function submit(): Promise<void> {
     if (!label.trim()) return setError(t('carpets.labelRequired', 'Label number is required.'))
@@ -156,7 +166,18 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
             <Input value={label} onChange={(e) => setLabel(e.target.value)} autoFocus />
           </Labeled>
           <Labeled label={t('carpets.sortGrade', 'Sort grade')}>
-            <Input value={sortGrade} onChange={(e) => setSortGrade(e.target.value)} />
+            <select
+              value={sortGrade}
+              onChange={(e) => setSortGrade(e.target.value)}
+              className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
+            >
+              <option value="">{t('carpets.noGrade', '— none —')}</option>
+              {gradeOptions.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
           </Labeled>
           <Labeled label={`${t('carpets.length', 'Length')} (m)`}>
             <Input type="number" step="0.01" value={length} onChange={(e) => setLength(e.target.value)} disabled={locked} />

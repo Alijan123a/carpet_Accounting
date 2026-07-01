@@ -178,6 +178,7 @@
     "width": "Width",
     "area": "Area",
     "sortGrade": "Sort grade",
+    "noGrade": "— none —",
     "currency": "Currency",
     "pricePerMeter": "Price / meter",
     "effectivePerMeter": "Effective price / meter",
