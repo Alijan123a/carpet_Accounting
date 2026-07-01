@@ -37,7 +37,7 @@ it to another computer will not work.
 If a customer changes hardware (new motherboard/CPU), their fingerprint changes;
 generate a fresh key for the new fingerprint.
 
-## Run — UI
+## Run — UI (local server)
 
 ```
 npm run license:app
@@ -45,6 +45,23 @@ npm run license:app
 
 Opens `http://127.0.0.1:4599` in your browser. Paste the fingerprint, click
 **Generate**, copy the key.
+
+> Do **not** just double-click `index.html`. That page calls the local server, so
+> opening it as a `file://` fails with a CORS/`ERR_FAILED` error. Use the command
+> above — or the standalone below for double-click use.
+
+## Run — standalone (double-click, offline)
+
+```
+npm run license:standalone
+```
+
+This writes `license-generator/standalone.html` with the secret baked in and the
+key computed in the browser (Web Crypto) — no server needed. **Double-click it**
+to open, paste the fingerprint, Generate, copy.
+
+Because it contains the secret, `standalone.html` is **gitignored** — keep it on
+your machine only, and rebuild it if you change the secret.
 
 ## Run — CLI
 

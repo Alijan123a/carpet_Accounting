@@ -18,6 +18,7 @@
     "db:generate": "drizzle-kit generate",
     "license:app": "node license-generator/server.mjs",
     "license:gen": "node license-generator/cli.mjs",
+    "license:standalone": "node license-generator/build-standalone.mjs",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",

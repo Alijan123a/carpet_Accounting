@@ -111,6 +111,15 @@
       const fpEl = $('fp'), genEl = $('gen'), errEl = $('err')
       const resultEl = $('result'), keyEl = $('key'), copyEl = $('copy'), copiedEl = $('copied')
 
+      // This page talks to the local server, so it must be opened over http.
+      // If someone double-clicks the file (file://), fetch to /api/generate fails
+      // with a CORS/protocol error — tell them how to run it properly.
+      if (location.protocol === 'file:') {
+        errEl.textContent =
+          'Open this tool with "npm run license:app" (it serves over http), or use standalone.html for offline double-click use.'
+        genEl.disabled = true
+      }
+
       async function generate() {
         errEl.textContent = ''
         copiedEl.textContent = ''

@@ -22,6 +22,9 @@ npm-debug.log*
 # License signing secret — NEVER push. Anyone with this can mint valid keys.
 # (license.secret.example.json IS committed as a template.)
 license.secret.json
+# Standalone generator has the secret baked in — NEVER push. Build it locally
+# with `npm run license:standalone`.
+license-generator/standalone.html
 # Local activation record, if one is ever produced in the project folder.
 license.json
 
