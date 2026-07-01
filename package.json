@@ -16,6 +16,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
+    "license:gen": "node tools/generate-license-key.mjs",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
@@ -38,6 +39,7 @@
     "react-dom": "^18.3.1",
     "react-i18next": "^15.4.0",
     "recharts": "^2.15.0",
+    "systeminformation": "^5.31.11",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "zustand": "^5.0.3"

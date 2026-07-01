@@ -88,6 +88,12 @@ const api = {
     change: (oldPassword: string, newPassword: string) => ipcRenderer.invoke('auth:change', oldPassword, newPassword)
   },
 
+  // License / device lock.
+  license: {
+    status: () => ipcRenderer.invoke('license:status'),
+    activate: (key: string) => ipcRenderer.invoke('license:activate', key)
+  },
+
   // App config (Phase 6).
   config: {
     get: () => ipcRenderer.invoke('config:get'),

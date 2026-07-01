@@ -385,6 +385,19 @@ export interface AuthApi {
   change: (oldPassword: string, newPassword: string) => Promise<{ ok: boolean; reason?: string }>
 }
 
+// --- License / device lock --------------------------------------------------
+
+export interface LicenseStatus {
+  activated: boolean
+  /** Present when not activated: why access is blocked. */
+  reason?: 'not_activated' | 'device_mismatch' | 'invalid_key'
+}
+
+export interface LicenseApi {
+  status: () => Promise<LicenseStatus>
+  activate: (key: string) => Promise<{ ok: boolean; reason?: LicenseStatus['reason'] }>
+}
+
 export type BackupFrequency = 'off' | 'onClose' | 'daily'
 
 export interface AppConfig {

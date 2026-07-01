@@ -12,6 +12,7 @@ import { registerReportsIpc, runReport } from './ipc/reports'
 import { registerPdfIpc } from './ipc/pdf'
 import { registerArchiveIpc, archiveLists } from './ipc/archive'
 import { registerAuthIpc, probeAuthCrypto } from './auth'
+import { registerLicenseIpc } from './licenseManager'
 import { registerConfigIpc } from './config'
 import { registerBackupIpc, backupOnQuit, autoBackupDailyIfDue, validateSqlite } from './backup'
 
@@ -109,6 +110,7 @@ app.whenReady().then(() => {
   // Archive, auth, config, backup (Phase 6).
   registerArchiveIpc(getDatabase)
   registerAuthIpc()
+  registerLicenseIpc()
   registerConfigIpc()
   registerBackupIpc()
   void autoBackupDailyIfDue()

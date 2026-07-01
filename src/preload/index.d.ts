@@ -11,6 +11,7 @@ import type {
   PdfApi,
   ArchiveApi,
   AuthApi,
+  LicenseApi,
   ConfigApi,
   BackupApi
 } from '../shared/contracts'
@@ -30,6 +31,7 @@ export interface Api {
   pdf: PdfApi
   archive: ArchiveApi
   auth: AuthApi
+  license: LicenseApi
   config: ConfigApi
   backup: BackupApi
 }

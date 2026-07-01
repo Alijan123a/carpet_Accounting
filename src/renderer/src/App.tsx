@@ -11,6 +11,8 @@ import { Dashboard } from '@renderer/features/dashboard/Dashboard'
 import { ReportsModule } from '@renderer/features/reports/ReportsModule'
 import { ArchivePage } from '@renderer/features/archive/ArchivePage'
 import { LockScreen } from '@renderer/features/auth/LockScreen'
+import { ActivationScreen } from '@renderer/features/license/ActivationScreen'
+import type { LicenseStatus } from '@shared/contracts'
 import type { Route } from '@renderer/config/nav'
 
 function MainApp(): JSX.Element {
@@ -42,15 +44,20 @@ function MainApp(): JSX.Element {
 
 function App(): JSX.Element {
   const [ready, setReady] = useState(false)
+  const [licensed, setLicensed] = useState(false)
+  const [licenseReason, setLicenseReason] = useState<LicenseStatus['reason']>(undefined)
   const [isSet, setIsSet] = useState(false)
   const [unlocked, setUnlocked] = useState(false)
 
   useEffect(() => {
-    window.api.auth
-      .status()
-      .then((s) => {
-        setIsSet(s.isSet)
-        setUnlocked(s.unlocked)
+    // Device-lock gate runs first: without an activated license bound to THIS
+    // machine, the password flow (and the app) is never reached.
+    Promise.all([window.api.license.status(), window.api.auth.status()])
+      .then(([lic, auth]) => {
+        setLicensed(lic.activated)
+        setLicenseReason(lic.reason)
+        setIsSet(auth.isSet)
+        setUnlocked(auth.unlocked)
       })
       .finally(() => setReady(true))
   }, [])
@@ -59,6 +66,14 @@ function App(): JSX.Element {
     <AppSettingsProvider>
       {!ready ? (
         <div className="flex h-screen w-screen items-center justify-center bg-background text-muted-foreground">…</div>
+      ) : !licensed ? (
+        <ActivationScreen
+          reason={licenseReason}
+          onActivated={() => {
+            setLicensed(true)
+            setLicenseReason(undefined)
+          }}
+        />
       ) : unlocked ? (
         <MainApp />
       ) : (

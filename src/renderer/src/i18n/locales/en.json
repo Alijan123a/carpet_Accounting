@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Carpet Accounting", "tagline": "Afghan carpet ledger" },
+  "app": {
+    "name": "Carpet Accounting",
+    "tagline": "Afghan carpet ledger"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Clients",
@@ -11,7 +14,10 @@
     "archive": "Archive",
     "settings": "Settings"
   },
-  "topbar": { "toggleTheme": "Toggle theme", "toggleLanguage": "Switch language" },
+  "topbar": {
+    "toggleTheme": "Toggle theme",
+    "toggleLanguage": "Switch language"
+  },
   "common": {
     "comingSoon": "This module will be built in a later phase.",
     "cancel": "Cancel",
@@ -356,5 +362,16 @@
     "turnover": "Periodic turnover",
     "receivablesLabel": "Receivables",
     "payablesLabel": "Payables"
+  },
+  "license": {
+    "activateTitle": "Activate your license",
+    "activateHint": "Enter your license key to activate this app. The license will be locked to this computer.",
+    "keyPlaceholder": "XXXXX-XXXXX-XXXXX-XXXXX-XXXX",
+    "activate": "Activate",
+    "empty": "Please enter your license key.",
+    "invalid": "Invalid license key. Please check it and try again.",
+    "deviceMismatch": "This key is already activated on a different device. Please contact support to transfer your license.",
+    "blockedTitle": "Invalid device",
+    "blockedHint": "Your license is locked to the computer where it was first activated. If you changed or replaced this machine, contact support to move it."
   }
 }
