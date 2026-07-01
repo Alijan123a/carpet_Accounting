@@ -21,7 +21,7 @@ export function Sidebar({ current, onNavigate }: SidebarProps): JSX.Element {
           ق
         </span>
         <div className="leading-tight">
-          <div className="text-[15px] font-bold tracking-tight">{t('app.name', 'Qaleen Trader')}</div>
+          <div className="text-[15px] font-bold tracking-tight">{t('app.name', 'Carpet Accounting')}</div>
           <div className="text-xs text-muted-foreground">
             {t('app.tagline', 'Carpet Accounting')}
           </div>
@@ -60,7 +60,7 @@ export function Sidebar({ current, onNavigate }: SidebarProps): JSX.Element {
       </nav>
 
       <div className="px-5 py-4 text-[11px] text-muted-foreground/70">
-        {t('app.name', 'Qaleen Trader')} · v0.1
+        {t('app.name', 'Carpet Accounting')} · v0.1
       </div>
     </aside>
   )

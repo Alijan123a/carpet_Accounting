@@ -61,7 +61,7 @@ export function LockScreen({
             <Lock className="h-6 w-6" />
           </span>
           <div>
-            <div className="text-lg font-bold tracking-tight">{t('app.name', 'Qaleen Trader')}</div>
+            <div className="text-lg font-bold tracking-tight">{t('app.name', 'Carpet Accounting')}</div>
             <div className="text-xs text-muted-foreground">
               {mode === 'setup' ? t('auth.setupTitle', 'Set a password') : t('auth.unlockTitle', 'Enter password')}
             </div>

@@ -1,5 +1,5 @@
 {
-  "name": "qaleen-trader",
+  "name": "carpet-accounting",
   "version": "0.1.0",
   "description": "Offline desktop accounting app for an Afghan carpet (qaleen) trader",
   "main": "./out/main/index.js",

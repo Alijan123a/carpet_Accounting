@@ -38,6 +38,6 @@ export const useSettings = create<SettingsState>()(
       setCalendar: (calendar) => set({ calendar }),
       setDefaultCurrency: (defaultCurrency) => set({ defaultCurrency })
     }),
-    { name: 'qaleen-settings' }
+    { name: 'carpet-accounting-settings' }
   )
 )

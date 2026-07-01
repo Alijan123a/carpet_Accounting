@@ -23,7 +23,7 @@ function createWindow(): void {
     minHeight: 640,
     show: false,
     autoHideMenuBar: true,
-    title: 'Qaleen Trader',
+    title: 'Carpet Accounting',
     backgroundColor: '#0b0f17',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

@@ -10,7 +10,7 @@ let db: BetterSQLite3Database<typeof schema> | null = null
 
 /** Absolute path of the live SQLite database file (per-user app data). */
 export function getDatabasePath(): string {
-  return join(app.getPath('userData'), 'qaleen-trader.db')
+  return join(app.getPath('userData'), 'carpet-accounting.db')
 }
 
 /**

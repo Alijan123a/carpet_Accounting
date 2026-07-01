@@ -5,7 +5,7 @@ import Database from 'better-sqlite3'
 import { getRawDatabase, getDatabasePath, closeDatabase, initDatabase } from './db'
 import { getConfig, setConfig } from './config'
 
-const PREFIX = 'qaleen-trader-backup-'
+const PREFIX = 'carpet-accounting-backup-'
 const VALIDATE_TABLES = ['clients', 'carpets', 'materials', 'material_lines', 'transactions', 'expenses', 'carpet_statuses']
 
 function pad(n: number): string {

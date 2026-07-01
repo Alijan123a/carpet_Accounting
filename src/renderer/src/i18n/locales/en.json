@@ -1,5 +1,5 @@
 {
-  "app": { "name": "Qaleen Trader", "tagline": "Carpet Accounting" },
+  "app": { "name": "Carpet Accounting", "tagline": "Afghan carpet ledger" },
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Clients",

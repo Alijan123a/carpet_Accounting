@@ -71,7 +71,7 @@ export function reverseTransaction(db: DB, transactionId: number): number {
   }
   // Auto-note in Dari (single Afghan trader; see CLAUDE.md §6). Derive it from
   // the original note so the reversal describes the item it undoes, e.g.
-  // "واپسی فروش قالین نمبر C-001" or "واپسی خرید ۵ کیلو تار سفید".
+  // "واپسی فروش قالین نمبر 0001" or "واپسی خرید ۵ کیلو نخ پشمی".
   const note = original.note ? `واپسی ${original.note}` : `واپسی تراکنش #${original.id}`
   const reversal = buildReversal({ ...original, id: original.id } as LedgerTransaction & { id: number }, { note })
   return postTransaction(db, reversal)
@@ -114,214 +114,250 @@ export function devResetSeedCompute(
   resetAllTables(rawExec, reapply)
 
   const now = Date.now()
+  const DAY = 86_400_000
+  /** A business date `d` days before "now" (older data spread across months). */
+  const at = (d: number): number => now - d * DAY
 
   // --- Clients -------------------------------------------------------------
-  const ahmad = Number(
-    db.insert(schema.clients).values({ name: 'Ahmad (supplier)', createdAt: now }).run().lastInsertRowid
-  )
-  const karim = Number(
-    db.insert(schema.clients).values({ name: 'Karim (buyer)', createdAt: now }).run().lastInsertRowid
+  // A realistic mix of suppliers and buyers; several act as both across deals.
+  const clientNames = [
+    'Ahmad Wali', // 0  supplier
+    'Ghulam Sakhi', // 1  supplier
+    'Rahim Gul', // 2  supplier + buyer
+    'Naseer Ahmad', // 3  supplier
+    'Karim Khan', // 4  buyer
+    'Yusuf Ali', // 5  buyer
+    'Fahim Nazari', // 6  buyer
+    'Zahra Carpets' // 7  buyer + supplier
+  ]
+  const clientIds = clientNames.map((name, i) =>
+    Number(db.insert(schema.clients).values({ name, createdAt: at(120 - i) }).run().lastInsertRowid)
   )
 
-  // --- Carpet C1 (AFN): buy 6000.00 from Ahmad, sell 9000.00 to Karim ------
-  const c1Area = 6
-  const c1BuyPpm = 100000 // 1000.00/m
-  const c1BuyTotal = (c1BuyPpm - 0) * c1Area // 600000
-  const c1 = Number(
-    db
-      .insert(schema.carpets)
-      .values({
-        labelNumber: 'C-001',
-        length: 2,
-        width: 3,
-        area: c1Area,
-        sortGrade: 'A',
-        pricePerMeterCents: c1BuyPpm,
-        sortDeductionCents: 0,
-        currency: 'AFN',
-        totalPriceCents: c1BuyTotal,
-        status: 'in_warehouse',
-        boughtFromClientId: ahmad,
-        createdAt: now
-      })
-      .run().lastInsertRowid
-  )
-  const c1BuyTx = postTransaction(db, {
-    clientId: ahmad,
-    type: 'purchase',
-    currency: 'AFN',
-    amountCents: -c1BuyTotal, // we owe Ahmad
-    carpetId: c1,
-    transactionDate: now,
-    note: 'Bought carpet C-001'
-  })
-  const c1SellPpm = 150000 // 1500.00/m
-  const c1SellTotal = (c1SellPpm - 0) * c1Area // 900000
-  const c1SellTx = postTransaction(db, {
-    clientId: karim,
-    type: 'sale',
-    currency: 'AFN',
-    amountCents: c1SellTotal, // Karim owes us
-    carpetId: c1,
-    transactionDate: now,
-    note: 'Sold carpet C-001'
-  })
-  db.update(schema.carpets)
-    .set({
-      buyTransactionId: c1BuyTx,
-      status: 'sold',
-      sellPricePerMeterCents: c1SellPpm,
-      sellSortDeductionCents: 0,
-      sellTotalPriceCents: c1SellTotal,
-      soldToClientId: karim,
-      sellTransactionId: c1SellTx,
-      soldAt: now
+  // --- Carpets -------------------------------------------------------------
+  // 4-digit label numbers (per spec). Each carpet is bought whole from a
+  // supplier and most are later sold whole to one buyer. Money is integer cents;
+  // `ppm`/`ded` are price-per-meter and sort-deduction per meter.
+  interface Sale {
+    buyer: number
+    ppm: number
+    ded: number
+    soldDaysAgo: number
+  }
+  interface CarpetDef {
+    label: string
+    l: number
+    w: number
+    grade: string
+    currency: Currency
+    seller: number
+    ppm: number
+    ded: number
+    boughtDaysAgo: number
+    sale?: Sale
+  }
+  const carpetDefs: CarpetDef[] = [
+    { label: '0001', l: 2, w: 3, grade: 'A', currency: 'AFN', seller: 0, ppm: 120000, ded: 0, boughtDaysAgo: 110, sale: { buyer: 4, ppm: 175000, ded: 0, soldDaysAgo: 95 } },
+    { label: '0002', l: 2.5, w: 3.5, grade: 'A', currency: 'AFN', seller: 0, ppm: 110000, ded: 5000, boughtDaysAgo: 108, sale: { buyer: 5, ppm: 160000, ded: 0, soldDaysAgo: 88 } },
+    { label: '0003', l: 2, w: 2, grade: 'B', currency: 'USD', seller: 1, ppm: 5000, ded: 0, boughtDaysAgo: 100, sale: { buyer: 4, ppm: 8000, ded: 0, soldDaysAgo: 84 } },
+    { label: '0004', l: 3, w: 4, grade: 'A', currency: 'AFN', seller: 1, ppm: 130000, ded: 0, boughtDaysAgo: 96, sale: { buyer: 6, ppm: 190000, ded: 0, soldDaysAgo: 70 } },
+    { label: '0005', l: 2, w: 3, grade: 'B', currency: 'AFN', seller: 2, ppm: 90000, ded: 0, boughtDaysAgo: 90 },
+    { label: '0006', l: 1.5, w: 2, grade: 'C', currency: 'USD', seller: 3, ppm: 4000, ded: 0, boughtDaysAgo: 85, sale: { buyer: 5, ppm: 7000, ded: 0, soldDaysAgo: 60 } },
+    { label: '0007', l: 2, w: 3.5, grade: 'A', currency: 'AFN', seller: 0, ppm: 125000, ded: 0, boughtDaysAgo: 80, sale: { buyer: 7, ppm: 180000, ded: 0, soldDaysAgo: 55 } },
+    { label: '0008', l: 3, w: 5, grade: 'A', currency: 'AFN', seller: 2, ppm: 140000, ded: 10000, boughtDaysAgo: 76, sale: { buyer: 4, ppm: 200000, ded: 0, soldDaysAgo: 40 } },
+    { label: '0009', l: 2, w: 3, grade: 'B', currency: 'USD', seller: 3, ppm: 6000, ded: 0, boughtDaysAgo: 70 },
+    { label: '0010', l: 2, w: 2.5, grade: 'B', currency: 'AFN', seller: 1, ppm: 100000, ded: 0, boughtDaysAgo: 64, sale: { buyer: 6, ppm: 150000, ded: 0, soldDaysAgo: 35 } },
+    { label: '0011', l: 2.5, w: 4, grade: 'A', currency: 'AFN', seller: 0, ppm: 135000, ded: 0, boughtDaysAgo: 58, sale: { buyer: 5, ppm: 195000, ded: 5000, soldDaysAgo: 28 } },
+    { label: '0012', l: 2, w: 2, grade: 'C', currency: 'USD', seller: 7, ppm: 4500, ded: 0, boughtDaysAgo: 50 },
+    { label: '0013', l: 3, w: 4, grade: 'A', currency: 'AFN', seller: 2, ppm: 128000, ded: 0, boughtDaysAgo: 44, sale: { buyer: 7, ppm: 185000, ded: 0, soldDaysAgo: 18 } },
+    { label: '0014', l: 2, w: 3, grade: 'B', currency: 'AFN', seller: 3, ppm: 95000, ded: 0, boughtDaysAgo: 30 }
+  ]
+
+  for (const d of carpetDefs) {
+    const area = d.l * d.w
+    const buyEffective = Math.max(0, d.ppm - d.ded)
+    const buyTotal = Math.round(buyEffective * area)
+    const carpetId = Number(
+      db
+        .insert(schema.carpets)
+        .values({
+          labelNumber: d.label,
+          length: d.l,
+          width: d.w,
+          area,
+          sortGrade: d.grade,
+          pricePerMeterCents: d.ppm,
+          sortDeductionCents: d.ded,
+          currency: d.currency,
+          totalPriceCents: buyTotal,
+          status: d.sale ? 'sold' : 'in_warehouse',
+          boughtFromClientId: clientIds[d.seller],
+          createdAt: at(d.boughtDaysAgo)
+        })
+        .run().lastInsertRowid
+    )
+    const buyTx = postTransaction(db, {
+      clientId: clientIds[d.seller],
+      type: 'purchase',
+      currency: d.currency,
+      amountCents: -buyTotal, // we owe the supplier
+      carpetId,
+      transactionDate: at(d.boughtDaysAgo),
+      note: `Bought carpet ${d.label}`
     })
-    .where(eq(schema.carpets.id, c1))
-    .run()
+    db.update(schema.carpets).set({ buyTransactionId: buyTx }).where(eq(schema.carpets.id, carpetId)).run()
 
-  // --- Carpet C2 (USD): buy 200.00 from Ahmad, sell 320.00 to Karim --------
-  const c2Area = 4
-  const c2BuyPpm = 5000 // 50.00/m
-  const c2BuyTotal = c2BuyPpm * c2Area // 20000
-  const c2 = Number(
-    db
-      .insert(schema.carpets)
-      .values({
-        labelNumber: 'C-002',
-        length: 2,
-        width: 2,
-        area: c2Area,
-        sortGrade: 'B',
-        pricePerMeterCents: c2BuyPpm,
-        sortDeductionCents: 0,
-        currency: 'USD',
-        totalPriceCents: c2BuyTotal,
-        status: 'in_warehouse',
-        boughtFromClientId: ahmad,
-        createdAt: now
+    if (d.sale) {
+      const s = d.sale
+      const sellEffective = Math.max(0, s.ppm - s.ded)
+      const sellTotal = Math.round(sellEffective * area)
+      const sellTx = postTransaction(db, {
+        clientId: clientIds[s.buyer],
+        type: 'sale',
+        currency: d.currency,
+        amountCents: sellTotal, // the buyer owes us
+        carpetId,
+        transactionDate: at(s.soldDaysAgo),
+        note: `Sold carpet ${d.label}`
       })
-      .run().lastInsertRowid
-  )
-  const c2BuyTx = postTransaction(db, {
-    clientId: ahmad,
-    type: 'purchase',
-    currency: 'USD',
-    amountCents: -c2BuyTotal,
-    carpetId: c2,
-    transactionDate: now,
-    note: 'Bought carpet C-002'
-  })
-  const c2SellPpm = 8000 // 80.00/m
-  const c2SellTotal = c2SellPpm * c2Area // 32000
-  const c2SellTx = postTransaction(db, {
-    clientId: karim,
-    type: 'sale',
-    currency: 'USD',
-    amountCents: c2SellTotal,
-    carpetId: c2,
-    transactionDate: now,
-    note: 'Sold carpet C-002'
-  })
-  db.update(schema.carpets)
-    .set({
-      buyTransactionId: c2BuyTx,
-      status: 'sold',
-      sellPricePerMeterCents: c2SellPpm,
-      sellSortDeductionCents: 0,
-      sellTotalPriceCents: c2SellTotal,
-      soldToClientId: karim,
-      sellTransactionId: c2SellTx,
-      soldAt: now
+      db.update(schema.carpets)
+        .set({
+          status: 'sold',
+          sellPricePerMeterCents: s.ppm,
+          sellSortDeductionCents: s.ded,
+          sellTotalPriceCents: sellTotal,
+          soldToClientId: clientIds[s.buyer],
+          sellTransactionId: sellTx,
+          soldAt: at(s.soldDaysAgo)
+        })
+        .where(eq(schema.carpets.id, carpetId))
+        .run()
+    }
+  }
+
+  // --- Materials (thread) --------------------------------------------------
+  // Two or three material types, each with several kg-based buy/sell lines.
+  interface MatLine {
+    client: number
+    kg: number
+    ppkg: number
+    daysAgo: number
+  }
+  interface MatDef {
+    name: string
+    currency: Currency
+    buys: MatLine[]
+    sells: MatLine[]
+  }
+  const materialDefs: MatDef[] = [
+    {
+      name: 'Wool thread',
+      currency: 'AFN',
+      buys: [
+        { client: 0, kg: 20, ppkg: 5000, daysAgo: 100 },
+        { client: 1, kg: 15, ppkg: 5200, daysAgo: 80 },
+        { client: 0, kg: 10, ppkg: 5100, daysAgo: 40 }
+      ],
+      sells: [
+        { client: 4, kg: 12, ppkg: 8000, daysAgo: 70 },
+        { client: 5, kg: 8, ppkg: 8200, daysAgo: 30 }
+      ]
+    },
+    {
+      name: 'Cotton thread',
+      currency: 'AFN',
+      buys: [
+        { client: 2, kg: 30, ppkg: 3000, daysAgo: 90 },
+        { client: 3, kg: 20, ppkg: 3100, daysAgo: 50 }
+      ],
+      sells: [
+        { client: 6, kg: 15, ppkg: 4500, daysAgo: 60 },
+        { client: 4, kg: 10, ppkg: 4600, daysAgo: 20 }
+      ]
+    },
+    {
+      name: 'Silk thread',
+      currency: 'USD',
+      buys: [
+        { client: 1, kg: 5, ppkg: 12000, daysAgo: 85 },
+        { client: 7, kg: 4, ppkg: 12500, daysAgo: 45 }
+      ],
+      sells: [
+        { client: 5, kg: 3, ppkg: 18000, daysAgo: 55 },
+        { client: 6, kg: 2, ppkg: 19000, daysAgo: 15 }
+      ]
+    }
+  ]
+
+  for (const m of materialDefs) {
+    const materialId = Number(
+      db.insert(schema.materials).values({ name: m.name, currency: m.currency, createdAt: at(105) }).run().lastInsertRowid
+    )
+    const postLine = (line: MatLine, direction: 'buy' | 'sell'): void => {
+      const total = Math.round(line.kg * line.ppkg)
+      const lineId = Number(
+        db
+          .insert(schema.materialLines)
+          .values({
+            materialId,
+            direction,
+            clientId: clientIds[line.client],
+            kilograms: line.kg,
+            pricePerKgCents: line.ppkg,
+            totalCents: total,
+            currency: m.currency,
+            transactionDate: at(line.daysAgo),
+            createdAt: at(line.daysAgo)
+          })
+          .run().lastInsertRowid
+      )
+      const tx = postTransaction(db, {
+        clientId: clientIds[line.client],
+        type: direction === 'buy' ? 'purchase' : 'sale',
+        currency: m.currency,
+        amountCents: direction === 'buy' ? -total : total,
+        materialLineId: lineId,
+        transactionDate: at(line.daysAgo),
+        note: `${direction === 'buy' ? 'Bought' : 'Sold'} ${line.kg}kg ${m.name}`
+      })
+      db.update(schema.materialLines).set({ transactionId: tx }).where(eq(schema.materialLines.id, lineId)).run()
+    }
+    for (const b of m.buys) postLine(b, 'buy')
+    for (const s of m.sells) postLine(s, 'sell')
+  }
+
+  // --- Payments (partial settlements; not counted as buy/sell) -------------
+  const payments: { client: number; currency: Currency; amountCents: number; daysAgo: number; note: string }[] = [
+    { client: 4, currency: 'AFN', amountCents: -500000, daysAgo: 50, note: 'Karim paid 5000.00 AFN' },
+    { client: 5, currency: 'AFN', amountCents: -300000, daysAgo: 25, note: 'Yusuf paid 3000.00 AFN' },
+    { client: 0, currency: 'AFN', amountCents: 400000, daysAgo: 60, note: 'Paid Ahmad 4000.00 AFN' },
+    { client: 1, currency: 'AFN', amountCents: 800000, daysAgo: 35, note: 'Paid Ghulam 8000.00 AFN' },
+    { client: 4, currency: 'USD', amountCents: -20000, daysAgo: 10, note: 'Karim paid 200.00 USD' }
+  ]
+  for (const p of payments) {
+    postTransaction(db, {
+      clientId: clientIds[p.client],
+      type: 'payment',
+      currency: p.currency,
+      amountCents: p.amountCents,
+      transactionDate: at(p.daysAgo),
+      note: p.note
     })
-    .where(eq(schema.carpets.id, c2))
-    .run()
+  }
 
-  // --- Material M1 (AFN): buy 10kg @ 50.00 from Ahmad; sell 4kg @ 80.00 ----
-  const m1 = Number(
-    db.insert(schema.materials).values({ name: 'Wool thread (tar)', currency: 'AFN', createdAt: now }).run()
-      .lastInsertRowid
-  )
-  const m1BuyTotal = 5000 * 10 // 500.00 -> 50000
-  const m1BuyLine = Number(
-    db
-      .insert(schema.materialLines)
-      .values({
-        materialId: m1,
-        direction: 'buy',
-        clientId: ahmad,
-        kilograms: 10,
-        pricePerKgCents: 5000,
-        totalCents: m1BuyTotal,
-        currency: 'AFN',
-        transactionDate: now,
-        createdAt: now
-      })
-      .run().lastInsertRowid
-  )
-  const m1BuyTx = postTransaction(db, {
-    clientId: ahmad,
-    type: 'purchase',
-    currency: 'AFN',
-    amountCents: -m1BuyTotal,
-    materialLineId: m1BuyLine,
-    transactionDate: now,
-    note: 'Bought 10kg tar'
-  })
-  db.update(schema.materialLines).set({ transactionId: m1BuyTx }).where(eq(schema.materialLines.id, m1BuyLine)).run()
-
-  const m1SellTotal = 8000 * 4 // 320.00 -> 32000
-  const m1SellLine = Number(
-    db
-      .insert(schema.materialLines)
-      .values({
-        materialId: m1,
-        direction: 'sell',
-        clientId: karim,
-        kilograms: 4,
-        pricePerKgCents: 8000,
-        totalCents: m1SellTotal,
-        currency: 'AFN',
-        transactionDate: now,
-        createdAt: now
-      })
-      .run().lastInsertRowid
-  )
-  const m1SellTx = postTransaction(db, {
-    clientId: karim,
-    type: 'sale',
-    currency: 'AFN',
-    amountCents: m1SellTotal,
-    materialLineId: m1SellLine,
-    transactionDate: now,
-    note: 'Sold 4kg tar'
-  })
-  db.update(schema.materialLines).set({ transactionId: m1SellTx }).where(eq(schema.materialLines.id, m1SellLine)).run()
-
-  // --- Payments ------------------------------------------------------------
-  // Karim pays us 4000.00 AFN (reduces receivable).
-  postTransaction(db, {
-    clientId: karim,
-    type: 'payment',
-    currency: 'AFN',
-    amountCents: -400000,
-    transactionDate: now,
-    note: 'Karim paid 4000.00 AFN'
-  })
-  // We pay Ahmad 2000.00 AFN (reduces payable).
-  postTransaction(db, {
-    clientId: ahmad,
-    type: 'payment',
-    currency: 'AFN',
-    amountCents: 200000,
-    transactionDate: now,
-    note: 'Paid Ahmad 2000.00 AFN'
-  })
-
-  // --- Expense -------------------------------------------------------------
-  db.insert(schema.expenses)
-    .values({ category: 'rent', amountCents: 30000, currency: 'AFN', expenseDate: now, createdAt: now, note: 'Shop rent' })
-    .run()
+  // --- Expenses ------------------------------------------------------------
+  const expenseDefs: { category: string; amountCents: number; currency: Currency; daysAgo: number; note: string }[] = [
+    { category: 'rent', amountCents: 500000, currency: 'AFN', daysAgo: 90, note: 'Shop rent' },
+    { category: 'rent', amountCents: 500000, currency: 'AFN', daysAgo: 30, note: 'Shop rent' },
+    { category: 'transport', amountCents: 120000, currency: 'AFN', daysAgo: 65, note: 'Freight' },
+    { category: 'wages', amountCents: 800000, currency: 'AFN', daysAgo: 45, note: 'Worker wages' },
+    { category: 'packing', amountCents: 3000, currency: 'USD', daysAgo: 20, note: 'Packing materials' }
+  ]
+  for (const e of expenseDefs) {
+    db.insert(schema.expenses)
+      .values({ category: e.category, amountCents: e.amountCents, currency: e.currency, expenseDate: at(e.daysAgo), createdAt: at(e.daysAgo), note: e.note })
+      .run()
+  }
 
   // ========================= COMPUTE (via pure engine) =====================
   const clientRows = db.select().from(schema.clients).all()

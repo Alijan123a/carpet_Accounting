@@ -1,6 +1,6 @@
-appId: com.qaleen.trader
-productName: Qaleen Trader
-copyright: Copyright © Qaleen Trader
+appId: com.carpet.accounting
+productName: Carpet Accounting
+copyright: Copyright © Carpet Accounting
 
 directories:
   output: release
@@ -30,7 +30,7 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: Qaleen Trader
+  shortcutName: Carpet Accounting
 
 # To build for macOS / Linux, run on that OS (or with a CI runner):
 #   npm run dist        # builds for the current OS
