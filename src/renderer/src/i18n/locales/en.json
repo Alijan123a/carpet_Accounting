@@ -370,13 +370,15 @@
   },
   "license": {
     "activateTitle": "Activate your license",
-    "activateHint": "Enter your license key to activate this app. The license will be locked to this computer.",
-    "keyPlaceholder": "XXXXX-XXXXX-XXXXX-XXXXX-XXXX",
+    "activateHint": "Enter the license key issued for this device. The license is locked to this computer.",
+    "keyPlaceholder": "XXXXX-XXXXX-XXXXX-XXXXX-XXXXX",
     "activate": "Activate",
     "empty": "Please enter your license key.",
-    "invalid": "Invalid license key. Please check it and try again.",
-    "deviceMismatch": "This key is already activated on a different device. Please contact support to transfer your license.",
+    "invalid": "This license key is not valid for this device. Please check it and try again.",
+    "deviceMismatch": "Your saved license is for a different device. Send the fingerprint below to support to get a key for this computer.",
     "blockedTitle": "Invalid device",
-    "blockedHint": "Your license is locked to the computer where it was first activated. If you changed or replaced this machine, contact support to move it."
+    "blockedHint": "Your license is locked to the computer where it was first activated. If you changed or replaced this machine, contact support to move it.",
+    "fingerprintLabel": "Your device fingerprint",
+    "copy": "Copy"
   }
 }

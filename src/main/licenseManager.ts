@@ -3,11 +3,7 @@ import { join } from 'path'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import si from 'systeminformation'
 import type { LicenseStatus } from '../shared/contracts'
-import {
-  computeFingerprint,
-  normalizeKey,
-  validateKey as validateKeyWithSecret
-} from '../shared/license/licenseCrypto'
+import { computeFingerprint, normalizeKey, validateKeyForFingerprint } from '../shared/license/licenseCrypto'
 // The HMAC signing secret. Lives in a GITIGNORED file (license.secret.json) so
 // it is never pushed to source control, and is inlined into the bundle at build
 // time by electron-vite so the packaged app can validate keys fully offline.
@@ -48,11 +44,6 @@ interface LicenseRecord {
 
 function licensePath(): string {
   return join(app.getPath('userData'), 'license.json')
-}
-
-/** Validate a key against the embedded secret (thin wrapper over the pure fn). */
-export function validateKey(key: string): boolean {
-  return validateKeyWithSecret(key, SECRET)
 }
 
 /**
@@ -100,40 +91,32 @@ export function hasLicenseFile(): boolean {
 }
 
 /**
- * Activate this device with a license key. Validates the signature first, then
- * binds the key to THIS machine's fingerprint by writing license.json.
+ * Activate this device with a license key. The key must have been issued for
+ * THIS machine's fingerprint (a key made for another device will not validate).
+ * On success we record it in license.json.
  */
 export async function activate(key: string): Promise<{ ok: boolean; reason?: LicenseStatus['reason'] }> {
   const norm = normalizeKey(key)
-  if (!validateKey(norm)) return { ok: false, reason: 'invalid_key' }
-
-  // If a license for this same key is present but bound to a DIFFERENT device,
-  // refuse to silently rebind it — that path is intentionally blocked so a
-  // copied license.json can't be re-homed here without support.
-  const existing = readLicense()
-  if (existing && existing.key === norm) {
-    const currentFp = await getMachineFingerprint()
-    if (existing.fingerprint !== currentFp) {
-      return { ok: false, reason: 'device_mismatch' }
-    }
-  }
-
   const fingerprint = await getMachineFingerprint()
+  if (!validateKeyForFingerprint(norm, fingerprint, SECRET)) {
+    return { ok: false, reason: 'invalid_key' }
+  }
   writeLicense({ v: 1, key: norm, fingerprint, activatedAt: Date.now() })
   return { ok: true }
 }
 
 /**
- * Check activation status on launch. Blocks when the stored fingerprint does not
- * match the current machine (device_mismatch) or when no/invalid license exists.
+ * Check activation status on launch. The stored key is re-validated against the
+ * CURRENT machine fingerprint every time, so a license.json copied to another
+ * computer (or a swapped motherboard) fails with device_mismatch.
  */
 export async function isActivated(): Promise<LicenseStatus> {
   const rec = readLicense()
   if (!rec) return { activated: false, reason: 'not_activated' }
-  // Tamper check: a hand-edited license.json with a bad key is rejected.
-  if (!validateKey(rec.key)) return { activated: false, reason: 'invalid_key' }
   const currentFp = await getMachineFingerprint()
-  if (rec.fingerprint !== currentFp) return { activated: false, reason: 'device_mismatch' }
+  if (!validateKeyForFingerprint(rec.key, currentFp, SECRET)) {
+    return { activated: false, reason: 'device_mismatch' }
+  }
   return { activated: true }
 }
 

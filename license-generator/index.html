@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>License Generator — Carpet Accounting</title>
+    <style>
+      :root {
+        --bg1: #eef1ff;
+        --bg2: #f7f4ff;
+        --card: #ffffff;
+        --border: #e4e4ef;
+        --text: #1e2333;
+        --muted: #6b7180;
+        --brand1: #6366f1;
+        --brand2: #8b5cf6;
+        --ok: #16a34a;
+        --err: #dc2626;
+        --code-bg: #f4f5fb;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        color: var(--text);
+        background: linear-gradient(135deg, var(--bg1), var(--bg2));
+      }
+      .card {
+        width: 100%;
+        max-width: 560px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 28px;
+        box-shadow: 0 20px 50px -20px rgba(80, 70, 160, 0.35);
+      }
+      .head { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+      .badge {
+        width: 48px; height: 48px; border-radius: 14px; flex: none;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, var(--brand1), var(--brand2));
+        color: #fff; box-shadow: 0 8px 20px -6px rgba(99, 102, 241, 0.6);
+      }
+      h1 { font-size: 18px; margin: 0; letter-spacing: -0.02em; }
+      .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+      label { display: block; font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+      .hint { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+      textarea {
+        width: 100%; min-height: 76px; resize: vertical;
+        border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 13px; color: var(--text); background: #fff; outline: none;
+      }
+      textarea:focus { border-color: var(--brand1); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+      button {
+        border: 0; cursor: pointer; font-weight: 600; border-radius: 12px;
+        padding: 12px 18px; font-size: 14px;
+      }
+      .primary { color: #fff; background: linear-gradient(135deg, var(--brand1), var(--brand2)); width: 100%; margin-top: 14px; }
+      .primary:disabled { opacity: 0.6; cursor: default; }
+      .ghost { background: var(--code-bg); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; font-size: 13px; }
+      .error { color: var(--err); font-size: 13px; margin-top: 10px; }
+      .result { margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 18px; }
+      .result.hidden { display: none; }
+      .keyrow { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+      code.key {
+        flex: 1; min-width: 0; word-break: break-all;
+        background: var(--code-bg); border: 1px solid var(--border); border-radius: 12px;
+        padding: 12px 14px; font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 16px; letter-spacing: 0.06em; color: var(--text);
+      }
+      .copied { color: var(--ok); font-size: 12px; margin-top: 6px; min-height: 16px; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="head">
+        <div class="badge">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+        </div>
+        <div>
+          <h1>License Generator</h1>
+          <div class="sub">Carpet Accounting — issue a device-locked key</div>
+        </div>
+      </div>
+
+      <label for="fp">Customer device fingerprint</label>
+      <p class="hint">Paste the 64-character fingerprint the customer copied from their Activation screen (or Settings → License).</p>
+      <textarea id="fp" spellcheck="false" autocapitalize="off" placeholder="e.g. 3f9a1c... (64 hex characters)"></textarea>
+
+      <button id="gen" class="primary">Generate license key</button>
+      <div id="err" class="error"></div>
+
+      <div id="result" class="result hidden">
+        <label>License key for this device</label>
+        <div class="keyrow">
+          <code id="key" class="key"></code>
+          <button id="copy" class="ghost">Copy</button>
+        </div>
+        <div id="copied" class="copied"></div>
+      </div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id)
+      const fpEl = $('fp'), genEl = $('gen'), errEl = $('err')
+      const resultEl = $('result'), keyEl = $('key'), copyEl = $('copy'), copiedEl = $('copied')
+
+      async function generate() {
+        errEl.textContent = ''
+        copiedEl.textContent = ''
+        const fingerprint = fpEl.value.trim()
+        if (!fingerprint) { errEl.textContent = 'Please paste a device fingerprint.'; return }
+        genEl.disabled = true
+        try {
+          const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fingerprint })
+          })
+          const data = await res.json()
+          if (!data.ok) {
+            resultEl.classList.add('hidden')
+            errEl.textContent = data.error || 'Could not generate a key.'
+            return
+          }
+          keyEl.textContent = data.key
+          resultEl.classList.remove('hidden')
+        } catch (e) {
+          errEl.textContent = 'Request failed: ' + (e && e.message ? e.message : e)
+        } finally {
+          genEl.disabled = false
+        }
+      }
+
+      async function copyKey() {
+        try {
+          await navigator.clipboard.writeText(keyEl.textContent)
+          copiedEl.textContent = 'Copied to clipboard.'
+          setTimeout(() => (copiedEl.textContent = ''), 1800)
+        } catch {
+          copiedEl.textContent = 'Copy failed — select the key manually.'
+        }
+      }
+
+      genEl.addEventListener('click', generate)
+      copyEl.addEventListener('click', copyKey)
+      fpEl.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') generate()
+      })
+    </script>
+  </body>
+</html>

@@ -11,9 +11,11 @@ import { createHash, createHmac, timingSafeEqual } from 'crypto'
 // Crockford-style base32 alphabet (no I, L, O, U — avoids ambiguity when typing).
 export const B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
 
-export const PAYLOAD_CHARS = 16 // 10 random bytes → 16 base32 chars
-export const SIG_CHARS = 8 // first 8 base32 chars of the HMAC digest
-export const KEY_CHARS = PAYLOAD_CHARS + SIG_CHARS // 24 significant chars
+// A license key is the base32 HMAC signature of the device fingerprint, truncated
+// to KEY_CHARS. 25 base32 chars ≈ 125 bits — plenty of forgery resistance while
+// staying short enough to type as XXXXX-XXXXX-XXXXX-XXXXX-XXXXX.
+export const KEY_CHARS = 25
+export const KEY_GROUP = 5
 
 /** Encode a buffer as (unpadded) Crockford base32. */
 export function base32Encode(buf: Buffer): string {
@@ -32,30 +34,41 @@ export function base32Encode(buf: Buffer): string {
   return out
 }
 
-/** The signature for a payload: first SIG_CHARS of base32(HMAC-SHA256(secret, payload)). */
-export function signPayload(payload: string, secret: string): string {
-  const mac = createHmac('sha256', secret).update(payload).digest()
-  return base32Encode(mac).slice(0, SIG_CHARS)
-}
-
 /** Strip formatting and normalise to the canonical A–Z0–9 form. */
 export function normalizeKey(key: string): string {
   return (key || '').toUpperCase().replace(/[^0-9A-Z]/g, '')
 }
 
+/** Group a raw key into KEY_GROUP-char blocks joined by dashes (display form). */
+export function formatKey(raw: string): string {
+  return raw.match(new RegExp(`.{1,${KEY_GROUP}}`, 'g'))?.join('-') ?? raw
+}
+
 /**
- * Validate a license key's HMAC signature against the given secret. Pure and
- * offline — no filesystem, no device fingerprint. Returns true only for a
- * well-formed, correctly-signed key.
+ * The canonical (unformatted) license key for a fingerprint: the first KEY_CHARS
+ * base32 chars of HMAC-SHA256(secret, fingerprint). Deterministic — the same
+ * fingerprint always yields the same key.
  */
-export function validateKey(key: string, secret: string): boolean {
-  const norm = normalizeKey(key)
-  if (norm.length !== KEY_CHARS) return false
-  const payload = norm.slice(0, PAYLOAD_CHARS)
-  const providedSig = norm.slice(PAYLOAD_CHARS)
-  const expectedSig = signPayload(payload, secret)
-  const a = Buffer.from(providedSig, 'utf8')
-  const b = Buffer.from(expectedSig, 'utf8')
+export function signFingerprint(fingerprint: string, secret: string): string {
+  const mac = createHmac('sha256', secret).update(fingerprint).digest()
+  return base32Encode(mac).slice(0, KEY_CHARS)
+}
+
+/** The display-formatted license key for a fingerprint (XXXXX-XXXXX-…). */
+export function licenseKeyForFingerprint(fingerprint: string, secret: string): string {
+  return formatKey(signFingerprint(fingerprint, secret))
+}
+
+/**
+ * Validate that a license key was issued for THIS fingerprint under `secret`.
+ * Pure and offline. A key minted for a different fingerprint (i.e. a different
+ * machine) will not validate — this is what enforces the single-device lock.
+ */
+export function validateKeyForFingerprint(key: string, fingerprint: string, secret: string): boolean {
+  const provided = normalizeKey(key)
+  const expected = signFingerprint(fingerprint, secret)
+  const a = Buffer.from(provided, 'utf8')
+  const b = Buffer.from(expected, 'utf8')
   return a.length === b.length && timingSafeEqual(a, b)
 }
 
