@@ -9,8 +9,7 @@
     "transactions": "تراکنش‌ها",
     "reports": "گزارش‌ها",
     "archive": "آرشیف",
-    "settings": "تنظیمات",
-    "dev": "ابزار توسعه (مرحله ۱)"
+    "settings": "تنظیمات"
   },
   "topbar": { "toggleTheme": "تغییر ظاهر", "toggleLanguage": "تغییر زبان" },
   "common": {

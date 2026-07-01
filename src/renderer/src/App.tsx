@@ -3,7 +3,6 @@ import { AppSettingsProvider } from '@renderer/providers/AppSettingsProvider'
 import { AppLayout } from '@renderer/components/layout/AppLayout'
 import { Placeholder } from '@renderer/pages/Placeholder'
 import { Settings } from '@renderer/pages/Settings'
-import { DevTest } from '@renderer/pages/DevTest'
 import { ClientsModule } from '@renderer/features/clients/ClientsModule'
 import { CarpetsModule } from '@renderer/features/carpets/CarpetsModule'
 import { MaterialsModule } from '@renderer/features/materials/MaterialsModule'
@@ -34,8 +33,6 @@ function MainApp(): JSX.Element {
         <ArchivePage />
       ) : route === 'settings' ? (
         <Settings />
-      ) : route === 'dev' ? (
-        <DevTest />
       ) : (
         <Placeholder route={route} />
       )}

@@ -9,8 +9,7 @@
     "transactions": "Transactions",
     "reports": "Reports",
     "archive": "Archive",
-    "settings": "Settings",
-    "dev": "Dev (Phase 1)"
+    "settings": "Settings"
   },
   "topbar": { "toggleTheme": "Toggle theme", "toggleLanguage": "Switch language" },
   "common": {

@@ -7,7 +7,6 @@ import {
   BarChart3,
   Archive,
   Settings,
-  FlaskConical,
   type LucideIcon
 } from 'lucide-react'
 
@@ -20,7 +19,6 @@ export type Route =
   | 'reports'
   | 'archive'
   | 'settings'
-  | 'dev'
 
 export interface NavItem {
   key: Route
@@ -39,7 +37,5 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'expenses', i18nKey: 'nav.expenses', label: 'Expenses', icon: Receipt },
   { key: 'reports', i18nKey: 'nav.reports', label: 'Reports', icon: BarChart3 },
   { key: 'archive', i18nKey: 'nav.archive', label: 'Archive', icon: Archive },
-  { key: 'settings', i18nKey: 'nav.settings', label: 'Settings', icon: Settings },
-  // TEMPORARY (Phase 1) — accounting-core verification page; remove afterwards.
-  { key: 'dev', i18nKey: 'nav.dev', label: 'Dev (Phase 1)', icon: FlaskConical }
+  { key: 'settings', i18nKey: 'nav.settings', label: 'Settings', icon: Settings }
 ]
