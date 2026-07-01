@@ -51,9 +51,37 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  // Seed-only mode: fill the app's real database with clean demo data, then
+  // exit without opening a window. Run with `CARPET_SEED_ONLY=1`. We pin the
+  // userData path so the DB we seed matches a normal dev launch regardless of
+  // how Electron was invoked (e.g. `electron out/main/index.js` otherwise
+  // resolves the app name to "Electron" and would seed the wrong folder).
+  const seedOnly = process.env['CARPET_SEED_ONLY'] === '1'
+  if (seedOnly) app.setPath('userData', join(app.getPath('appData'), 'carpet-accounting'))
+
   // Open the SQLite database (WAL mode) once at startup.
   initDatabase()
   console.log('[main] SQLite (WAL) ready; app starting')
+
+  if (seedOnly) {
+    try {
+      devResetSeedCompute(getDatabase(), (sql) => getRawDatabase().exec(sql), reapplyMigrations)
+      // Fold the WAL back into the main file so the data is durable even on a
+      // hard kill, and log a small confirmation for the caller.
+      getRawDatabase().pragma('wal_checkpoint(TRUNCATE)')
+      const count = (t: string): number =>
+        (getRawDatabase().prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as { n: number }).n
+      console.log(
+        `CARPET_SEED_DONE clients=${count('clients')} carpets=${count('carpets')} ` +
+          `materials=${count('materials')} transactions=${count('transactions')}`
+      )
+    } catch (e) {
+      console.error('[seed] CARPET_SEED_ONLY failed:', e)
+    }
+    closeDatabase()
+    app.quit()
+    return
+  }
 
   // Basic IPC handlers used by the shell.
   ipcMain.handle('app:getVersion', () => app.getVersion())
