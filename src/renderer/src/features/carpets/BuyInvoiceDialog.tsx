@@ -1,0 +1,377 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Plus, Trash2 } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@renderer/components/ui/dialog'
+import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
+import { Typeahead } from '@renderer/components/ui/typeahead'
+import { useSettings } from '@renderer/store/settings'
+import { startOfDayEpoch } from '@renderer/lib/date'
+import {
+  parseMoneyToCents,
+  formatCents,
+  carpetTotalPriceCents,
+  invoiceGrandTotalCents,
+  ENABLED_CURRENCIES
+} from '@shared/accounting'
+import type { Currency } from '@shared/accounting'
+import type { ClientListItem, CarpetStatus, CarpetBatchLineInput } from '@shared/contracts'
+import { statusLabel } from './statusLabel'
+
+const todayStr = (): string => new Date().toISOString().slice(0, 10)
+
+/** Sort grades are a fixed set (A, B, C) — same as the single-carpet form. */
+const SORT_GRADES: string[] = ['A', 'B', 'C']
+
+interface Line {
+  key: number
+  label: string
+  length: string
+  width: string
+  grade: string
+  ppm: string
+  deduction: string
+}
+
+let lineSeq = 1
+function emptyLine(): Line {
+  return { key: lineSeq++, label: '', length: '', width: '', grade: '', ppm: '', deduction: '' }
+}
+
+/** Numbers derived from a line's raw input strings (area = L×W; total = effective × area). */
+function lineCalc(line: Line): { areaNum: number; ppmCents: number; dedCents: number; totalCents: number } {
+  const l = parseFloat(line.length) || 0
+  const w = parseFloat(line.width) || 0
+  const areaNum = l * w
+  const ppmCents = parseMoneyToCents(line.ppm) ?? 0
+  const dedCents = parseMoneyToCents(line.deduction) ?? 0
+  const totalCents = carpetTotalPriceCents(ppmCents, dedCents, areaNum)
+  return { areaNum, ppmCents, dedCents, totalCents }
+}
+
+/**
+ * Bill-style bulk purchase: add several carpets at once. Mirrors the sell
+ * invoice UX — a shared header (seller / date / currency / default status) plus
+ * a line grid. Saving posts every carpet (and its purchase transaction, if a
+ * seller is chosen) atomically through {@link window.api.carpets.createBatch}.
+ */
+export function BuyInvoiceDialog({
+  open,
+  onOpenChange,
+  onSaved
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSaved: () => void
+}): JSX.Element {
+  const { t } = useTranslation()
+  const language = useSettings((s) => s.language)
+  const defaultCurrency = useSettings((s) => s.defaultCurrency)
+
+  const [sellers, setSellers] = useState<ClientListItem[]>([])
+  const [statuses, setStatuses] = useState<CarpetStatus[]>([])
+
+  const [sellerQuery, setSellerQuery] = useState('')
+  const [seller, setSeller] = useState<ClientListItem | null>(null)
+  const [date, setDate] = useState(todayStr())
+  const [currency, setCurrency] = useState<Currency>(defaultCurrency)
+  const [status, setStatus] = useState('in_warehouse')
+  const [lines, setLines] = useState<Line[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setError(null)
+    setSellerQuery('')
+    setSeller(null)
+    setDate(todayStr())
+    setCurrency(defaultCurrency)
+    setStatus('in_warehouse')
+    setLines([emptyLine(), emptyLine(), emptyLine()])
+    void window.api.clients
+      .list({ kind: 'seller', includeArchived: false, limit: 1000, offset: 0 })
+      .then((r) => setSellers(r.rows))
+    void window.api.carpetStatuses.list().then(setStatuses)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  const grandTotalCents = useMemo(
+    () => invoiceGrandTotalCents(lines.map((l) => lineCalc(l).totalCents)),
+    [lines]
+  )
+
+  function patch(key: number, updater: (l: Line) => Line): void {
+    setLines((prev) => prev.map((l) => (l.key === key ? updater(l) : l)))
+  }
+
+  function addLine(): void {
+    setLines((prev) => [...prev, emptyLine()])
+  }
+
+  function removeLine(key: number): void {
+    setLines((prev) => {
+      const next = prev.filter((l) => l.key !== key)
+      return next.length ? next : [emptyLine()]
+    })
+  }
+
+  async function submit(): Promise<void> {
+    // Keep only rows the user actually started (a label makes a row "real").
+    const filled = lines.filter((l) => l.label.trim())
+    if (!filled.length) return setError(t('buyInvoice.noLines', 'Add at least one carpet (label required).'))
+
+    // Every included carpet needs positive dimensions (area = L×W).
+    for (const l of filled) {
+      if (!((parseFloat(l.length) || 0) > 0 && (parseFloat(l.width) || 0) > 0)) {
+        return setError(
+          t('buyInvoice.dimsRequired', 'Every carpet needs a length and width greater than 0: {{label}}', {
+            label: l.label.trim()
+          })
+        )
+      }
+    }
+
+    const payloadLines: CarpetBatchLineInput[] = filled.map((l) => {
+      const { ppmCents, dedCents } = lineCalc(l)
+      return {
+        labelNumber: l.label.trim(),
+        length: parseFloat(l.length) || 0,
+        width: parseFloat(l.width) || 0,
+        sortGrade: l.grade.trim() || null,
+        pricePerMeterCents: ppmCents,
+        sortDeductionCents: dedCents,
+        status
+      }
+    })
+
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await window.api.carpets.createBatch({
+        currency,
+        boughtFromClientId: seller?.id ?? null,
+        transactionDate: seller ? startOfDayEpoch(date) : null,
+        lines: payloadLines
+      })
+      if (!res.ok) {
+        setError(batchError(res.reason, res.label))
+        return
+      }
+      onSaved()
+      onOpenChange(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function batchError(reason?: string, label?: string): string {
+    switch (reason) {
+      case 'label_taken':
+        return t('buyInvoice.labelTaken', 'Label “{{label}}” is already used.', { label: label ?? '' })
+      case 'duplicate_label':
+        return t('buyInvoice.duplicateLabel', 'Label “{{label}}” is repeated in this list.', { label: label ?? '' })
+      case 'no_lines':
+        return t('buyInvoice.noLines', 'Add at least one carpet (label required).')
+      default:
+        return reason ?? 'error'
+    }
+  }
+
+  const sellerItems = useMemo(
+    () => sellers.map((s) => ({ id: s.id, label: s.name, sublabel: s.phone ?? undefined })),
+    [sellers]
+  )
+
+  const gradeOptions = SORT_GRADES
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-5xl">
+        <DialogHeader>
+          <DialogTitle>{t('buyInvoice.title', 'Add carpets (buy)')}</DialogTitle>
+        </DialogHeader>
+
+        {/* Shared header: seller + date + currency + default status */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">{t('buyInvoice.seller', 'Bought from (seller)')}</span>
+            <Typeahead
+              value={sellerQuery}
+              onValueChange={(v) => {
+                setSellerQuery(v)
+                setSeller(null)
+              }}
+              items={sellerItems}
+              onSelect={(it) => {
+                const s = sellers.find((x) => x.id === it.id) ?? null
+                setSeller(s)
+                setSellerQuery(s?.name ?? '')
+              }}
+              placeholder={t('buyInvoice.sellerPlaceholder', 'Optional — type a seller name…')}
+            />
+            {seller?.phone && <span className="text-xs text-muted-foreground">{seller.phone}</span>}
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">{t('carpets.buyDate', 'Purchase date')}</span>
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={!seller} />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">{t('carpets.currency', 'Currency')}</span>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as Currency)}
+              className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
+            >
+              {ENABLED_CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">{t('carpets.status', 'Status')}</span>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
+            >
+              {statuses.map((s) => (
+                <option key={s.id} value={s.key}>
+                  {statusLabel(s, language)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {/* Line grid */}
+        <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-card">
+          <div className="min-w-[880px]">
+            <div className="grid grid-cols-[minmax(120px,1.4fr)_72px_72px_72px_80px_110px_110px_110px_40px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
+              <span>{t('carpets.label', 'Label #')}</span>
+              <span className="text-end">{t('carpets.length', 'L')}</span>
+              <span className="text-end">{t('carpets.width', 'W')}</span>
+              <span className="text-end">{t('carpets.area', 'Area')}</span>
+              <span>{t('carpets.sortGrade', 'Grade')}</span>
+              <span className="text-end">{t('carpets.pricePerMeter', 'Price/m')}</span>
+              <span className="text-end">{t('carpets.deduction', 'Ded.')}</span>
+              <span className="text-end">{t('carpets.totalPrice', 'Total')}</span>
+              <span />
+            </div>
+
+            {lines.map((l) => {
+              const { areaNum, totalCents } = lineCalc(l)
+              return (
+                <div
+                  key={l.key}
+                  className="grid grid-cols-[minmax(120px,1.4fr)_72px_72px_72px_80px_110px_110px_110px_40px] items-center gap-2 border-b border-border px-3 py-1.5"
+                >
+                  <Input
+                    value={l.label}
+                    onChange={(e) => patch(l.key, (x) => ({ ...x, label: e.target.value }))}
+                    placeholder={t('invoice.carpetPlaceholder', 'Label…')}
+                    className="h-9"
+                  />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={l.length}
+                    onChange={(e) => patch(l.key, (x) => ({ ...x, length: e.target.value }))}
+                    className="h-9 text-end"
+                  />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={l.width}
+                    onChange={(e) => patch(l.key, (x) => ({ ...x, width: e.target.value }))}
+                    className="h-9 text-end"
+                  />
+                  <span className="text-end font-mono text-sm tabular-nums text-muted-foreground">
+                    {areaNum ? areaNum.toFixed(2) : '—'}
+                  </span>
+                  <select
+                    value={l.grade}
+                    onChange={(e) => patch(l.key, (x) => ({ ...x, grade: e.target.value }))}
+                    className="h-9 w-full rounded-lg border border-input bg-card px-2 text-sm"
+                  >
+                    <option value="">{t('carpets.noGrade', '—')}</option>
+                    {gradeOptions.map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
+                  </select>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={l.ppm}
+                    onChange={(e) => patch(l.key, (x) => ({ ...x, ppm: e.target.value }))}
+                    className="h-9 text-end"
+                  />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={l.deduction}
+                    onChange={(e) => patch(l.key, (x) => ({ ...x, deduction: e.target.value }))}
+                    className="h-9 text-end"
+                  />
+                  <span className="text-end font-mono text-sm tabular-nums">
+                    {totalCents ? formatCents(totalCents) : '—'}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    title={t('invoice.removeLine', 'Remove line')}
+                    onClick={() => removeLine(l.key)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )
+            })}
+
+            <div className="flex items-center justify-between px-3 py-2">
+              <Button variant="outline" size="sm" onClick={addLine}>
+                <Plus className="h-4 w-4" />
+                {t('invoice.addLine', 'Add row')}
+              </Button>
+              <div className="text-sm">
+                <span className="text-muted-foreground">{t('invoice.grandTotal', 'Grand total')}: </span>
+                <span className="font-mono text-base font-semibold tabular-nums">
+                  {formatCents(grandTotalCents)} {currency}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {!seller && (
+          <p className="text-xs text-muted-foreground">
+            {t('buyInvoice.noSellerHint', 'No seller selected — carpets are added to the warehouse without posting a purchase to any account.')}
+          </p>
+        )}
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
+            {t('common.cancel', 'Cancel')}
+          </Button>
+          <Button onClick={submit} disabled={busy}>
+            {t('buyInvoice.save', 'Save carpets')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

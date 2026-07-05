@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Pencil, Plus, Archive, ArchiveRestore, SlidersHorizontal, Tag, FileText } from 'lucide-react'
+import { Pencil, Plus, Archive, ArchiveRestore, SlidersHorizontal, Tag, FileText, PackagePlus } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { cn } from '@renderer/lib/utils'
@@ -13,6 +13,7 @@ import { CarpetFormDialog } from './CarpetFormDialog'
 import { StatusesDialog } from './StatusesDialog'
 import { SellCarpetDialog } from './SellCarpetDialog'
 import { SellInvoiceDialog } from './SellInvoiceDialog'
+import { BuyInvoiceDialog } from './BuyInvoiceDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
@@ -48,6 +49,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
   const [editCarpet, setEditCarpet] = useState<CarpetDetailView | null>(null)
   const [statusesOpen, setStatusesOpen] = useState(false)
   const [invoiceOpen, setInvoiceOpen] = useState(false)
+  const [buyInvoiceOpen, setBuyInvoiceOpen] = useState(false)
   const [sellTarget, setSellTarget] = useState<CarpetListItem | null>(null)
 
   const rowsRef = useRef<CarpetListItem[]>([])
@@ -151,6 +153,10 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
             <FileText className="h-4 w-4" />
             {t('invoice.button', 'Sell invoice')}
           </Button>
+          <Button variant="outline" onClick={() => setBuyInvoiceOpen(true)}>
+            <PackagePlus className="h-4 w-4" />
+            {t('buyInvoice.button', 'Add carpets')}
+          </Button>
           <Button
             onClick={() => {
               setEditCarpet(null)
@@ -158,7 +164,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
             }}
           >
             <Plus className="h-4 w-4" />
-            {t('carpets.add', 'Add Carpet')}
+            {t('carpets.addOne', 'Add one')}
           </Button>
         </div>
       </div>
@@ -313,6 +319,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
       <CarpetFormDialog open={formOpen} onOpenChange={setFormOpen} carpet={editCarpet} onSaved={refresh} />
       <StatusesDialog open={statusesOpen} onOpenChange={setStatusesOpen} onChanged={loadMeta} />
       <SellInvoiceDialog open={invoiceOpen} onOpenChange={setInvoiceOpen} onSaved={refresh} />
+      <BuyInvoiceDialog open={buyInvoiceOpen} onOpenChange={setBuyInvoiceOpen} onSaved={refresh} />
       <SellCarpetDialog
         open={sellTarget !== null}
         onOpenChange={(o) => !o && setSellTarget(null)}

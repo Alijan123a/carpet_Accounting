@@ -111,6 +111,37 @@ export interface CarpetInput {
   transactionDate?: number | null
 }
 
+// --- Buy invoice («بل خرید» — bulk add carpets) -----------------------------
+
+/** One carpet row in a bulk purchase. The seller/currency/date are shared. */
+export interface CarpetBatchLineInput {
+  labelNumber: string
+  length: number
+  width: number
+  sortGrade?: string | null
+  pricePerMeterCents: number
+  sortDeductionCents: number
+  status: string
+}
+
+export interface CarpetsBatchInput {
+  currency: Currency
+  /** If set, one purchase transaction per carpet is posted to this seller. */
+  boughtFromClientId?: number | null
+  /** Business date for the purchase transactions (epoch ms). */
+  transactionDate?: number | null
+  lines: CarpetBatchLineInput[]
+}
+
+export interface CarpetsBatchResult {
+  ok: boolean
+  /** Number of carpets created. */
+  created?: number
+  reason?: string
+  /** The offending label when reason is 'label_taken' / 'duplicate_label'. */
+  label?: string
+}
+
 /** Profile-only edits (financials locked once a purchase is recorded). */
 export interface CarpetEditInput {
   labelNumber: string
@@ -187,6 +218,8 @@ export interface CarpetsApi {
   list: (params: CarpetsListParams) => Promise<CarpetsListResult>
   get: (id: number) => Promise<CarpetDetailView | null>
   create: (input: CarpetInput) => Promise<{ ok: boolean; id?: number; reason?: string }>
+  /** Add several carpets at once (bill-style bulk purchase), posted atomically. */
+  createBatch: (input: CarpetsBatchInput) => Promise<CarpetsBatchResult>
   update: (id: number, input: CarpetEditInput) => Promise<{ ok: boolean; reason?: string }>
   archive: (id: number) => Promise<{ ok: boolean; reason?: string }>
   restore: (id: number) => Promise<void>

@@ -189,6 +189,7 @@
   "carpets": {
     "title": "Carpets",
     "add": "Add Carpet",
+    "addOne": "Add one",
     "edit": "Edit Carpet",
     "searchPlaceholder": "Search label or grade…",
     "empty": "No carpets found.",
@@ -303,6 +304,18 @@
     "mismatchWarn": "A line’s area/total was overridden. The printed invoice is the record; the posted ledger sale uses the carpet’s stored area.",
     "errAlreadySold": "One of the carpets is already sold. Refresh and try again.",
     "errCarpetMissing": "A selected carpet no longer exists."
+  },
+  "buyInvoice": {
+    "title": "Add carpets (buy)",
+    "button": "Add carpets",
+    "seller": "Bought from (seller)",
+    "sellerPlaceholder": "Optional — type a seller name…",
+    "noSellerHint": "No seller selected — carpets are added to the warehouse without posting a purchase to any account.",
+    "save": "Save carpets",
+    "noLines": "Add at least one carpet (label required).",
+    "dimsRequired": "Every carpet needs a length and width greater than 0: {{label}}",
+    "labelTaken": "Label “{{label}}” is already used.",
+    "duplicateLabel": "Label “{{label}}” is repeated in this list."
   },
   "payment": {
     "title": "Add payment",

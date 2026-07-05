@@ -28,6 +28,7 @@ const api = {
     list: (params: unknown) => ipcRenderer.invoke('carpets:list', params),
     get: (id: number) => ipcRenderer.invoke('carpets:get', id),
     create: (input: unknown) => ipcRenderer.invoke('carpets:create', input),
+    createBatch: (input: unknown) => ipcRenderer.invoke('carpets:createBatch', input),
     update: (id: number, input: unknown) => ipcRenderer.invoke('carpets:update', id, input),
     archive: (id: number) => ipcRenderer.invoke('carpets:archive', id),
     restore: (id: number) => ipcRenderer.invoke('carpets:restore', id),

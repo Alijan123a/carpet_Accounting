@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { and, or, eq, like, isNotNull, desc, sql, type SQL } from 'drizzle-orm'
+import { and, or, eq, like, inArray, isNotNull, desc, sql, type SQL } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/sqlite-core'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
@@ -18,6 +18,8 @@ import type {
   CarpetDetailView,
   CarpetsListParams,
   CarpetsListResult,
+  CarpetsBatchInput,
+  CarpetsBatchResult,
   CarpetStatus,
   CarpetStatusInput,
   CarpetSellInput,
@@ -188,6 +190,90 @@ export function createCarpet(db: DB, input: CarpetInput): { ok: boolean; id?: nu
     if (isUniqueViolation(e)) return { ok: false, reason: 'label_taken' }
     throw e
   }
+}
+
+/**
+ * Bulk-add carpets from a bill-style entry. Every carpet is inserted in ONE db
+ * transaction; if a seller is given, the matching IMMUTABLE purchase transaction
+ * is posted per carpet in the same transaction, so stock and ledger can never
+ * drift apart (CLAUDE.md). Either the whole batch commits or nothing does.
+ *
+ * Labels are validated up front (both within the batch and against existing
+ * carpets) so we can report the exact offending label instead of a generic
+ * UNIQUE-constraint failure mid-transaction.
+ */
+export function createCarpetsBatch(db: DB, input: CarpetsBatchInput): CarpetsBatchResult {
+  const lines = input.lines.filter((l) => l.labelNumber.trim())
+  if (!lines.length) return { ok: false, reason: 'no_lines' }
+
+  // Reject duplicate labels inside the same batch (case-sensitive match on trim).
+  const seen = new Set<string>()
+  for (const l of lines) {
+    const label = l.labelNumber.trim()
+    if (seen.has(label)) return { ok: false, reason: 'duplicate_label', label }
+    seen.add(label)
+  }
+
+  // Reject labels that already exist in the warehouse before we start inserting.
+  const existing = db
+    .select({ label: schema.carpets.labelNumber })
+    .from(schema.carpets)
+    .where(inArray(schema.carpets.labelNumber, [...seen]))
+    .all()
+  if (existing.length) return { ok: false, reason: 'label_taken', label: existing[0].label }
+
+  const now = Date.now()
+  const seller = input.boughtFromClientId ?? null
+  const txDate = input.transactionDate ?? now
+
+  const created = db.transaction((tx): number => {
+    for (const l of lines) {
+      const label = l.labelNumber.trim()
+      const area = l.length * l.width
+      const totalCents = carpetTotalPriceCents(l.pricePerMeterCents, l.sortDeductionCents, area)
+      const carpetId = Number(
+        tx
+          .insert(schema.carpets)
+          .values({
+            labelNumber: label,
+            length: l.length,
+            width: l.width,
+            area,
+            sortGrade: l.sortGrade?.trim() || null,
+            pricePerMeterCents: l.pricePerMeterCents,
+            sortDeductionCents: l.sortDeductionCents,
+            currency: input.currency,
+            totalPriceCents: totalCents,
+            status: l.status || 'in_warehouse',
+            boughtFromClientId: seller,
+            createdAt: now
+          })
+          .run().lastInsertRowid
+      )
+
+      if (seller) {
+        const buyTxId = Number(
+          tx
+            .insert(schema.transactions)
+            .values({
+              clientId: seller,
+              type: 'purchase',
+              currency: input.currency,
+              amountCents: postingAmountCents({ kind: 'purchase', amountCents: totalCents }),
+              carpetId,
+              transactionDate: txDate,
+              createdAt: now,
+              // Auto-note in Dari (single Afghan trader; see CLAUDE.md §6).
+              note: `خرید قالین نمبر ${label}`
+            })
+            .run().lastInsertRowid
+        )
+        tx.update(schema.carpets).set({ buyTransactionId: buyTxId }).where(eq(schema.carpets.id, carpetId)).run()
+      }
+    }
+    return lines.length
+  })
+  return { ok: true, created }
 }
 
 /**
@@ -393,6 +479,7 @@ export function registerCarpetsIpc(getDb: () => DB): void {
   ipcMain.handle('carpets:list', (_e, params: CarpetsListParams) => listCarpets(getDb(), params))
   ipcMain.handle('carpets:get', (_e, id: number) => getCarpet(getDb(), id))
   ipcMain.handle('carpets:create', (_e, input: CarpetInput) => createCarpet(getDb(), input))
+  ipcMain.handle('carpets:createBatch', (_e, input: CarpetsBatchInput) => createCarpetsBatch(getDb(), input))
   ipcMain.handle('carpets:update', (_e, id: number, input: CarpetEditInput) => updateCarpet(getDb(), id, input))
   ipcMain.handle('carpets:sell', (_e, input: CarpetSellInput) => sellCarpet(getDb(), input))
   ipcMain.handle('carpets:nextInvoiceNumber', () => nextInvoiceNumber(getDb()))
