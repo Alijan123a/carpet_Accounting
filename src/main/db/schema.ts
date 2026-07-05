@@ -22,12 +22,19 @@ export const clients = sqliteTable(
     name: text('name').notNull(),
     phone: text('phone'),
     notes: text('notes'),
+    /**
+     * Role of this account: someone we sell to ('buyer'), someone we buy from
+     * ('seller'), or both. A single unified account is kept regardless (CLAUDE.md
+     * §4) — `kind` only drives which list screen a client shows up on.
+     */
+    kind: text('kind').$type<'buyer' | 'seller' | 'both'>().notNull().default('both'),
     createdAt: integer('created_at').notNull(),
     archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
     archivedAt: integer('archived_at')
   },
   (t) => ({
     nameIdx: index('idx_clients_name').on(t.name),
+    kindIdx: index('idx_clients_kind').on(t.kind),
     archivedIdx: index('idx_clients_archived').on(t.archived)
   })
 )

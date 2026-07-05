@@ -7,10 +7,14 @@ import type { ReportId, ReportParams, ReportResult } from './reports'
 
 // --- Clients ----------------------------------------------------------------
 
+/** Buyer = we sell to them; Seller = we buy from them; Both = either role. */
+export type ClientKind = 'buyer' | 'seller' | 'both'
+
 export interface ClientProfileInput {
   name: string
   phone?: string | null
   notes?: string | null
+  kind?: ClientKind
 }
 
 export interface ClientListItem {
@@ -18,6 +22,7 @@ export interface ClientListItem {
   name: string
   phone: string | null
   notes: string | null
+  kind: ClientKind
   archived: boolean
   archivedAt: number | null
   createdAt: number
@@ -28,6 +33,8 @@ export interface ClientListItem {
 export interface ClientsListParams {
   search?: string
   includeArchived?: boolean
+  /** When set, list only clients acting in this role (matches `kind` OR 'both'). */
+  kind?: 'buyer' | 'seller'
   limit: number
   offset: number
 }

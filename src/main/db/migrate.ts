@@ -18,11 +18,13 @@ CREATE TABLE IF NOT EXISTS clients (
   name        TEXT NOT NULL,
   phone       TEXT,
   notes       TEXT,
+  kind        TEXT NOT NULL DEFAULT 'both',
   created_at  INTEGER NOT NULL,
   archived    INTEGER NOT NULL DEFAULT 0,
   archived_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_clients_name ON clients(name);
+CREATE INDEX IF NOT EXISTS idx_clients_kind ON clients(kind);
 CREATE INDEX IF NOT EXISTS idx_clients_archived ON clients(archived);
 
 CREATE TABLE IF NOT EXISTS carpet_statuses (
@@ -151,8 +153,28 @@ INSERT OR IGNORE INTO carpet_statuses (key, label_fa, label_en, is_default) VALU
   ('sold',         'فروخته شده', 'Sold', 0);
 `
 
+/** True if `table` already has a column named `column`. */
+function hasColumn(sqlite: Database.Database, table: string, column: string): boolean {
+  const cols = sqlite.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]
+  return cols.some((c) => c.name === column)
+}
+
+/**
+ * Idempotent column additions for databases created by an earlier version.
+ * Each ALTER is guarded by a PRAGMA check so re-running is safe. New tables are
+ * handled by the CREATE ... IF NOT EXISTS statements above.
+ */
+function runColumnUpgrades(sqlite: Database.Database): void {
+  // clients.kind — buyer / seller / both (Buyer/Seller list split).
+  if (!hasColumn(sqlite, 'clients', 'kind')) {
+    sqlite.exec(`ALTER TABLE clients ADD COLUMN kind TEXT NOT NULL DEFAULT 'both';`)
+    sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_clients_kind ON clients(kind);`)
+  }
+}
+
 /** Create all tables/indexes/triggers and seed reference data. */
 export function runMigrations(sqlite: Database.Database): void {
   sqlite.exec(SCHEMA_SQL)
+  runColumnUpgrades(sqlite)
   sqlite.exec(SEED_SQL)
 }

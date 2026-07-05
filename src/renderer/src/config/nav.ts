@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Users,
+  Truck,
   Layers,
   Boxes,
   Receipt,
@@ -12,7 +13,8 @@ import {
 
 export type Route =
   | 'dashboard'
-  | 'clients'
+  | 'buyers'
+  | 'sellers'
   | 'carpets'
   | 'material'
   | 'expenses'
@@ -31,7 +33,8 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { key: 'dashboard', i18nKey: 'nav.dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { key: 'clients', i18nKey: 'nav.clients', label: 'Clients', icon: Users },
+  { key: 'buyers', i18nKey: 'nav.buyers', label: 'Buyers', icon: Users },
+  { key: 'sellers', i18nKey: 'nav.sellers', label: 'Sellers', icon: Truck },
   { key: 'carpets', i18nKey: 'nav.carpets', label: 'Carpets', icon: Layers },
   { key: 'material', i18nKey: 'nav.material', label: 'Material', icon: Boxes },
   { key: 'expenses', i18nKey: 'nav.expenses', label: 'Expenses', icon: Receipt },

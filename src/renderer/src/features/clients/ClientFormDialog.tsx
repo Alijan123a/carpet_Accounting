@@ -9,25 +9,28 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
-import type { ClientListItem } from '@shared/contracts'
+import type { ClientKind, ClientListItem } from '@shared/contracts'
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   /** null/undefined = create mode; an item = edit mode. */
   client?: ClientListItem | null
+  /** Pre-selected role for new clients (from the Buyers/Sellers screen). */
+  defaultKind?: 'buyer' | 'seller'
   onSaved: () => void
 }
 
 /**
- * Add / Edit client. ONLY profile fields (name, phone, notes) are editable here.
- * Balances are never edited — they derive solely from transactions.
+ * Add / Edit client. ONLY profile fields (name, phone, notes, role) are editable
+ * here. Balances are never edited — they derive solely from transactions.
  */
-export function ClientFormDialog({ open, onOpenChange, client, onSaved }: Props): JSX.Element {
+export function ClientFormDialog({ open, onOpenChange, client, defaultKind, onSaved }: Props): JSX.Element {
   const { t } = useTranslation()
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [notes, setNotes] = useState('')
+  const [kind, setKind] = useState<ClientKind>('both')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -36,9 +39,11 @@ export function ClientFormDialog({ open, onOpenChange, client, onSaved }: Props)
       setName(client?.name ?? '')
       setPhone(client?.phone ?? '')
       setNotes(client?.notes ?? '')
+      // Edit: keep the client's stored role. Create: default to the current screen's role.
+      setKind(client?.kind ?? defaultKind ?? 'both')
       setError(null)
     }
-  }, [open, client])
+  }, [open, client, defaultKind])
 
   async function submit(): Promise<void> {
     if (!name.trim()) {
@@ -48,7 +53,7 @@ export function ClientFormDialog({ open, onOpenChange, client, onSaved }: Props)
     setBusy(true)
     setError(null)
     try {
-      const payload = { name: name.trim(), phone: phone.trim() || null, notes: notes.trim() || null }
+      const payload = { name: name.trim(), phone: phone.trim() || null, notes: notes.trim() || null, kind }
       if (client) {
         await window.api.clients.update(client.id, payload)
       } else {
@@ -86,6 +91,18 @@ export function ClientFormDialog({ open, onOpenChange, client, onSaved }: Props)
               <span className="text-xs text-muted-foreground">({t('common.optional', 'optional')})</span>
             </span>
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-medium">{t('clients.kind', 'Role')}</span>
+            <select
+              value={kind}
+              onChange={(e) => setKind(e.target.value as ClientKind)}
+              className="flex h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="buyer">{t('clients.kindBuyer', 'Buyer')}</option>
+              <option value="seller">{t('clients.kindSeller', 'Seller')}</option>
+              <option value="both">{t('clients.kindBoth', 'Both')}</option>
+            </select>
           </label>
           <label className="block space-y-1">
             <span className="text-sm font-medium">

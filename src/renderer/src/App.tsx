@@ -21,8 +21,10 @@ function MainApp(): JSX.Element {
     <AppLayout current={route} onNavigate={setRoute}>
       {route === 'dashboard' ? (
         <Dashboard />
-      ) : route === 'clients' ? (
-        <ClientsModule />
+      ) : route === 'buyers' ? (
+        <ClientsModule kind="buyer" />
+      ) : route === 'sellers' ? (
+        <ClientsModule kind="seller" />
       ) : route === 'carpets' ? (
         <CarpetsModule />
       ) : route === 'material' ? (

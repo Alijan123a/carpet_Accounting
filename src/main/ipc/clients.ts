@@ -63,6 +63,7 @@ function toListItem(row: schema.ClientRow, balances: PerCurrency): ClientListIte
     name: row.name,
     phone: row.phone,
     notes: row.notes,
+    kind: row.kind,
     archived: row.archived,
     archivedAt: row.archivedAt,
     createdAt: row.createdAt,
@@ -135,6 +136,10 @@ export function queryTransactions(db: DB, params: ClientTransactionsParams): Cli
 export function listClients(db: DB, params: ClientsListParams): ClientsListResult {
   const conds: (SQL | undefined)[] = []
   if (!params.includeArchived) conds.push(eq(schema.clients.archived, false))
+  // Role filter: a buyer/seller screen also shows 'both'-kind unified accounts.
+  if (params.kind) {
+    conds.push(or(eq(schema.clients.kind, params.kind), eq(schema.clients.kind, 'both')))
+  }
   const search = params.search?.trim()
   if (search) {
     const pat = `%${search}%`
@@ -192,6 +197,7 @@ export function registerClientsIpc(getDb: () => DB): void {
         name,
         phone: input.phone?.trim() || null,
         notes: input.notes?.trim() || null,
+        kind: input.kind ?? 'both',
         createdAt: Date.now()
       })
       .run()
@@ -204,7 +210,13 @@ export function registerClientsIpc(getDb: () => DB): void {
     const name = input.name.trim()
     if (!name) throw new Error('Client name is required')
     db.update(schema.clients)
-      .set({ name, phone: input.phone?.trim() || null, notes: input.notes?.trim() || null })
+      .set({
+        name,
+        phone: input.phone?.trim() || null,
+        notes: input.notes?.trim() || null,
+        // Only overwrite kind when the caller supplied one (keeps existing role otherwise).
+        ...(input.kind ? { kind: input.kind } : {})
+      })
       .where(eq(schema.clients.id, id))
       .run()
   })

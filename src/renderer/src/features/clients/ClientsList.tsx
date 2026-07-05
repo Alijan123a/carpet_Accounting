@@ -13,7 +13,13 @@ const PAGE_SIZE = 100
 const ROW_HEIGHT = 52
 const GRID = 'grid grid-cols-[1fr_130px_120px_120px_56px] items-center gap-3 px-4'
 
-export function ClientsList({ onSelect }: { onSelect: (id: number) => void }): JSX.Element {
+export function ClientsList({
+  kind,
+  onSelect
+}: {
+  kind: 'buyer' | 'seller'
+  onSelect: (id: number) => void
+}): JSX.Element {
   const { t } = useTranslation()
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
@@ -43,7 +49,7 @@ export function ClientsList({ onSelect }: { onSelect: (id: number) => void }): J
       setError(null)
       try {
         const offset = reset ? 0 : rowsRef.current.length
-        const res = await window.api.clients.list({ search, includeArchived, limit: PAGE_SIZE, offset })
+        const res = await window.api.clients.list({ search, includeArchived, kind, limit: PAGE_SIZE, offset })
         setTotal(res.total)
         setRows((prev) => (reset ? res.rows : [...prev, ...res.rows]))
       } catch (e) {
@@ -53,7 +59,7 @@ export function ClientsList({ onSelect }: { onSelect: (id: number) => void }): J
         setLoading(false)
       }
     },
-    [search, includeArchived]
+    [search, includeArchived, kind]
   )
 
   // Reset & reload when filters change.
@@ -87,7 +93,9 @@ export function ClientsList({ onSelect }: { onSelect: (id: number) => void }): J
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">{t('clients.title', 'Clients')}</h2>
+          <h2 className="text-2xl font-bold tracking-tight">
+            {kind === 'buyer' ? t('clients.buyersTitle', 'Buyers') : t('clients.sellersTitle', 'Sellers')}
+          </h2>
           <p className="text-xs text-muted-foreground">
             {t('clients.total', { total, defaultValue: '{{total}} total' })}
           </p>
@@ -99,7 +107,7 @@ export function ClientsList({ onSelect }: { onSelect: (id: number) => void }): J
           }}
         >
           <Plus className="h-4 w-4" />
-          {t('clients.add', 'Add Client')}
+          {kind === 'buyer' ? t('clients.addBuyer', 'Add Buyer') : t('clients.addSeller', 'Add Seller')}
         </Button>
       </div>
 
@@ -190,7 +198,13 @@ export function ClientsList({ onSelect }: { onSelect: (id: number) => void }): J
         </div>
       </div>
 
-      <ClientFormDialog open={formOpen} onOpenChange={setFormOpen} client={editClient} onSaved={refresh} />
+      <ClientFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        client={editClient}
+        defaultKind={kind}
+        onSaved={refresh}
+      />
     </div>
   )
 }
