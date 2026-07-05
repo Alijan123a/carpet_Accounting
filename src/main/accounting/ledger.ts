@@ -156,21 +156,23 @@ export function devResetSeedCompute(
     boughtDaysAgo: number
     sale?: Sale
   }
+  // USD-only sample set (AFN is disabled app-wide for now). Prices are USD/meter
+  // in integer cents; every carpet's sell price/m exceeds its buy price/m.
   const carpetDefs: CarpetDef[] = [
-    { label: '0001', l: 2, w: 3, grade: 'A', currency: 'AFN', seller: 0, ppm: 120000, ded: 0, boughtDaysAgo: 110, sale: { buyer: 4, ppm: 175000, ded: 0, soldDaysAgo: 95 } },
-    { label: '0002', l: 2.5, w: 3.5, grade: 'A', currency: 'AFN', seller: 0, ppm: 110000, ded: 5000, boughtDaysAgo: 108, sale: { buyer: 5, ppm: 160000, ded: 0, soldDaysAgo: 88 } },
+    { label: '0001', l: 2, w: 3, grade: 'A', currency: 'USD', seller: 0, ppm: 4500, ded: 0, boughtDaysAgo: 110, sale: { buyer: 4, ppm: 7000, ded: 0, soldDaysAgo: 95 } },
+    { label: '0002', l: 2.5, w: 3.5, grade: 'A', currency: 'USD', seller: 0, ppm: 4000, ded: 200, boughtDaysAgo: 108, sale: { buyer: 5, ppm: 6500, ded: 0, soldDaysAgo: 88 } },
     { label: '0003', l: 2, w: 2, grade: 'B', currency: 'USD', seller: 1, ppm: 5000, ded: 0, boughtDaysAgo: 100, sale: { buyer: 4, ppm: 8000, ded: 0, soldDaysAgo: 84 } },
-    { label: '0004', l: 3, w: 4, grade: 'A', currency: 'AFN', seller: 1, ppm: 130000, ded: 0, boughtDaysAgo: 96, sale: { buyer: 6, ppm: 190000, ded: 0, soldDaysAgo: 70 } },
-    { label: '0005', l: 2, w: 3, grade: 'B', currency: 'AFN', seller: 2, ppm: 90000, ded: 0, boughtDaysAgo: 90 },
+    { label: '0004', l: 3, w: 4, grade: 'A', currency: 'USD', seller: 1, ppm: 5500, ded: 0, boughtDaysAgo: 96, sale: { buyer: 6, ppm: 8500, ded: 0, soldDaysAgo: 70 } },
+    { label: '0005', l: 2, w: 3, grade: 'B', currency: 'USD', seller: 2, ppm: 3800, ded: 0, boughtDaysAgo: 90 },
     { label: '0006', l: 1.5, w: 2, grade: 'C', currency: 'USD', seller: 3, ppm: 4000, ded: 0, boughtDaysAgo: 85, sale: { buyer: 5, ppm: 7000, ded: 0, soldDaysAgo: 60 } },
-    { label: '0007', l: 2, w: 3.5, grade: 'A', currency: 'AFN', seller: 0, ppm: 125000, ded: 0, boughtDaysAgo: 80, sale: { buyer: 7, ppm: 180000, ded: 0, soldDaysAgo: 55 } },
-    { label: '0008', l: 3, w: 5, grade: 'A', currency: 'AFN', seller: 2, ppm: 140000, ded: 10000, boughtDaysAgo: 76, sale: { buyer: 4, ppm: 200000, ded: 0, soldDaysAgo: 40 } },
+    { label: '0007', l: 2, w: 3.5, grade: 'A', currency: 'USD', seller: 0, ppm: 4800, ded: 0, boughtDaysAgo: 80, sale: { buyer: 7, ppm: 7200, ded: 0, soldDaysAgo: 55 } },
+    { label: '0008', l: 3, w: 5, grade: 'A', currency: 'USD', seller: 2, ppm: 6000, ded: 400, boughtDaysAgo: 76, sale: { buyer: 4, ppm: 9000, ded: 0, soldDaysAgo: 40 } },
     { label: '0009', l: 2, w: 3, grade: 'B', currency: 'USD', seller: 3, ppm: 6000, ded: 0, boughtDaysAgo: 70 },
-    { label: '0010', l: 2, w: 2.5, grade: 'B', currency: 'AFN', seller: 1, ppm: 100000, ded: 0, boughtDaysAgo: 64, sale: { buyer: 6, ppm: 150000, ded: 0, soldDaysAgo: 35 } },
-    { label: '0011', l: 2.5, w: 4, grade: 'A', currency: 'AFN', seller: 0, ppm: 135000, ded: 0, boughtDaysAgo: 58, sale: { buyer: 5, ppm: 195000, ded: 5000, soldDaysAgo: 28 } },
+    { label: '0010', l: 2, w: 2.5, grade: 'B', currency: 'USD', seller: 1, ppm: 4200, ded: 0, boughtDaysAgo: 64, sale: { buyer: 6, ppm: 6600, ded: 0, soldDaysAgo: 35 } },
+    { label: '0011', l: 2.5, w: 4, grade: 'A', currency: 'USD', seller: 0, ppm: 5200, ded: 0, boughtDaysAgo: 58, sale: { buyer: 5, ppm: 8000, ded: 200, soldDaysAgo: 28 } },
     { label: '0012', l: 2, w: 2, grade: 'C', currency: 'USD', seller: 7, ppm: 4500, ded: 0, boughtDaysAgo: 50 },
-    { label: '0013', l: 3, w: 4, grade: 'A', currency: 'AFN', seller: 2, ppm: 128000, ded: 0, boughtDaysAgo: 44, sale: { buyer: 7, ppm: 185000, ded: 0, soldDaysAgo: 18 } },
-    { label: '0014', l: 2, w: 3, grade: 'B', currency: 'AFN', seller: 3, ppm: 95000, ded: 0, boughtDaysAgo: 30 }
+    { label: '0013', l: 3, w: 4, grade: 'A', currency: 'USD', seller: 2, ppm: 5000, ded: 0, boughtDaysAgo: 44, sale: { buyer: 7, ppm: 7800, ded: 0, soldDaysAgo: 18 } },
+    { label: '0014', l: 2, w: 3, grade: 'B', currency: 'USD', seller: 3, ppm: 3600, ded: 0, boughtDaysAgo: 30 }
   ]
 
   for (const d of carpetDefs) {
@@ -252,7 +254,7 @@ export function devResetSeedCompute(
   const materialDefs: MatDef[] = [
     {
       name: 'Wool thread',
-      currency: 'AFN',
+      currency: 'USD',
       buys: [
         { client: 0, kg: 20, ppkg: 5000, daysAgo: 100 },
         { client: 1, kg: 15, ppkg: 5200, daysAgo: 80 },
@@ -265,7 +267,7 @@ export function devResetSeedCompute(
     },
     {
       name: 'Cotton thread',
-      currency: 'AFN',
+      currency: 'USD',
       buys: [
         { client: 2, kg: 30, ppkg: 3000, daysAgo: 90 },
         { client: 3, kg: 20, ppkg: 3100, daysAgo: 50 }
@@ -328,10 +330,10 @@ export function devResetSeedCompute(
 
   // --- Payments (partial settlements; not counted as buy/sell) -------------
   const payments: { client: number; currency: Currency; amountCents: number; daysAgo: number; note: string }[] = [
-    { client: 4, currency: 'AFN', amountCents: -500000, daysAgo: 50, note: 'Karim paid 5000.00 AFN' },
-    { client: 5, currency: 'AFN', amountCents: -300000, daysAgo: 25, note: 'Yusuf paid 3000.00 AFN' },
-    { client: 0, currency: 'AFN', amountCents: 400000, daysAgo: 60, note: 'Paid Ahmad 4000.00 AFN' },
-    { client: 1, currency: 'AFN', amountCents: 800000, daysAgo: 35, note: 'Paid Ghulam 8000.00 AFN' },
+    { client: 4, currency: 'USD', amountCents: -50000, daysAgo: 50, note: 'Karim paid 500.00 USD' },
+    { client: 5, currency: 'USD', amountCents: -30000, daysAgo: 25, note: 'Yusuf paid 300.00 USD' },
+    { client: 0, currency: 'USD', amountCents: 40000, daysAgo: 60, note: 'Paid Ahmad 400.00 USD' },
+    { client: 1, currency: 'USD', amountCents: 80000, daysAgo: 35, note: 'Paid Ghulam 800.00 USD' },
     { client: 4, currency: 'USD', amountCents: -20000, daysAgo: 10, note: 'Karim paid 200.00 USD' }
   ]
   for (const p of payments) {
@@ -347,10 +349,10 @@ export function devResetSeedCompute(
 
   // --- Expenses ------------------------------------------------------------
   const expenseDefs: { category: string; amountCents: number; currency: Currency; daysAgo: number; note: string }[] = [
-    { category: 'rent', amountCents: 500000, currency: 'AFN', daysAgo: 90, note: 'Shop rent' },
-    { category: 'rent', amountCents: 500000, currency: 'AFN', daysAgo: 30, note: 'Shop rent' },
-    { category: 'transport', amountCents: 120000, currency: 'AFN', daysAgo: 65, note: 'Freight' },
-    { category: 'wages', amountCents: 800000, currency: 'AFN', daysAgo: 45, note: 'Worker wages' },
+    { category: 'rent', amountCents: 50000, currency: 'USD', daysAgo: 90, note: 'Shop rent' },
+    { category: 'rent', amountCents: 50000, currency: 'USD', daysAgo: 30, note: 'Shop rent' },
+    { category: 'transport', amountCents: 12000, currency: 'USD', daysAgo: 65, note: 'Freight' },
+    { category: 'wages', amountCents: 80000, currency: 'USD', daysAgo: 45, note: 'Worker wages' },
     { category: 'packing', amountCents: 3000, currency: 'USD', daysAgo: 20, note: 'Packing materials' }
   ]
   for (const e of expenseDefs) {
