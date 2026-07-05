@@ -120,18 +120,20 @@ export function devResetSeedCompute(
 
   // --- Clients -------------------------------------------------------------
   // A realistic mix of suppliers and buyers; several act as both across deals.
-  const clientNames = [
-    'Ahmad Wali', // 0  supplier
-    'Ghulam Sakhi', // 1  supplier
-    'Rahim Gul', // 2  supplier + buyer
-    'Naseer Ahmad', // 3  supplier
-    'Karim Khan', // 4  buyer
-    'Yusuf Ali', // 5  buyer
-    'Fahim Nazari', // 6  buyer
-    'Zahra Carpets' // 7  buyer + supplier
+  // `kind` matches how each client actually appears in the seed below: sellers
+  // are only ever bought FROM, buyers are only ever sold TO, and Zahra does both.
+  const clientDefs: { name: string; kind: 'buyer' | 'seller' | 'both' }[] = [
+    { name: 'Ahmad Wali', kind: 'seller' }, // 0
+    { name: 'Ghulam Sakhi', kind: 'seller' }, // 1
+    { name: 'Rahim Gul', kind: 'seller' }, // 2
+    { name: 'Naseer Ahmad', kind: 'seller' }, // 3
+    { name: 'Karim Khan', kind: 'buyer' }, // 4
+    { name: 'Yusuf Ali', kind: 'buyer' }, // 5
+    { name: 'Fahim Nazari', kind: 'buyer' }, // 6
+    { name: 'Zahra Carpets', kind: 'both' } // 7  buyer + seller
   ]
-  const clientIds = clientNames.map((name, i) =>
-    Number(db.insert(schema.clients).values({ name, createdAt: at(120 - i) }).run().lastInsertRowid)
+  const clientIds = clientDefs.map((c, i) =>
+    Number(db.insert(schema.clients).values({ name: c.name, kind: c.kind, createdAt: at(120 - i) }).run().lastInsertRowid)
   )
 
   // --- Carpets -------------------------------------------------------------
