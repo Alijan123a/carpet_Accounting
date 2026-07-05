@@ -63,6 +63,15 @@ const api = {
     categories: () => ipcRenderer.invoke('expenses:categories')
   },
 
+  // Orders («سفارشات»).
+  orders: {
+    list: (params: unknown) => ipcRenderer.invoke('orders:list', params),
+    create: (input: unknown) => ipcRenderer.invoke('orders:create', input),
+    update: (id: number, input: unknown) => ipcRenderer.invoke('orders:update', id, input),
+    setStatus: (id: number, status: unknown) => ipcRenderer.invoke('orders:setStatus', id, status),
+    remove: (id: number) => ipcRenderer.invoke('orders:remove', id)
+  },
+
   // Dashboard (Phase 5).
   dashboard: {
     summary: (params: unknown) => ipcRenderer.invoke('dashboard:summary', params)

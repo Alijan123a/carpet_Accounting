@@ -7,6 +7,7 @@ import { registerClientsIpc, probeClients } from './ipc/clients'
 import { registerCarpetsIpc, probeCarpets, probeFullFlow } from './ipc/carpets'
 import { registerMaterialsIpc, probeMaterials } from './ipc/materials'
 import { registerExpensesIpc } from './ipc/expenses'
+import { registerOrdersIpc } from './ipc/orders'
 import { registerDashboardIpc, dashboardSummary } from './ipc/dashboard'
 import { registerReportsIpc, runReport } from './ipc/reports'
 import { registerPdfIpc } from './ipc/pdf'
@@ -103,6 +104,7 @@ app.whenReady().then(() => {
 
   // Expenses, dashboard, reports, PDF export (Phase 5).
   registerExpensesIpc(getDatabase)
+  registerOrdersIpc(getDatabase)
   registerDashboardIpc(getDatabase)
   registerReportsIpc(getDatabase)
   registerPdfIpc()

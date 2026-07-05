@@ -421,6 +421,70 @@ export interface ExpensesApi {
   categories: () => Promise<string[]>
 }
 
+// --- Orders («سفارشات») -----------------------------------------------------
+
+/** Order lifecycle states (fixed set; labels are localized in the UI). */
+export type OrderStatus = 'pending' | 'on_work' | 'finished' | 'delivered' | 'cancelled'
+
+export const ORDER_STATUSES: OrderStatus[] = ['pending', 'on_work', 'finished', 'delivered', 'cancelled']
+
+export interface OrderInput {
+  buyerClientId: number
+  title: string
+  quality?: string | null
+  length?: number | null
+  width?: number | null
+  quantity: number
+  priceCents: number
+  currency: Currency
+  status: OrderStatus
+  orderDate: number
+  dueDate?: number | null
+  notes?: string | null
+}
+
+export interface OrderView {
+  id: number
+  buyerClientId: number
+  buyerName: string | null
+  title: string
+  quality: string | null
+  length: number | null
+  width: number | null
+  quantity: number
+  priceCents: number
+  currency: Currency
+  status: OrderStatus
+  orderDate: number
+  dueDate: number | null
+  deliveredAt: number | null
+  notes: string | null
+  createdAt: number
+  archived: boolean
+}
+
+export interface OrdersListParams {
+  search?: string
+  status?: OrderStatus | 'all'
+  includeArchived?: boolean
+  limit: number
+  offset: number
+}
+
+export interface OrdersListResult {
+  rows: OrderView[]
+  total: number
+}
+
+export interface OrdersApi {
+  list: (params: OrdersListParams) => Promise<OrdersListResult>
+  create: (input: OrderInput) => Promise<number>
+  update: (id: number, input: OrderInput) => Promise<void>
+  /** Quick status change from the list (sets delivered_at when → delivered). */
+  setStatus: (id: number, status: OrderStatus) => Promise<void>
+  remove: (id: number) => Promise<void>
+}
+
 // --- Dashboard (Phase 5) ----------------------------------------------------
 
 export interface TurnoverPoint {

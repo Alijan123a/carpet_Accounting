@@ -10,6 +10,7 @@
     "sellers": "Sellers",
     "carpets": "Carpets",
     "material": "Material",
+    "orders": "Orders",
     "expenses": "Expenses",
     "transactions": "Transactions",
     "reports": "Reports",
@@ -350,7 +351,45 @@
     "allTime": "All time",
     "gross": "Gross",
     "net": "Net",
-    "noData": "No data yet."
+    "noData": "No data yet.",
+    "range": {
+      "today": "Today",
+      "week": "Last week",
+      "month": "Last month",
+      "halfYear": "6 months",
+      "year": "1 year",
+      "all": "From beginning",
+      "custom": "Custom"
+    }
+  },
+  "orders": {
+    "title": "Orders",
+    "add": "New order",
+    "edit": "Edit order",
+    "total": "{{total}} total",
+    "buyer": "Buyer",
+    "buyerRequired": "Choose a buyer.",
+    "titleField": "Ordered carpet",
+    "titlePlaceholder": "e.g. 3×4 Herati design, red",
+    "titleRequired": "Describe the ordered carpet.",
+    "quantity": "Quantity",
+    "price": "Agreed price",
+    "orderDate": "Order date",
+    "dueDate": "Due date",
+    "notes": "Notes",
+    "searchPlaceholder": "Search buyer, carpet, quality…",
+    "allStatuses": "All statuses",
+    "empty": "No orders yet.",
+    "deleteConfirmTitle": "Delete this order?",
+    "deleteConfirmBody": "This permanently removes the order.",
+    "status": {
+      "label": "Status",
+      "pending": "Pending",
+      "on_work": "On work",
+      "finished": "Finished",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    }
   },
   "expenses": {
     "title": "Expenses",

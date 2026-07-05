@@ -22,15 +22,38 @@ import {
 } from 'lucide-react'
 import { formatCents } from '@shared/accounting'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@renderer/components/ui/card'
+import { Input } from '@renderer/components/ui/input'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
+import { startOfDayEpoch, endOfDayEpoch } from '@renderer/lib/date'
 import type { DashboardSummary } from '@shared/contracts'
 
-/** Rolling 12-month window: first day 11 months ago → now. */
-function twelveMonthRange(): { fromDate: number; toDate: number } {
+/** Preset windows for the dashboard date filter. */
+type RangePreset = 'today' | 'week' | 'month' | 'halfYear' | 'year' | 'all' | 'custom'
+
+const DAY_MS = 86_400_000
+
+/** Resolve a preset (+ custom inputs) to an epoch-ms range [fromDate, toDate]. */
+function rangeFor(preset: RangePreset, from: string, to: string): { fromDate: number; toDate: number } {
   const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth() - 11, 1)
-  return { fromDate: from.getTime(), toDate: now.getTime() }
+  const end = now.getTime()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  switch (preset) {
+    case 'today':
+      return { fromDate: startOfToday, toDate: end }
+    case 'week':
+      return { fromDate: end - 7 * DAY_MS, toDate: end }
+    case 'month':
+      return { fromDate: new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()).getTime(), toDate: end }
+    case 'halfYear':
+      return { fromDate: new Date(now.getFullYear(), now.getMonth() - 6, 1).getTime(), toDate: end }
+    case 'year':
+      return { fromDate: new Date(now.getFullYear() - 1, now.getMonth(), 1).getTime(), toDate: end }
+    case 'all':
+      return { fromDate: 0, toDate: end }
+    case 'custom':
+      return { fromDate: from ? startOfDayEpoch(from) ?? 0 : 0, toDate: to ? endOfDayEpoch(to) ?? end : end }
+  }
 }
 
 const USD_COLOR = '#0d9488' // teal-600
@@ -40,14 +63,30 @@ const EXP_COLOR = '#f59e0b' // amber-500
 export function Dashboard(): JSX.Element {
   const { t } = useTranslation()
   const defaultCurrency = useSettings((s) => s.defaultCurrency)
+  const [preset, setPreset] = useState<RangePreset>('year')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
   const [data, setData] = useState<DashboardSummary | null>(null)
   // AFN is disabled app-wide for now, so the composition is shown in USD only.
   const donutCur = defaultCurrency
 
+  const range = useMemo(() => rangeFor(preset, customFrom, customTo), [preset, customFrom, customTo])
+
   useEffect(() => {
-    const range = twelveMonthRange()
+    // Keep previous data on screen while the new range loads (no loading flash).
     void window.api.dashboard.summary(range).then(setData)
-  }, [])
+  }, [range])
+
+  const PRESETS: { key: RangePreset; label: string }[] = [
+    { key: 'today', label: t('dashboard.range.today', 'Today') },
+    { key: 'week', label: t('dashboard.range.week', 'Last week') },
+    { key: 'month', label: t('dashboard.range.month', 'Last month') },
+    { key: 'halfYear', label: t('dashboard.range.halfYear', '6 months') },
+    { key: 'year', label: t('dashboard.range.year', '1 year') },
+    { key: 'all', label: t('dashboard.range.all', 'From beginning') },
+    { key: 'custom', label: t('dashboard.range.custom', 'Custom') }
+  ]
+  const rangeLabel = PRESETS.find((p) => p.key === preset)?.label ?? ''
 
   // Keep integer cents in the chart data; format to 2 decimals only at display
   // (axis ticks + tooltip) via formatCents — no money arithmetic in the UI.
@@ -71,9 +110,36 @@ export function Dashboard(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">{t('dashboard.title', 'Dashboard')}</h2>
-        <p className="text-sm text-muted-foreground">{t('dashboard.subtitle', 'Overview of your business')}</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">{t('dashboard.title', 'Dashboard')}</h2>
+          <p className="text-sm text-muted-foreground">{t('dashboard.subtitle', 'Overview of your business')}</p>
+        </div>
+
+        {/* Date-range filter: affects period profit & turnover. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-1 rounded-xl bg-muted/50 p-1">
+            {PRESETS.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setPreset(p.key)}
+                className={cn(
+                  'rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors',
+                  preset === p.key ? 'bg-card text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {preset === 'custom' && (
+            <div className="flex items-center gap-1.5">
+              <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-9 w-36" />
+              <span className="text-xs text-muted-foreground">→</span>
+              <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-9 w-36" />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* KPI tiles */}
@@ -105,7 +171,7 @@ export function Dashboard(): JSX.Element {
           <CardHeader className="flex-row items-center justify-between">
             <div>
               <CardTitle>{t('dashboard.turnover', 'Monthly turnover (sales)')}</CardTitle>
-              <CardDescription>{t('dashboard.turnoverHint', 'Last 12 months')}</CardDescription>
+              <CardDescription>{rangeLabel}</CardDescription>
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <LegendDot color={USD_COLOR} label="USD" />
@@ -153,7 +219,7 @@ export function Dashboard(): JSX.Element {
           <CardHeader className="flex-row items-start justify-between">
             <div>
               <CardTitle>{t('dashboard.profitComposition', 'Profit composition')}</CardTitle>
-              <CardDescription>{t('dashboard.profitCompositionHint', 'Last 12 months')}</CardDescription>
+              <CardDescription>{rangeLabel}</CardDescription>
             </div>
             <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">USD</span>
           </CardHeader>

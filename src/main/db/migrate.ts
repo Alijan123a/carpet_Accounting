@@ -149,6 +149,33 @@ CREATE INDEX IF NOT EXISTS idx_invoices_number ON invoices(number);
 CREATE INDEX IF NOT EXISTS idx_invoices_buyer ON invoices(buyer_client_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices(transaction_date);
 
+-- Orders («سفارشات»): buyer commissions a carpet; operational tracking only
+-- (not part of the money ledger). Moves through pending → on_work → finished →
+-- delivered / cancelled states.
+CREATE TABLE IF NOT EXISTS orders (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  buyer_client_id   INTEGER NOT NULL REFERENCES clients(id),
+  title             TEXT NOT NULL,
+  quality           TEXT,
+  length            REAL,
+  width             REAL,
+  quantity          INTEGER NOT NULL DEFAULT 1,
+  price_cents       INTEGER NOT NULL DEFAULT 0,
+  currency          TEXT NOT NULL,
+  status            TEXT NOT NULL DEFAULT 'pending',
+  order_date        INTEGER NOT NULL,
+  due_date          INTEGER,
+  delivered_at      INTEGER,
+  notes             TEXT,
+  created_at        INTEGER NOT NULL,
+  archived          INTEGER NOT NULL DEFAULT 0,
+  archived_at       INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_client_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_date ON orders(order_date);
+CREATE INDEX IF NOT EXISTS idx_orders_archived ON orders(archived);
+
 -- Immutable ledger: block edits and deletes of posted transactions.
 CREATE TRIGGER IF NOT EXISTS trg_tx_no_update
 BEFORE UPDATE ON transactions

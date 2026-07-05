@@ -4,6 +4,7 @@ import {
   Truck,
   Layers,
   Boxes,
+  ClipboardList,
   Receipt,
   BarChart3,
   Archive,
@@ -17,6 +18,7 @@ export type Route =
   | 'sellers'
   | 'carpets'
   | 'material'
+  | 'orders'
   | 'expenses'
   | 'reports'
   | 'archive'
@@ -37,6 +39,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'sellers', i18nKey: 'nav.sellers', label: 'Sellers', icon: Truck },
   { key: 'carpets', i18nKey: 'nav.carpets', label: 'Carpets', icon: Layers },
   { key: 'material', i18nKey: 'nav.material', label: 'Material', icon: Boxes },
+  { key: 'orders', i18nKey: 'nav.orders', label: 'Orders', icon: ClipboardList },
   { key: 'expenses', i18nKey: 'nav.expenses', label: 'Expenses', icon: Receipt },
   { key: 'reports', i18nKey: 'nav.reports', label: 'Reports', icon: BarChart3 },
   { key: 'archive', i18nKey: 'nav.archive', label: 'Archive', icon: Archive },

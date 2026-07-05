@@ -210,6 +210,42 @@ export const expenses = sqliteTable(
   })
 )
 
+/**
+ * Orders («سفارشات»): a buyer commissions a carpet to be made. Purely
+ * operational tracking — NOT part of the money ledger. Each order moves through
+ * user-visible states (pending → on_work → finished → delivered / cancelled).
+ */
+export const orders = sqliteTable(
+  'orders',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    buyerClientId: integer('buyer_client_id')
+      .notNull()
+      .references(() => clients.id),
+    title: text('title').notNull(),
+    quality: text('quality'),
+    length: real('length'),
+    width: real('width'),
+    quantity: integer('quantity').notNull().default(1),
+    priceCents: integer('price_cents').notNull().default(0),
+    currency: text('currency').$type<Currency>().notNull(),
+    status: text('status').notNull().default('pending'),
+    orderDate: integer('order_date').notNull(),
+    dueDate: integer('due_date'),
+    deliveredAt: integer('delivered_at'),
+    notes: text('notes'),
+    createdAt: integer('created_at').notNull(),
+    archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
+    archivedAt: integer('archived_at')
+  },
+  (t) => ({
+    buyerIdx: index('idx_orders_buyer').on(t.buyerClientId),
+    statusIdx: index('idx_orders_status').on(t.status),
+    orderDateIdx: index('idx_orders_date').on(t.orderDate),
+    archivedIdx: index('idx_orders_archived').on(t.archived)
+  })
+)
+
 export type ClientRow = typeof clients.$inferSelect
 export type CarpetRow = typeof carpets.$inferSelect
 export type MaterialRow = typeof materials.$inferSelect
@@ -217,3 +253,4 @@ export type MaterialLineRow = typeof materialLines.$inferSelect
 export type TransactionRow = typeof transactions.$inferSelect
 export type ExpenseRow = typeof expenses.$inferSelect
 export type InvoiceRow = typeof invoices.$inferSelect
+export type OrderRow = typeof orders.$inferSelect

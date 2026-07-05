@@ -7,6 +7,7 @@ import { ClientsModule } from '@renderer/features/clients/ClientsModule'
 import { CarpetsModule } from '@renderer/features/carpets/CarpetsModule'
 import { MaterialsModule } from '@renderer/features/materials/MaterialsModule'
 import { ExpensesModule } from '@renderer/features/expenses/ExpensesModule'
+import { OrdersModule } from '@renderer/features/orders/OrdersModule'
 import { Dashboard } from '@renderer/features/dashboard/Dashboard'
 import { ReportsModule } from '@renderer/features/reports/ReportsModule'
 import { ArchivePage } from '@renderer/features/archive/ArchivePage'
@@ -29,6 +30,8 @@ function MainApp(): JSX.Element {
         <CarpetsModule />
       ) : route === 'material' ? (
         <MaterialsModule />
+      ) : route === 'orders' ? (
+        <OrdersModule />
       ) : route === 'expenses' ? (
         <ExpensesModule />
       ) : route === 'reports' ? (

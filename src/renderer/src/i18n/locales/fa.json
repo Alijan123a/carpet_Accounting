@@ -10,6 +10,7 @@
     "sellers": "فروشنده‌ها",
     "carpets": "قالین‌ها",
     "material": "تار (مواد)",
+    "orders": "سفارشات",
     "expenses": "مصارف",
     "transactions": "تراکنش‌ها",
     "reports": "گزارش‌ها",
@@ -350,7 +351,45 @@
     "allTime": "کل دوره",
     "gross": "ناخالص",
     "net": "خالص",
-    "noData": "هنوز داده‌ای نیست."
+    "noData": "هنوز داده‌ای نیست.",
+    "range": {
+      "today": "امروز",
+      "week": "هفتهٔ اخیر",
+      "month": "ماه اخیر",
+      "halfYear": "۶ ماه",
+      "year": "۱ سال",
+      "all": "از ابتدا",
+      "custom": "دلخواه"
+    }
+  },
+  "orders": {
+    "title": "سفارشات",
+    "add": "سفارش جدید",
+    "edit": "ویرایش سفارش",
+    "total": "{{total}} مورد",
+    "buyer": "خریدار",
+    "buyerRequired": "خریدار را انتخاب کنید.",
+    "titleField": "قالین سفارش‌شده",
+    "titlePlaceholder": "مثلاً ۳×۴ طرح هراتی، سرخ",
+    "titleRequired": "مشخصات قالین سفارش‌شده را بنویسید.",
+    "quantity": "تعداد",
+    "price": "قیمت توافقی",
+    "orderDate": "تاریخ سفارش",
+    "dueDate": "تاریخ تحویل",
+    "notes": "یادداشت",
+    "searchPlaceholder": "جستجوی خریدار، قالین، کیفیت…",
+    "allStatuses": "همه وضعیت‌ها",
+    "empty": "هنوز سفارشی نیست.",
+    "deleteConfirmTitle": "این سفارش حذف شود؟",
+    "deleteConfirmBody": "این کار سفارش را برای همیشه حذف می‌کند.",
+    "status": {
+      "label": "وضعیت",
+      "pending": "در انتظار",
+      "on_work": "در حال کار",
+      "finished": "تکمیل‌شده",
+      "delivered": "تحویل‌شده",
+      "cancelled": "لغو‌شده"
+    }
   },
   "expenses": {
     "title": "مصارف",
