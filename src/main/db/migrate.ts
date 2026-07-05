@@ -24,8 +24,10 @@ CREATE TABLE IF NOT EXISTS clients (
   archived_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_clients_name ON clients(name);
-CREATE INDEX IF NOT EXISTS idx_clients_kind ON clients(kind);
 CREATE INDEX IF NOT EXISTS idx_clients_archived ON clients(archived);
+-- NOTE: idx_clients_kind is created in runColumnUpgrades(), AFTER the kind
+-- column is guaranteed to exist (on an existing DB the column is added by an
+-- ALTER there). Creating it here would fail on older DBs with a missing column.
 
 CREATE TABLE IF NOT EXISTS carpet_statuses (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -179,11 +181,14 @@ function hasColumn(sqlite: Database.Database, table: string, column: string): bo
  * handled by the CREATE ... IF NOT EXISTS statements above.
  */
 function runColumnUpgrades(sqlite: Database.Database): void {
-  // clients.kind — buyer / seller / both (Buyer/Seller list split).
+  // clients.kind — buyer / seller / both (Buyer/Seller list split). Add the
+  // column first if an older DB lacks it, THEN index it (the index is created
+  // here — not in SCHEMA_SQL — so it always runs after the column exists, for
+  // both fresh and upgraded databases).
   if (!hasColumn(sqlite, 'clients', 'kind')) {
     sqlite.exec(`ALTER TABLE clients ADD COLUMN kind TEXT NOT NULL DEFAULT 'both';`)
-    sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_clients_kind ON clients(kind);`)
   }
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_clients_kind ON clients(kind);`)
 }
 
 /** Create all tables/indexes/triggers and seed reference data. */
