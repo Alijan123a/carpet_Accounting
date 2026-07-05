@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS carpets (
   width                      REAL NOT NULL,
   area                       REAL NOT NULL,
   sort_grade                 TEXT,
+  quality                    TEXT,
   price_per_meter_cents      INTEGER NOT NULL,
   sort_deduction_cents       INTEGER NOT NULL DEFAULT 0,
   currency                   TEXT NOT NULL,
@@ -189,6 +190,11 @@ function runColumnUpgrades(sqlite: Database.Database): void {
     sqlite.exec(`ALTER TABLE clients ADD COLUMN kind TEXT NOT NULL DEFAULT 'both';`)
   }
   sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_clients_kind ON clients(kind);`)
+
+  // carpets.quality — free-text quality note (کیفیت), separate from sort grade.
+  if (!hasColumn(sqlite, 'carpets', 'quality')) {
+    sqlite.exec(`ALTER TABLE carpets ADD COLUMN quality TEXT;`)
+  }
 }
 
 /** Create all tables/indexes/triggers and seed reference data. */

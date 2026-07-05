@@ -46,6 +46,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
   const [length, setLength] = useState('')
   const [width, setWidth] = useState('')
   const [sortGrade, setSortGrade] = useState('')
+  const [quality, setQuality] = useState('')
   const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY)
   const [ppm, setPpm] = useState('')
   const [deduction, setDeduction] = useState('')
@@ -65,6 +66,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
     setLength(carpet ? String(carpet.length) : '')
     setWidth(carpet ? String(carpet.width) : '')
     setSortGrade(carpet?.sortGrade ?? '')
+    setQuality(carpet?.quality ?? '')
     setCurrency(carpet?.currency ?? DEFAULT_CURRENCY)
     setPpm(carpet ? centsToInput(carpet.pricePerMeterCents) : '')
     setDeduction(carpet ? centsToInput(carpet.sortDeductionCents) : '')
@@ -111,6 +113,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
           length: l,
           width: w,
           sortGrade: sortGrade.trim() || null,
+          quality: quality.trim() || null,
           currency,
           pricePerMeterCents: calc.ppmCents,
           sortDeductionCents: calc.dedCents,
@@ -124,6 +127,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
           length: l,
           width: w,
           sortGrade: sortGrade.trim() || null,
+          quality: quality.trim() || null,
           currency,
           pricePerMeterCents: calc.ppmCents,
           sortDeductionCents: calc.dedCents,
@@ -181,6 +185,9 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
               ))}
             </select>
           </Labeled>
+          <Labeled label={t('carpets.quality', 'Quality')}>
+            <Input value={quality} onChange={(e) => setQuality(e.target.value)} />
+          </Labeled>
           <Labeled label={`${t('carpets.length', 'Length')} (m)`}>
             <Input type="number" step="0.01" value={length} onChange={(e) => setLength(e.target.value)} disabled={locked} />
           </Labeled>
@@ -201,19 +208,22 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
               ))}
             </select>
           </Labeled>
-          <Labeled label={t('carpets.status', 'Status')}>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
-            >
-              {statuses.map((s) => (
-                <option key={s.id} value={s.key}>
-                  {statusLabel(s, language)}
-                </option>
-              ))}
-            </select>
-          </Labeled>
+          {/* New carpets are always «در انبار»; status is only editable afterwards. */}
+          {isEdit && (
+            <Labeled label={t('carpets.status', 'Status')}>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
+              >
+                {statuses.map((s) => (
+                  <option key={s.id} value={s.key}>
+                    {statusLabel(s, language)}
+                  </option>
+                ))}
+              </select>
+            </Labeled>
+          )}
           <Labeled label={`${t('carpets.pricePerMeter', 'Price / meter')} (${currency})`}>
             <Input type="number" step="0.01" value={ppm} onChange={(e) => setPpm(e.target.value)} disabled={locked} />
           </Labeled>

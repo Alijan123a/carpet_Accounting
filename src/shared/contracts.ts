@@ -101,6 +101,7 @@ export interface CarpetInput {
   length: number
   width: number
   sortGrade?: string | null
+  quality?: string | null
   currency: Currency
   pricePerMeterCents: number
   sortDeductionCents: number
@@ -113,15 +114,23 @@ export interface CarpetInput {
 
 // --- Buy invoice («بل خرید» — bulk add carpets) -----------------------------
 
-/** One carpet row in a bulk purchase. The seller/currency/date are shared. */
+/**
+ * One carpet row in a bulk purchase. The seller/currency/date are shared, and
+ * new carpets are always created «در انبار» (status is not user-chosen here).
+ */
 export interface CarpetBatchLineInput {
   labelNumber: string
   length: number
   width: number
   sortGrade?: string | null
+  quality?: string | null
   pricePerMeterCents: number
   sortDeductionCents: number
-  status: string
+  /**
+   * Final line total in integer cents. Defaults to (price − deduction) × area
+   * but the user may override it directly; when 0/unset the server recomputes.
+   */
+  totalCents: number
 }
 
 export interface CarpetsBatchInput {
@@ -148,6 +157,7 @@ export interface CarpetEditInput {
   length: number
   width: number
   sortGrade?: string | null
+  quality?: string | null
   currency: Currency
   pricePerMeterCents: number
   sortDeductionCents: number
@@ -161,6 +171,7 @@ export interface CarpetListItem {
   width: number
   area: number
   sortGrade: string | null
+  quality: string | null
   currency: Currency
   pricePerMeterCents: number
   sortDeductionCents: number

@@ -67,6 +67,7 @@ function toListItem(row: schema.CarpetRow): CarpetListItem {
     width: row.width,
     area: row.area,
     sortGrade: row.sortGrade,
+    quality: row.quality,
     currency: row.currency,
     pricePerMeterCents: row.pricePerMeterCents,
     sortDeductionCents: row.sortDeductionCents,
@@ -153,6 +154,7 @@ export function createCarpet(db: DB, input: CarpetInput): { ok: boolean; id?: nu
             width: input.width,
             area,
             sortGrade: input.sortGrade?.trim() || null,
+            quality: input.quality?.trim() || null,
             pricePerMeterCents: input.pricePerMeterCents,
             sortDeductionCents: input.sortDeductionCents,
             currency: input.currency,
@@ -230,7 +232,11 @@ export function createCarpetsBatch(db: DB, input: CarpetsBatchInput): CarpetsBat
     for (const l of lines) {
       const label = l.labelNumber.trim()
       const area = l.length * l.width
-      const totalCents = carpetTotalPriceCents(l.pricePerMeterCents, l.sortDeductionCents, area)
+      // Use the user's explicit total when given; otherwise derive it.
+      const totalCents =
+        l.totalCents && l.totalCents > 0
+          ? l.totalCents
+          : carpetTotalPriceCents(l.pricePerMeterCents, l.sortDeductionCents, area)
       const carpetId = Number(
         tx
           .insert(schema.carpets)
@@ -240,11 +246,13 @@ export function createCarpetsBatch(db: DB, input: CarpetsBatchInput): CarpetsBat
             width: l.width,
             area,
             sortGrade: l.sortGrade?.trim() || null,
+            quality: l.quality?.trim() || null,
             pricePerMeterCents: l.pricePerMeterCents,
             sortDeductionCents: l.sortDeductionCents,
             currency: input.currency,
             totalPriceCents: totalCents,
-            status: l.status || 'in_warehouse',
+            // New carpets are always «در انبار» (see CarpetBatchLineInput).
+            status: 'in_warehouse',
             boughtFromClientId: seller,
             createdAt: now
           })
@@ -287,7 +295,12 @@ export function updateCarpet(db: DB, id: number, input: CarpetEditInput): { ok: 
   try {
     if (existing.buyTransactionId != null) {
       db.update(schema.carpets)
-        .set({ labelNumber: input.labelNumber.trim(), sortGrade: input.sortGrade?.trim() || null, status: input.status })
+        .set({
+          labelNumber: input.labelNumber.trim(),
+          sortGrade: input.sortGrade?.trim() || null,
+          quality: input.quality?.trim() || null,
+          status: input.status
+        })
         .where(eq(schema.carpets.id, id))
         .run()
     } else {
@@ -300,6 +313,7 @@ export function updateCarpet(db: DB, id: number, input: CarpetEditInput): { ok: 
           width: input.width,
           area,
           sortGrade: input.sortGrade?.trim() || null,
+          quality: input.quality?.trim() || null,
           currency: input.currency,
           pricePerMeterCents: input.pricePerMeterCents,
           sortDeductionCents: input.sortDeductionCents,

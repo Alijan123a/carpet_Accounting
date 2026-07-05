@@ -103,6 +103,7 @@ export const carpets = sqliteTable(
     width: real('width').notNull(),
     area: real('area').notNull(),
     sortGrade: text('sort_grade'),
+    quality: text('quality'),
     // Buy (acquisition) side.
     pricePerMeterCents: integer('price_per_meter_cents').notNull(),
     sortDeductionCents: integer('sort_deduction_cents').notNull().default(0),
