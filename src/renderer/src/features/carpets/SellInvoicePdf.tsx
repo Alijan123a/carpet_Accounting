@@ -22,12 +22,20 @@ Font.register({
  * these values (or wire them to app config later) to match the real shop.
  */
 export const BUSINESS_INFO = {
-  name: 'تجارتخانه قالین',
-  phones: '0700 000 000 · 0780 000 000'
+  name: 'شرکت تولیدی قالین رضایی (غزنه)',
+  /** Shown as stacked boxes in the top corner, like the printed bill pad. */
+  phones: ['0787286009', '0794235344'],
+  /** Short monogram drawn inside the logo badge. */
+  monogram: 'ق‌ر'
 }
 
-/** Brand accent (laaki red) used for header + table lines. */
-const BRAND = '#9b1c1c'
+/** Brand accent (indigo blue) used for the frame, header + table lines. */
+const BRAND = '#2e2e8f'
+/** Bill number is printed in red on the pad. */
+const RED = '#c81e1e'
+
+/** How many line rows the grid always shows, padding blanks like a bill pad. */
+const MIN_ROWS = 14
 
 export interface InvoiceDocLine {
   goodsType: string
@@ -52,132 +60,209 @@ export interface InvoiceDocData {
 }
 
 const styles = StyleSheet.create({
-  page: { paddingHorizontal: 30, paddingVertical: 28, fontSize: 9, fontFamily: 'Vazirmatn', color: '#111' },
-  headerBox: {
-    borderBottomWidth: 2,
-    borderBottomColor: BRAND,
-    paddingBottom: 8,
-    marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between'
-  },
-  bizName: { fontSize: 16, fontWeight: 'bold', color: BRAND, marginBottom: 2 },
-  bizPhones: { fontSize: 8, color: '#555' },
-  invMeta: { fontSize: 9 },
-  invTitle: { fontSize: 13, fontWeight: 'bold', marginBottom: 3 },
-  buyerBox: {
+  page: { padding: 24, fontSize: 9, fontFamily: 'Vazirmatn', color: '#111' },
+  // Double-line indigo frame around the whole bill.
+  frameOuter: { flex: 1, borderWidth: 2, borderColor: BRAND, padding: 3 },
+  frameInner: { flex: 1, borderWidth: 0.75, borderColor: BRAND, padding: 12 },
+
+  // Header
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  headerSide: { width: 96, justifyContent: 'center' },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  bizName: { fontSize: 15, fontWeight: 'bold', color: BRAND, textAlign: 'center' },
+  billNo: { fontSize: 13, fontWeight: 'bold', color: RED, marginTop: 3 },
+  phoneBox: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    padding: 6,
-    marginBottom: 10
+    borderColor: BRAND,
+    borderRadius: 3,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    marginBottom: 3
   },
-  buyerLabel: { fontSize: 8, color: '#888' },
-  buyerName: { fontSize: 11, fontWeight: 'bold' },
-  table: { borderWidth: 1, borderColor: '#bbb' },
-  headerRow: { flexDirection: 'row', backgroundColor: '#f3e6e6', borderBottomWidth: 1, borderBottomColor: BRAND },
-  row: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#ddd' },
-  totalRow: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: BRAND, backgroundColor: '#faf5f5' },
-  cell: { paddingVertical: 3, paddingHorizontal: 4 },
-  cellBold: { paddingVertical: 4, paddingHorizontal: 4, fontWeight: 'bold' },
-  signRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 36 },
-  signBox: { width: '42%', borderTopWidth: 1, borderTopColor: '#333', paddingTop: 4, textAlign: 'center', fontSize: 9 }
+  phoneText: { fontSize: 8, color: BRAND, textAlign: 'center' },
+  logo: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    borderColor: BRAND,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  logoText: { fontSize: 16, fontWeight: 'bold', color: BRAND },
+
+  // Customer / number / date row
+  metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 },
+  metaField: { flexDirection: 'row', alignItems: 'flex-end' },
+  metaLabel: { fontSize: 9, color: BRAND, fontWeight: 'bold' },
+  metaLine: { borderBottomWidth: 0.75, borderBottomColor: '#555', marginHorizontal: 4, paddingBottom: 1 },
+  metaValue: { fontSize: 9, color: '#111' },
+
+  // Table
+  table: { borderWidth: 1, borderColor: BRAND },
+  headerRow: { flexDirection: 'row', backgroundColor: '#e7e7f5', borderBottomWidth: 1, borderBottomColor: BRAND },
+  row: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#b9b9d6', minHeight: 17 },
+  totalRow: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: BRAND, backgroundColor: '#eeeef8' },
+  cell: { paddingVertical: 3, paddingHorizontal: 4, justifyContent: 'center' },
+  cellHead: { paddingVertical: 4, paddingHorizontal: 4, fontWeight: 'bold', color: BRAND },
+  cellBold: { paddingVertical: 5, paddingHorizontal: 4, fontWeight: 'bold' },
+
+  // Footer (stamp + signature)
+  footer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 22 },
+  signBox: { width: '40%' },
+  signLabel: { fontSize: 9, color: BRAND, fontWeight: 'bold', marginBottom: 14 },
+  signLine: { borderTopWidth: 0.75, borderTopColor: '#555' }
 })
 
 // Column widths (flex) — DOM order is fixed; the page `direction` flips it for RTL.
+// Vertical separators drawn per-cell to reproduce the ruled bill grid.
 const COLS = {
-  index: 0.5,
-  goods: 1.4,
+  index: 0.55,
+  goods: 1.5,
   label: 1.6,
   length: 0.9,
   width: 0.9,
-  area: 1,
+  area: 0.9,
   price: 1.4,
-  total: 1.5
+  total: 1.6
+}
+const colOrder = ['index', 'goods', 'label', 'length', 'width', 'area', 'price', 'total'] as const
+
+/** Vertical rule between grid columns (skip after the last column). */
+function sep(key: (typeof colOrder)[number]): { borderRightWidth?: number; borderRightColor?: string } {
+  if (key === colOrder[colOrder.length - 1]) return {}
+  return { borderRightWidth: 0.5, borderRightColor: '#b9b9d6' }
 }
 
-function align(dir: 'rtl' | 'ltr', end = false): 'left' | 'right' {
+function align(dir: 'rtl' | 'ltr', end = false): 'left' | 'right' | 'center' {
   if (dir === 'rtl') return end ? 'left' : 'right'
   return end ? 'right' : 'left'
 }
 
 function InvoiceDocument({ data }: { data: InvoiceDocData }): JSX.Element {
   const dir = data.direction
-  const start = dir === 'rtl' ? 'right' : 'left'
+  const center: 'center' = 'center'
   const money = (c: number): string => `${formatCents(c)} ${data.currency}`
+
+  // Pad the grid to a fixed number of rows so it always reads like the bill pad.
+  const blanks = Math.max(0, MIN_ROWS - data.lines.length)
+
   return (
     <Document>
       <Page size="A4" style={[styles.page, { direction: dir }]}>
-        {/* Header: business identity + invoice meta */}
-        <View style={styles.headerBox}>
-          <View>
-            <Text style={[styles.bizName, { textAlign: start }]}>{BUSINESS_INFO.name}</Text>
-            <Text style={[styles.bizPhones, { textAlign: start }]}>{BUSINESS_INFO.phones}</Text>
-          </View>
-          <View>
-            <Text style={[styles.invTitle, { textAlign: align(dir, true) }]}>بل فروش</Text>
-            <Text style={[styles.invMeta, { textAlign: align(dir, true) }]}>نمبر: {data.number}</Text>
-            <Text style={[styles.invMeta, { textAlign: align(dir, true) }]}>
-              تاریخ: {formatDate(data.dateEpoch, data.calendar)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Buyer */}
-        <View style={styles.buyerBox}>
-          <Text style={[styles.buyerLabel, { textAlign: start }]}>خریدار</Text>
-          <Text style={[styles.buyerName, { textAlign: start }]}>{data.buyerName}</Text>
-          {data.buyerPhone ? (
-            <Text style={[styles.bizPhones, { textAlign: start }]}>{data.buyerPhone}</Text>
-          ) : null}
-        </View>
-
-        {/* Line table */}
-        <View style={styles.table}>
-          <View style={styles.headerRow}>
-            <Text style={[styles.cellBold, { flex: COLS.index, textAlign: align(dir) }]}>#</Text>
-            <Text style={[styles.cellBold, { flex: COLS.goods, textAlign: align(dir) }]}>نوع جنس</Text>
-            <Text style={[styles.cellBold, { flex: COLS.label, textAlign: align(dir) }]}>نمبر قالین</Text>
-            <Text style={[styles.cellBold, { flex: COLS.length, textAlign: align(dir, true) }]}>طول</Text>
-            <Text style={[styles.cellBold, { flex: COLS.width, textAlign: align(dir, true) }]}>عرض</Text>
-            <Text style={[styles.cellBold, { flex: COLS.area, textAlign: align(dir, true) }]}>متراژ</Text>
-            <Text style={[styles.cellBold, { flex: COLS.price, textAlign: align(dir, true) }]}>قیمت فی‌متر</Text>
-            <Text style={[styles.cellBold, { flex: COLS.total, textAlign: align(dir, true) }]}>جمله</Text>
-          </View>
-
-          {data.lines.map((l, i) => (
-            <View key={i} style={styles.row} wrap={false}>
-              <Text style={[styles.cell, { flex: COLS.index, textAlign: align(dir) }]}>{i + 1}</Text>
-              <Text style={[styles.cell, { flex: COLS.goods, textAlign: align(dir) }]}>{l.goodsType}</Text>
-              <Text style={[styles.cell, { flex: COLS.label, textAlign: align(dir) }]}>{l.labelNumber || '—'}</Text>
-              <Text style={[styles.cell, { flex: COLS.length, textAlign: align(dir, true) }]}>{l.length || '—'}</Text>
-              <Text style={[styles.cell, { flex: COLS.width, textAlign: align(dir, true) }]}>{l.width || '—'}</Text>
-              <Text style={[styles.cell, { flex: COLS.area, textAlign: align(dir, true) }]}>{l.area.toFixed(2)}</Text>
-              <Text style={[styles.cell, { flex: COLS.price, textAlign: align(dir, true) }]}>{formatCents(l.unitPriceCents)}</Text>
-              <Text style={[styles.cell, { flex: COLS.total, textAlign: align(dir, true) }]}>{formatCents(l.totalCents)}</Text>
+        <View style={styles.frameOuter}>
+          <View style={styles.frameInner}>
+            {/* Header: phones · shop name + bill number · logo */}
+            <View style={styles.header}>
+              <View style={styles.headerSide}>
+                {BUSINESS_INFO.phones.map((p, i) => (
+                  <View key={i} style={styles.phoneBox}>
+                    <Text style={styles.phoneText}>{p}</Text>
+                  </View>
+                ))}
+              </View>
+              <View style={styles.headerCenter}>
+                <Text style={styles.bizName}>{BUSINESS_INFO.name}</Text>
+                <Text style={styles.billNo}>{data.number}</Text>
+              </View>
+              <View style={[styles.headerSide, { alignItems: 'center' }]}>
+                <View style={styles.logo}>
+                  <Text style={styles.logoText}>{BUSINESS_INFO.monogram}</Text>
+                </View>
+              </View>
             </View>
-          ))}
 
-          {/* Totals */}
-          <View style={styles.totalRow} wrap={false}>
-            <Text
-              style={[
-                styles.cellBold,
-                { flex: COLS.index + COLS.goods + COLS.label + COLS.length + COLS.width + COLS.area, textAlign: align(dir, true) }
-              ]}
-            >
-              مجموع کل
-            </Text>
-            <Text style={[styles.cellBold, { flex: COLS.price + COLS.total, textAlign: align(dir, true) }]}>
-              {money(data.grandTotalCents)}
-            </Text>
+            {/* Customer name · number · date */}
+            <View style={styles.metaRow}>
+              <View style={[styles.metaField, { flex: 1 }]}>
+                <Text style={styles.metaLabel}>اسم مشتری:</Text>
+                <Text style={[styles.metaLine, styles.metaValue, { flex: 1, textAlign: align(dir) }]}>
+                  {data.buyerName}
+                  {data.buyerPhone ? `  ·  ${data.buyerPhone}` : ''}
+                </Text>
+              </View>
+              <View style={[styles.metaField, { marginRight: dir === 'rtl' ? 0 : 16, marginLeft: dir === 'rtl' ? 16 : 0 }]}>
+                <Text style={styles.metaLabel}>تاریخ:</Text>
+                <Text style={[styles.metaLine, styles.metaValue, { minWidth: 70, textAlign: center }]}>
+                  {formatDate(data.dateEpoch, data.calendar)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Line grid */}
+            <View style={styles.table}>
+              <View style={styles.headerRow}>
+                <Text style={[styles.cellHead, sep('index'), { flex: COLS.index, textAlign: center }]}>شماره</Text>
+                <Text style={[styles.cellHead, sep('goods'), { flex: COLS.goods, textAlign: center }]}>نوع جنس</Text>
+                <Text style={[styles.cellHead, sep('label'), { flex: COLS.label, textAlign: center }]}>نمبر قالین</Text>
+                <Text style={[styles.cellHead, sep('length'), { flex: COLS.length, textAlign: center }]}>طول</Text>
+                <Text style={[styles.cellHead, sep('width'), { flex: COLS.width, textAlign: center }]}>عرض</Text>
+                <Text style={[styles.cellHead, sep('area'), { flex: COLS.area, textAlign: center }]}>متر</Text>
+                <Text style={[styles.cellHead, sep('price'), { flex: COLS.price, textAlign: center }]}>قیمت</Text>
+                <Text style={[styles.cellHead, sep('total'), { flex: COLS.total, textAlign: center }]}>جمله نقد</Text>
+              </View>
+
+              {data.lines.map((l, i) => (
+                <View key={i} style={styles.row} wrap={false}>
+                  <Text style={[styles.cell, sep('index'), { flex: COLS.index, textAlign: center }]}>{i + 1}</Text>
+                  <Text style={[styles.cell, sep('goods'), { flex: COLS.goods, textAlign: align(dir) }]}>{l.goodsType}</Text>
+                  <Text style={[styles.cell, sep('label'), { flex: COLS.label, textAlign: align(dir) }]}>{l.labelNumber || ''}</Text>
+                  <Text style={[styles.cell, sep('length'), { flex: COLS.length, textAlign: center }]}>{l.length || ''}</Text>
+                  <Text style={[styles.cell, sep('width'), { flex: COLS.width, textAlign: center }]}>{l.width || ''}</Text>
+                  <Text style={[styles.cell, sep('area'), { flex: COLS.area, textAlign: center }]}>{l.area ? l.area.toFixed(2) : ''}</Text>
+                  <Text style={[styles.cell, sep('price'), { flex: COLS.price, textAlign: align(dir, true) }]}>{formatCents(l.unitPriceCents)}</Text>
+                  <Text style={[styles.cell, sep('total'), { flex: COLS.total, textAlign: align(dir, true) }]}>{formatCents(l.totalCents)}</Text>
+                </View>
+              ))}
+
+              {/* Blank ruled rows to fill the pad */}
+              {Array.from({ length: blanks }).map((_, i) => (
+                <View key={`blank-${i}`} style={styles.row} wrap={false}>
+                  <Text style={[styles.cell, sep('index'), { flex: COLS.index, textAlign: center, color: '#999' }]}>
+                    {data.lines.length + i + 1}
+                  </Text>
+                  <Text style={[styles.cell, sep('goods'), { flex: COLS.goods }]} />
+                  <Text style={[styles.cell, sep('label'), { flex: COLS.label }]} />
+                  <Text style={[styles.cell, sep('length'), { flex: COLS.length }]} />
+                  <Text style={[styles.cell, sep('width'), { flex: COLS.width }]} />
+                  <Text style={[styles.cell, sep('area'), { flex: COLS.area }]} />
+                  <Text style={[styles.cell, sep('price'), { flex: COLS.price }]} />
+                  <Text style={[styles.cell, sep('total'), { flex: COLS.total }]} />
+                </View>
+              ))}
+
+              {/* Total */}
+              <View style={styles.totalRow} wrap={false}>
+                <Text
+                  style={[
+                    styles.cellBold,
+                    sep('area'),
+                    {
+                      flex: COLS.index + COLS.goods + COLS.label + COLS.length + COLS.width + COLS.area,
+                      textAlign: align(dir, true)
+                    }
+                  ]}
+                >
+                  مجموع کل
+                </Text>
+                <Text style={[styles.cellBold, { flex: COLS.price + COLS.total, textAlign: align(dir, true) }]}>
+                  {money(data.grandTotalCents)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Stamp + signature */}
+            <View style={styles.footer}>
+              <View style={styles.signBox}>
+                <Text style={styles.signLabel}>امضا:</Text>
+                <View style={styles.signLine} />
+              </View>
+              <View style={styles.signBox}>
+                <Text style={styles.signLabel}>مهر:</Text>
+                <View style={styles.signLine} />
+              </View>
+            </View>
           </View>
-        </View>
-
-        {/* Signature + stamp */}
-        <View style={styles.signRow}>
-          <Text style={styles.signBox}>امضا</Text>
-          <Text style={styles.signBox}>مهر</Text>
         </View>
       </Page>
     </Document>
