@@ -1,0 +1,140 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Input } from '@renderer/components/ui/input'
+import { cn } from '@renderer/lib/utils'
+
+export interface TypeaheadItem {
+  id: number | string
+  label: string
+  /** Optional secondary text shown dimmed (e.g. a phone number). */
+  sublabel?: string
+}
+
+interface TypeaheadProps<T extends TypeaheadItem> {
+  /** Current text in the field (controlled by the parent). */
+  value: string
+  onValueChange: (text: string) => void
+  /** Candidate pool; filtered here by case-insensitive substring. */
+  items: T[]
+  onSelect: (item: T) => void
+  placeholder?: string
+  disabled?: boolean
+  className?: string
+  /** Max suggestions to show at once. */
+  limit?: number
+  autoFocus?: boolean
+}
+
+/**
+ * Lightweight autocomplete: an {@link Input} plus a filtered dropdown, built
+ * from existing primitives (no new dependency). Typing filters `items` by
+ * case-insensitive SUBSTRING over label + sublabel — typing "a" surfaces every
+ * item containing "a" — and picking one fires `onSelect`. Keyboard: ↑/↓ to move,
+ * Enter to choose the highlighted row, Esc to close. RTL-safe (logical classes).
+ */
+export function Typeahead<T extends TypeaheadItem>({
+  value,
+  onValueChange,
+  items,
+  onSelect,
+  placeholder,
+  disabled,
+  className,
+  limit = 50,
+  autoFocus
+}: TypeaheadProps<T>): JSX.Element {
+  const [open, setOpen] = useState(false)
+  const [highlight, setHighlight] = useState(0)
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  const matches = useMemo(() => {
+    const q = value.trim().toLowerCase()
+    const pool = q
+      ? items.filter(
+          (it) =>
+            it.label.toLowerCase().includes(q) || (it.sublabel?.toLowerCase().includes(q) ?? false)
+        )
+      : items
+    return pool.slice(0, limit)
+  }, [items, value, limit])
+
+  // Reset the highlighted row whenever the visible matches change.
+  useEffect(() => setHighlight(0), [value, open])
+
+  // Close the dropdown on an outside click.
+  useEffect(() => {
+    if (!open) return
+    function onDocMouseDown(e: MouseEvent): void {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDocMouseDown)
+    return () => document.removeEventListener('mousedown', onDocMouseDown)
+  }, [open])
+
+  function choose(item: T): void {
+    onSelect(item)
+    setOpen(false)
+  }
+
+  function onKeyDown(e: React.KeyboardEvent): void {
+    if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      setOpen(true)
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setHighlight((h) => Math.min(h + 1, matches.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlight((h) => Math.max(h - 1, 0))
+    } else if (e.key === 'Enter') {
+      if (open && matches[highlight]) {
+        e.preventDefault()
+        choose(matches[highlight])
+      }
+    } else if (e.key === 'Escape') {
+      setOpen(false)
+    }
+  }
+
+  return (
+    <div ref={wrapRef} className={cn('relative', className)}>
+      <Input
+        value={value}
+        onChange={(e) => {
+          onValueChange(e.target.value)
+          setOpen(true)
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={onKeyDown}
+        placeholder={placeholder}
+        disabled={disabled}
+        autoFocus={autoFocus}
+        autoComplete="off"
+      />
+      {open && matches.length > 0 && (
+        <ul className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-border bg-card py-1 text-sm shadow-card">
+          {matches.map((item, i) => (
+            <li
+              key={item.id}
+              // onMouseDown (not onClick) so selection wins the race with the input's blur.
+              onMouseDown={(e) => {
+                e.preventDefault()
+                choose(item)
+              }}
+              onMouseEnter={() => setHighlight(i)}
+              className={cn(
+                'flex cursor-pointer items-center justify-between gap-2 px-3 py-1.5',
+                i === highlight ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
+              )}
+            >
+              <span className="truncate">{item.label}</span>
+              {item.sublabel && (
+                <span className="shrink-0 text-xs text-muted-foreground">{item.sublabel}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}

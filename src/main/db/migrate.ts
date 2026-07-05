@@ -132,6 +132,20 @@ CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
 CREATE INDEX IF NOT EXISTS idx_expenses_currency ON expenses(currency);
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(expense_date);
 
+CREATE TABLE IF NOT EXISTS invoices (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  number            TEXT NOT NULL,
+  buyer_client_id   INTEGER NOT NULL REFERENCES clients(id),
+  currency          TEXT NOT NULL,
+  total_cents       INTEGER NOT NULL,
+  lines_json        TEXT NOT NULL,
+  transaction_date  INTEGER NOT NULL,
+  created_at        INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_invoices_number ON invoices(number);
+CREATE INDEX IF NOT EXISTS idx_invoices_buyer ON invoices(buyer_client_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices(transaction_date);
+
 -- Immutable ledger: block edits and deletes of posted transactions.
 CREATE TRIGGER IF NOT EXISTS trg_tx_no_update
 BEFORE UPDATE ON transactions

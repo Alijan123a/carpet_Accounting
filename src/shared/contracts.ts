@@ -192,6 +192,10 @@ export interface CarpetsApi {
   restore: (id: number) => Promise<void>
   sortGrades: () => Promise<string[]>
   sell: (input: CarpetSellInput) => Promise<{ ok: boolean; reason?: string }>
+  /** Suggested next invoice number (sequential; the user may override it). */
+  nextInvoiceNumber: () => Promise<string>
+  /** Save a sell invoice, posting each carpet line's sale atomically. */
+  sellInvoice: (input: SellInvoiceInput) => Promise<SellInvoiceResult>
 }
 
 export interface CarpetStatusesApi {
@@ -209,6 +213,43 @@ export interface CarpetSellInput {
   sellPricePerMeterCents: number
   sellSortDeductionCents: number
   transactionDate?: number | null
+}
+
+// --- Sell invoice («بل فروش») -----------------------------------------------
+
+export interface SellInvoiceLineInput {
+  /** Real in-warehouse carpet to sell (null = free-text, print-only line). */
+  carpetId: number | null
+  /** «نوع جنس» — goods type, defaults to Carpet. */
+  goodsType: string
+  /** «نمبر قالین» — carpet label (snapshot; free text for non-carpet lines). */
+  labelNumber: string
+  length: number
+  width: number
+  /** «متراژ» m² (defaults to length×width; may be manually overridden). */
+  area: number
+  /** «قیمت» unit price per meter, in integer cents. */
+  unitPriceCents: number
+  /** «جمله» line total, in integer cents (defaults to area×unitPrice; overridable). */
+  totalCents: number
+}
+
+export interface SellInvoiceInput {
+  number: string
+  buyerClientId: number
+  currency: Currency
+  transactionDate?: number | null
+  lines: SellInvoiceLineInput[]
+}
+
+export interface SellInvoiceResult {
+  ok: boolean
+  id?: number
+  /** Final invoice number (server-assigned if the caller left it blank). */
+  number?: string
+  /** True when this build posts invoice sales to the ledger. */
+  posted?: boolean
+  reason?: string
 }
 
 // --- Payments (Phase 4) -----------------------------------------------------

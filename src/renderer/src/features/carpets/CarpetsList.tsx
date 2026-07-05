@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Pencil, Plus, Archive, ArchiveRestore, SlidersHorizontal, Tag } from 'lucide-react'
+import { Pencil, Plus, Archive, ArchiveRestore, SlidersHorizontal, Tag, FileText } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { cn } from '@renderer/lib/utils'
@@ -12,6 +12,7 @@ import { statusLabel, statusLabelByKey } from './statusLabel'
 import { CarpetFormDialog } from './CarpetFormDialog'
 import { StatusesDialog } from './StatusesDialog'
 import { SellCarpetDialog } from './SellCarpetDialog'
+import { SellInvoiceDialog } from './SellInvoiceDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
@@ -46,6 +47,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
   const [formOpen, setFormOpen] = useState(false)
   const [editCarpet, setEditCarpet] = useState<CarpetDetailView | null>(null)
   const [statusesOpen, setStatusesOpen] = useState(false)
+  const [invoiceOpen, setInvoiceOpen] = useState(false)
   const [sellTarget, setSellTarget] = useState<CarpetListItem | null>(null)
 
   const rowsRef = useRef<CarpetListItem[]>([])
@@ -144,6 +146,10 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
           <Button variant="outline" onClick={() => setStatusesOpen(true)}>
             <SlidersHorizontal className="h-4 w-4" />
             {t('carpets.manageStatuses', 'Manage statuses')}
+          </Button>
+          <Button variant="outline" onClick={() => setInvoiceOpen(true)}>
+            <FileText className="h-4 w-4" />
+            {t('invoice.button', 'Sell invoice')}
           </Button>
           <Button
             onClick={() => {
@@ -306,6 +312,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
 
       <CarpetFormDialog open={formOpen} onOpenChange={setFormOpen} carpet={editCarpet} onSaved={refresh} />
       <StatusesDialog open={statusesOpen} onOpenChange={setStatusesOpen} onChanged={loadMeta} />
+      <SellInvoiceDialog open={invoiceOpen} onOpenChange={setInvoiceOpen} onSaved={refresh} />
       <SellCarpetDialog
         open={sellTarget !== null}
         onOpenChange={(o) => !o && setSellTarget(null)}

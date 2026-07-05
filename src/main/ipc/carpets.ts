@@ -5,7 +5,12 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
 import { getClientBalances } from '../accounting/ledger'
 import { addPayment } from './clients'
-import { carpetTotalPriceCents, carpetProfitCents, postingAmountCents } from '../../shared/accounting'
+import {
+  carpetTotalPriceCents,
+  carpetProfitCents,
+  invoiceGrandTotalCents,
+  postingAmountCents
+} from '../../shared/accounting'
 import type {
   CarpetInput,
   CarpetEditInput,
@@ -15,10 +20,22 @@ import type {
   CarpetsListResult,
   CarpetStatus,
   CarpetStatusInput,
-  CarpetSellInput
+  CarpetSellInput,
+  SellInvoiceInput,
+  SellInvoiceResult
 } from '../../shared/contracts'
 
 type DB = BetterSQLite3Database<typeof schema>
+
+/**
+ * DECISION 2 (see the task prompt): saving a sell invoice posts each carpet line
+ * to the immutable ledger through the normal sell path, so receivables update
+ * exactly like a single sale. Flip to `false` to make the invoice a pure
+ * printable document (no ledger movement); the invoice header is still recorded.
+ */
+const INVOICE_POSTS_TO_LEDGER = true
+
+type Tx = Parameters<Parameters<DB['transaction']>[0]>[0]
 
 function isUniqueViolation(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e)
@@ -214,50 +231,149 @@ export function updateCarpet(db: DB, id: number, input: CarpetEditInput): { ok: 
 }
 
 /**
+ * Post ONE carpet sale inside an already-open db transaction: writes the sell
+ * columns, marks the carpet sold, and inserts the IMMUTABLE sale transaction in
+ * the buyer's account. The sale currency is the carpet's own currency (a carpet
+ * has a single currency, so buy/sell profit stays coherent and AFN/USD never
+ * mix). Shared by the single-sale path and the batch invoice path so the ledger
+ * effect is identical either way.
+ */
+function postCarpetSaleTx(tx: Tx, carpet: schema.CarpetRow, input: CarpetSellInput, now: number): void {
+  const sellTotal = carpetTotalPriceCents(input.sellPricePerMeterCents, input.sellSortDeductionCents, carpet.area)
+  const txId = Number(
+    tx
+      .insert(schema.transactions)
+      .values({
+        clientId: input.buyerClientId,
+        type: 'sale',
+        currency: carpet.currency,
+        amountCents: postingAmountCents({ kind: 'sale', amountCents: sellTotal }),
+        carpetId: carpet.id,
+        transactionDate: input.transactionDate ?? now,
+        createdAt: now,
+        // Auto-note in Dari (single Afghan trader; see CLAUDE.md §6).
+        note: `فروش قالین نمبر ${carpet.labelNumber}`
+      })
+      .run().lastInsertRowid
+  )
+  tx
+    .update(schema.carpets)
+    .set({
+      status: 'sold',
+      sellPricePerMeterCents: input.sellPricePerMeterCents,
+      sellSortDeductionCents: input.sellSortDeductionCents,
+      sellTotalPriceCents: sellTotal,
+      soldToClientId: input.buyerClientId,
+      sellTransactionId: txId,
+      soldAt: now
+    })
+    .where(eq(schema.carpets.id, carpet.id))
+    .run()
+}
+
+/**
  * Sell an in-warehouse carpet: records the sell side, marks it sold, and posts
  * the IMMUTABLE sale transaction in the buyer's account — all in one db
- * transaction. The sale currency is the carpet's own currency (a carpet has a
- * single currency, so buy/sell profit stays coherent and AFN/USD never mix).
+ * transaction.
  */
 export function sellCarpet(db: DB, input: CarpetSellInput): { ok: boolean; reason?: string } {
   const carpet = db.select().from(schema.carpets).where(eq(schema.carpets.id, input.carpetId)).get()
   if (!carpet) return { ok: false, reason: 'not_found' }
   if (carpet.sellTransactionId != null) return { ok: false, reason: 'already_sold' }
 
-  const sellTotal = carpetTotalPriceCents(input.sellPricePerMeterCents, input.sellSortDeductionCents, carpet.area)
   const now = Date.now()
-  db.transaction((tx) => {
-    const txId = Number(
-      tx
-        .insert(schema.transactions)
-        .values({
-          clientId: input.buyerClientId,
-          type: 'sale',
-          currency: carpet.currency,
-          amountCents: postingAmountCents({ kind: 'sale', amountCents: sellTotal }),
-          carpetId: carpet.id,
-          transactionDate: input.transactionDate ?? now,
-          createdAt: now,
-          // Auto-note in Dari (single Afghan trader; see CLAUDE.md §6).
-          note: `فروش قالین نمبر ${carpet.labelNumber}`
-        })
-        .run().lastInsertRowid
-    )
-    tx
-      .update(schema.carpets)
-      .set({
-        status: 'sold',
-        sellPricePerMeterCents: input.sellPricePerMeterCents,
-        sellSortDeductionCents: input.sellSortDeductionCents,
-        sellTotalPriceCents: sellTotal,
-        soldToClientId: input.buyerClientId,
-        sellTransactionId: txId,
-        soldAt: now
-      })
-      .where(eq(schema.carpets.id, carpet.id))
-      .run()
-  })
+  db.transaction((tx) => postCarpetSaleTx(tx, carpet, input, now))
   return { ok: true }
+}
+
+/** Suggested next invoice number: sequential over the invoices table. */
+export function nextInvoiceNumber(db: DB): string {
+  const row = db.select({ m: sql<number>`COALESCE(MAX(${schema.invoices.id}), 0)` }).from(schema.invoices).get()
+  return String(Number(row?.m ?? 0) + 1)
+}
+
+/**
+ * Save a sell invoice atomically. For every line that references a real, unsold
+ * in-warehouse carpet we post the sale via {@link postCarpetSaleTx} (unless
+ * INVOICE_POSTS_TO_LEDGER is off); free-text lines are print-only. The whole
+ * loop plus the invoice-header insert run in ONE db transaction, so either the
+ * entire invoice posts or nothing does.
+ *
+ * EDGE CASE (prompt Task B, option (a)): the ledger sale total is computed from
+ * the carpet's STORED area (via the sell path). If the user overrode «متراژ» or
+ * «جمله» on the invoice, the PRINTED total (snapshotted in `linesJson`/`totalCents`)
+ * can differ from the posted ledger total. We deliberately keep the printed
+ * invoice as the document of record here and let the UI warn on a mismatch,
+ * rather than mutating the carpet's dimensions at sell time.
+ */
+export function sellInvoice(db: DB, input: SellInvoiceInput): SellInvoiceResult {
+  if (!input.buyerClientId) return { ok: false, reason: 'buyer_required' }
+  if (!input.lines.length) return { ok: false, reason: 'no_lines' }
+
+  const now = Date.now()
+  const txDate = input.transactionDate ?? now
+  const printedTotal = invoiceGrandTotalCents(input.lines.map((l) => l.totalCents))
+
+  try {
+    const result = db.transaction((tx): { id: number; number: string } => {
+      if (INVOICE_POSTS_TO_LEDGER) {
+        for (const line of input.lines) {
+          if (line.carpetId == null) continue // free-text line: print-only
+          const carpet = tx.select().from(schema.carpets).where(eq(schema.carpets.id, line.carpetId)).get()
+          if (!carpet) throw new InvoiceError('carpet_not_found')
+          if (carpet.sellTransactionId != null) throw new InvoiceError('already_sold')
+          if (carpet.currency !== input.currency) throw new InvoiceError('currency_mismatch')
+          postCarpetSaleTx(
+            tx,
+            carpet,
+            {
+              carpetId: carpet.id,
+              buyerClientId: input.buyerClientId,
+              // The invoice "unit price / m" maps to the carpet sell price/m; no
+              // separate sell deduction on the invoice (see prompt Task B).
+              sellPricePerMeterCents: line.unitPriceCents,
+              sellSortDeductionCents: 0,
+              transactionDate: txDate
+            },
+            now
+          )
+        }
+      }
+
+      const number = input.number.trim()
+      const insertedId = Number(
+        tx
+          .insert(schema.invoices)
+          .values({
+            number: number || 'TEMP',
+            buyerClientId: input.buyerClientId,
+            currency: input.currency,
+            totalCents: printedTotal,
+            linesJson: JSON.stringify(input.lines),
+            transactionDate: txDate,
+            createdAt: now
+          })
+          .run().lastInsertRowid
+      )
+      // Fall back to the row id as the number if the caller left it blank.
+      const finalNumber = number || String(insertedId)
+      if (!number) {
+        tx.update(schema.invoices).set({ number: finalNumber }).where(eq(schema.invoices.id, insertedId)).run()
+      }
+      return { id: insertedId, number: finalNumber }
+    })
+    return { ok: true, id: result.id, number: result.number, posted: INVOICE_POSTS_TO_LEDGER }
+  } catch (e) {
+    if (e instanceof InvoiceError) return { ok: false, reason: e.reason }
+    throw e
+  }
+}
+
+/** Typed abort used to roll back the invoice transaction with a stable reason. */
+class InvoiceError extends Error {
+  constructor(public reason: string) {
+    super(reason)
+  }
 }
 
 function slugify(s: string): string {
@@ -279,6 +395,8 @@ export function registerCarpetsIpc(getDb: () => DB): void {
   ipcMain.handle('carpets:create', (_e, input: CarpetInput) => createCarpet(getDb(), input))
   ipcMain.handle('carpets:update', (_e, id: number, input: CarpetEditInput) => updateCarpet(getDb(), id, input))
   ipcMain.handle('carpets:sell', (_e, input: CarpetSellInput) => sellCarpet(getDb(), input))
+  ipcMain.handle('carpets:nextInvoiceNumber', () => nextInvoiceNumber(getDb()))
+  ipcMain.handle('carpets:sellInvoice', (_e, input: SellInvoiceInput) => sellInvoice(getDb(), input))
 
   // A carpet is only sensibly archived once it has been SOLD (CLAUDE.md / Phase 6).
   ipcMain.handle('carpets:archive', (_e, id: number): { ok: boolean; reason?: string } => {

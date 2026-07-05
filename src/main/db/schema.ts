@@ -161,6 +161,36 @@ export const materialLines = sqliteTable(
   })
 )
 
+/**
+ * Sell invoices («بل فروش»). A printable multi-line document; each carpet line
+ * that references a real carpet also posts a sale through the normal sell path
+ * (see sellCarpet). The immutable ledger stays the source of truth for money —
+ * `totalCents` and `linesJson` here are a snapshot of the PRINTED document of
+ * record (which may differ from the posted total if the user overrode an area
+ * or line total; see the note in sellInvoice).
+ */
+export const invoices = sqliteTable(
+  'invoices',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    number: text('number').notNull(),
+    buyerClientId: integer('buyer_client_id')
+      .notNull()
+      .references(() => clients.id),
+    currency: text('currency').$type<Currency>().notNull(),
+    totalCents: integer('total_cents').notNull(),
+    /** JSON snapshot of the printed lines (document of record). */
+    linesJson: text('lines_json').notNull(),
+    transactionDate: integer('transaction_date').notNull(),
+    createdAt: integer('created_at').notNull()
+  },
+  (t) => ({
+    numberIdx: index('idx_invoices_number').on(t.number),
+    buyerIdx: index('idx_invoices_buyer').on(t.buyerClientId),
+    dateIdx: index('idx_invoices_date').on(t.transactionDate)
+  })
+)
+
 export const expenses = sqliteTable(
   'expenses',
   {
@@ -185,3 +215,4 @@ export type MaterialRow = typeof materials.$inferSelect
 export type MaterialLineRow = typeof materialLines.$inferSelect
 export type TransactionRow = typeof transactions.$inferSelect
 export type ExpenseRow = typeof expenses.$inferSelect
+export type InvoiceRow = typeof invoices.$inferSelect

@@ -32,7 +32,9 @@ const api = {
     archive: (id: number) => ipcRenderer.invoke('carpets:archive', id),
     restore: (id: number) => ipcRenderer.invoke('carpets:restore', id),
     sortGrades: () => ipcRenderer.invoke('carpets:sortGrades'),
-    sell: (input: unknown) => ipcRenderer.invoke('carpets:sell', input)
+    sell: (input: unknown) => ipcRenderer.invoke('carpets:sell', input),
+    nextInvoiceNumber: () => ipcRenderer.invoke('carpets:nextInvoiceNumber'),
+    sellInvoice: (input: unknown) => ipcRenderer.invoke('carpets:sellInvoice', input)
   },
 
   materials: {
