@@ -3,7 +3,7 @@ import { and, eq, gte, lte, asc, isNull, isNotNull, sql, type SQL } from 'drizzl
 import { alias } from 'drizzle-orm/sqlite-core'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
-import { carpetProfitCents, materialLineProfitCents, type Currency } from '../../shared/accounting'
+import { carpetProfitCents, materialLineProfitCents, ENABLED_CURRENCIES, type Currency } from '../../shared/accounting'
 import type { ColumnKind, ReportColumn, ReportResult, ReportSection, ReportRow, ReportId, ReportParams } from '../../shared/reports'
 import {
   receivablesPayables,
@@ -14,7 +14,8 @@ import {
 } from '../reporting'
 
 type DB = BetterSQLite3Database<typeof schema>
-const CURRENCIES: Currency[] = ['AFN', 'USD']
+// Report sections are emitted per enabled currency (AFN is disabled for now).
+const CURRENCIES: Currency[] = [...ENABLED_CURRENCIES]
 
 function col(
   key: string,
@@ -348,21 +349,19 @@ function receivablesPayablesReport(db: DB): ReportResult {
     titleKey: 'reports.byClient',
     columns: [
       col('client', 'clients.title', 'Client', 'text'),
-      col('afn', 'clients.balanceAFN', 'AFN', 'money', 'end'),
       col('usd', 'clients.balanceUSD', 'USD', 'money', 'end')
     ],
-    rows: rp.perClient.filter((c) => c.AFN !== 0 || c.USD !== 0).map((c) => ({ client: c.name, afn: c.AFN, usd: c.USD }))
+    rows: rp.perClient.filter((c) => c.USD !== 0).map((c) => ({ client: c.name, usd: c.USD }))
   }
   const totals: ReportSection = {
     titleKey: 'reports.totals',
     columns: [
       col('label', 'reports.metric', '', 'i18nKey'),
-      col('afn', 'clients.balanceAFN', 'AFN', 'money', 'end'),
       col('usd', 'clients.balanceUSD', 'USD', 'money', 'end')
     ],
     rows: [
-      { label: 'reports.receivablesLabel', afn: rp.receivables.AFN, usd: rp.receivables.USD },
-      { label: 'reports.payablesLabel', afn: rp.payables.AFN, usd: rp.payables.USD }
+      { label: 'reports.receivablesLabel', usd: rp.receivables.USD },
+      { label: 'reports.payablesLabel', usd: rp.payables.USD }
     ]
   }
   return { titleKey: 'reports.receivablesPayables', defaultTitle: 'Receivables / payables', sections: [byClient, totals] }

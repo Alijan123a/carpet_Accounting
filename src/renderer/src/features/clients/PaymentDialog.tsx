@@ -10,7 +10,7 @@ import {
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { startOfDayEpoch } from '@renderer/lib/date'
-import { parseMoneyToCents } from '@shared/accounting'
+import { parseMoneyToCents, ENABLED_CURRENCIES, DEFAULT_CURRENCY } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { PaymentDirection } from '@shared/contracts'
 
@@ -29,7 +29,7 @@ export function PaymentDialog({
 }): JSX.Element {
   const { t } = useTranslation()
   const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState<Currency>('AFN')
+  const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY)
   const [direction, setDirection] = useState<PaymentDirection>('fromClient')
   const [date, setDate] = useState(todayStr())
   const [note, setNote] = useState('')
@@ -39,7 +39,7 @@ export function PaymentDialog({
   useEffect(() => {
     if (open) {
       setAmount('')
-      setCurrency('AFN')
+      setCurrency(DEFAULT_CURRENCY)
       setDirection('fromClient')
       setDate(todayStr())
       setNote('')
@@ -93,8 +93,11 @@ export function PaymentDialog({
                 onChange={(e) => setCurrency(e.target.value as Currency)}
                 className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
               >
-                <option value="AFN">AFN</option>
-                <option value="USD">USD</option>
+                {ENABLED_CURRENCIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
               </select>
             </label>
           </div>

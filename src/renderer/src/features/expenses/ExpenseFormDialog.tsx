@@ -10,7 +10,7 @@ import {
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { startOfDayEpoch } from '@renderer/lib/date'
-import { parseMoneyToCents, centsToInput } from '@shared/accounting'
+import { parseMoneyToCents, centsToInput, ENABLED_CURRENCIES, DEFAULT_CURRENCY } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { ExpenseView } from '@shared/contracts'
 
@@ -31,7 +31,7 @@ export function ExpenseFormDialog({
   const { t } = useTranslation()
   const [category, setCategory] = useState('')
   const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState<Currency>('AFN')
+  const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY)
   const [date, setDate] = useState(todayStr())
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -41,7 +41,7 @@ export function ExpenseFormDialog({
     if (!open) return
     setCategory(expense?.category ?? '')
     setAmount(expense ? centsToInput(expense.amountCents) : '')
-    setCurrency(expense?.currency ?? 'AFN')
+    setCurrency(expense?.currency ?? DEFAULT_CURRENCY)
     setDate(expense ? toDateInput(expense.expenseDate) : todayStr())
     setNote(expense?.note ?? '')
     setError(null)
@@ -95,8 +95,11 @@ export function ExpenseFormDialog({
                 onChange={(e) => setCurrency(e.target.value as Currency)}
                 className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
               >
-                <option value="AFN">AFN</option>
-                <option value="USD">USD</option>
+                {ENABLED_CURRENCIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
               </select>
             </label>
           </div>

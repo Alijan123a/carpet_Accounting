@@ -20,7 +20,7 @@ import {
   Boxes,
   type LucideIcon
 } from 'lucide-react'
-import { formatCents, type Currency } from '@shared/accounting'
+import { formatCents } from '@shared/accounting'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@renderer/components/ui/card'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
@@ -33,7 +33,6 @@ function twelveMonthRange(): { fromDate: number; toDate: number } {
   return { fromDate: from.getTime(), toDate: now.getTime() }
 }
 
-const AFN_COLOR = 'hsl(var(--primary))'
 const USD_COLOR = '#0d9488' // teal-600
 const NET_COLOR = '#10b981' // emerald-500
 const EXP_COLOR = '#f59e0b' // amber-500
@@ -42,7 +41,8 @@ export function Dashboard(): JSX.Element {
   const { t } = useTranslation()
   const defaultCurrency = useSettings((s) => s.defaultCurrency)
   const [data, setData] = useState<DashboardSummary | null>(null)
-  const [donutCur, setDonutCur] = useState<Currency>(defaultCurrency)
+  // AFN is disabled app-wide for now, so the composition is shown in USD only.
+  const donutCur = defaultCurrency
 
   useEffect(() => {
     const range = twelveMonthRange()
@@ -52,7 +52,7 @@ export function Dashboard(): JSX.Element {
   // Keep integer cents in the chart data; format to 2 decimals only at display
   // (axis ticks + tooltip) via formatCents — no money arithmetic in the UI.
   const chartData = useMemo(
-    () => (data?.turnover ?? []).map((p) => ({ period: p.period, AFN: p.afn, USD: p.usd })),
+    () => (data?.turnover ?? []).map((p) => ({ period: p.period, USD: p.usd })),
     [data]
   )
 
@@ -79,15 +79,12 @@ export function Dashboard(): JSX.Element {
       {/* KPI tiles */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard gradient="from-emerald-500 to-teal-600" icon={TrendingUp} title={t('dashboard.receivables', 'Receivables')}>
-          <StatMoney label="AFN" cents={data.receivables.AFN} />
           <StatMoney label="USD" cents={data.receivables.USD} />
         </StatCard>
         <StatCard gradient="from-rose-500 to-red-600" icon={TrendingDown} title={t('dashboard.payables', 'Payables')}>
-          <StatMoney label="AFN" cents={data.payables.AFN} />
           <StatMoney label="USD" cents={data.payables.USD} />
         </StatCard>
         <StatCard gradient="from-indigo-500 to-violet-600" icon={PiggyBank} title={t('dashboard.netProfit', 'Net profit')}>
-          <StatMoney label="AFN" cents={data.periodProfit.AFN.netProfitCents} />
           <StatMoney label="USD" cents={data.periodProfit.USD.netProfitCents} />
         </StatCard>
         <StatCard gradient="from-sky-500 to-blue-600" icon={Package} title={t('dashboard.warehouse', 'Carpets in warehouse')}>
@@ -111,7 +108,6 @@ export function Dashboard(): JSX.Element {
               <CardDescription>{t('dashboard.turnoverHint', 'Last 12 months')}</CardDescription>
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <LegendDot color={AFN_COLOR} label="AFN" />
               <LegendDot color={USD_COLOR} label="USD" />
             </div>
           </CardHeader>
@@ -120,10 +116,6 @@ export function Dashboard(): JSX.Element {
               <ResponsiveContainer>
                 <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="afnFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={AFN_COLOR} stopOpacity={0.35} />
-                      <stop offset="100%" stopColor={AFN_COLOR} stopOpacity={0.02} />
-                    </linearGradient>
                     <linearGradient id="usdFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={USD_COLOR} stopOpacity={0.3} />
                       <stop offset="100%" stopColor={USD_COLOR} stopOpacity={0.02} />
@@ -149,7 +141,6 @@ export function Dashboard(): JSX.Element {
                     }}
                     formatter={(value: number) => formatCents(Number(value))}
                   />
-                  <Area type="monotone" dataKey="AFN" stroke={AFN_COLOR} strokeWidth={2.5} fill="url(#afnFill)" />
                   <Area type="monotone" dataKey="USD" stroke={USD_COLOR} strokeWidth={2.5} fill="url(#usdFill)" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -164,7 +155,7 @@ export function Dashboard(): JSX.Element {
               <CardTitle>{t('dashboard.profitComposition', 'Profit composition')}</CardTitle>
               <CardDescription>{t('dashboard.profitCompositionHint', 'Last 12 months')}</CardDescription>
             </div>
-            <CurrencyToggle value={donutCur} onChange={setDonutCur} />
+            <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">USD</span>
           </CardHeader>
           <CardContent>
             {donut.length === 0 ? (
@@ -285,31 +276,6 @@ function DonutLegendRow({ color, label, cents }: { color: string; label: string;
         {label}
       </span>
       <span className="font-mono font-semibold tabular-nums">{formatCents(cents)}</span>
-    </div>
-  )
-}
-
-function CurrencyToggle({
-  value,
-  onChange
-}: {
-  value: Currency
-  onChange: (c: Currency) => void
-}): JSX.Element {
-  return (
-    <div className="flex items-center rounded-lg bg-muted p-0.5 text-xs font-medium">
-      {(['AFN', 'USD'] as const).map((c) => (
-        <button
-          key={c}
-          onClick={() => onChange(c)}
-          className={cn(
-            'rounded-md px-2.5 py-1 transition-colors',
-            value === c ? 'bg-card text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'
-          )}
-        >
-          {c}
-        </button>
-      ))}
     </div>
   )
 }

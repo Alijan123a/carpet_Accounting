@@ -169,7 +169,7 @@ export function SellInvoiceDialog({
   function selectCarpet(key: number, c: CarpetListItem): void {
     // Enforce a single-currency invoice: infer from the first carpet, block mixing.
     if (currency && c.currency !== currency) {
-      setError(t('invoice.currencyMismatch', 'All carpet lines must share one currency (AFN/USD).'))
+      setError(t('invoice.currencyMismatch', 'All carpet lines must share the same currency.'))
       return
     }
     if (!currency) setCurrency(c.currency)
@@ -270,7 +270,7 @@ export function SellInvoiceDialog({
       case 'already_sold':
         return t('invoice.errAlreadySold', 'One of the carpets is already sold. Refresh and try again.')
       case 'currency_mismatch':
-        return t('invoice.currencyMismatch', 'All carpet lines must share one currency (AFN/USD).')
+        return t('invoice.currencyMismatch', 'All carpet lines must share the same currency.')
       case 'carpet_not_found':
         return t('invoice.errCarpetMissing', 'A selected carpet no longer exists.')
       case 'no_lines':

@@ -6,7 +6,7 @@ import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
-import { formatCents } from '@shared/accounting'
+import { formatCents, ENABLED_CURRENCIES } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import { formatDate, startOfDayEpoch, endOfDayEpoch } from '@renderer/lib/date'
 import type { ExpenseView } from '@shared/contracts'
@@ -144,8 +144,11 @@ export function ExpensesModule(): JSX.Element {
         </select>
         <select value={currency} onChange={(e) => setCurrency(e.target.value as Currency | 'all')} className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm">
           <option value="all">{t('expenses.allCurrencies', 'All currencies')}</option>
-          <option value="AFN">AFN</option>
-          <option value="USD">USD</option>
+          {ENABLED_CURRENCIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
         </select>
         <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9 w-40" />
         <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9 w-40" />

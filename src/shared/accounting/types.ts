@@ -11,8 +11,22 @@
 
 export type Currency = 'AFN' | 'USD'
 
-/** The two supported currencies. They are NEVER mixed or summed together. */
+/**
+ * Every currency the data model understands. They are NEVER mixed or summed.
+ * (Kept as the full set so historical AFN data still computes correctly.)
+ */
 export const CURRENCIES: readonly Currency[] = ['AFN', 'USD'] as const
+
+/**
+ * Currencies the UI currently exposes for entry and display. AFN is disabled for
+ * now (the trader works in USD only) — flip this back to `CURRENCIES` to re-enable
+ * it everywhere. Every currency picker, balance column, dashboard tile, and
+ * report section is driven off this list, so this is the single switch.
+ */
+export const ENABLED_CURRENCIES: readonly Currency[] = ['USD'] as const
+
+/** Currency pre-selected for new entries. */
+export const DEFAULT_CURRENCY: Currency = 'USD'
 
 export type TransactionType =
   | 'purchase' // we buy from a client (we owe them)

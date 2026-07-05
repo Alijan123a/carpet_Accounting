@@ -203,14 +203,8 @@ export function ClientDetail({
         </div>
       </div>
 
-      {/* Balances (two currencies, separate) */}
-      <div className="mb-2 grid grid-cols-2 gap-3 sm:max-w-md">
-        <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-card">
-          <div className="text-xs text-muted-foreground">{t('clients.balanceAFN', 'AFN balance')}</div>
-          <div className="text-lg">
-            <BalanceAmount cents={balances.AFN} />
-          </div>
-        </div>
+      {/* Balance (USD only; AFN is disabled app-wide for now) */}
+      <div className="mb-2 grid grid-cols-1 gap-3 sm:max-w-xs">
         <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-card">
           <div className="text-xs text-muted-foreground">{t('clients.balanceUSD', 'USD balance')}</div>
           <div className="text-lg">

@@ -14,7 +14,8 @@ import {
   parseMoneyToCents,
   formatCents,
   effectivePricePerMeterCents,
-  carpetTotalPriceCents
+  carpetTotalPriceCents,
+  DEFAULT_CURRENCY
 } from '@shared/accounting'
 import type { CarpetListItem } from '@shared/contracts'
 
@@ -54,7 +55,7 @@ export function SellCarpetDialog({
     )
   }, [open])
 
-  const cur = carpet?.currency ?? 'AFN'
+  const cur = carpet?.currency ?? DEFAULT_CURRENCY
   const area = carpet?.area ?? 0
   const buyTotal = carpet?.totalPriceCents ?? 0
 

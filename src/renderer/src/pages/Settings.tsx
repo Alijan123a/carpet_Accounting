@@ -4,7 +4,7 @@ import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { useSettings, type Theme, type Calendar } from '@renderer/store/settings'
 import type { Language } from '@renderer/i18n'
-import type { Currency } from '@shared/accounting'
+import { ENABLED_CURRENCIES } from '@shared/accounting'
 import type { AppConfig, BackupFrequency } from '@shared/contracts'
 import { StatusesDialog } from '@renderer/features/carpets/StatusesDialog'
 import { ConfirmDialog } from '@renderer/components/ConfirmDialog'
@@ -185,7 +185,7 @@ export function Settings(): JSX.Element {
         ))}
       </Field>
       <Field title={t('settings.defaultCurrency', 'Default currency')} description={t('settings.defaultCurrencyDesc', 'Pre-selected currency for new entries.')}>
-        {(['AFN', 'USD'] as Currency[]).map((cur) => (
+        {ENABLED_CURRENCIES.map((cur) => (
           <Button key={cur} variant={defaultCurrency === cur ? 'default' : 'outline'} size="sm" onClick={() => setDefaultCurrency(cur)}>
             {cur}
           </Button>

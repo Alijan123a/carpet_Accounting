@@ -16,7 +16,9 @@ import {
   centsToInput,
   formatCents,
   effectivePricePerMeterCents,
-  carpetTotalPriceCents
+  carpetTotalPriceCents,
+  ENABLED_CURRENCIES,
+  DEFAULT_CURRENCY
 } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { CarpetDetailView, CarpetStatus } from '@shared/contracts'
@@ -44,7 +46,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
   const [length, setLength] = useState('')
   const [width, setWidth] = useState('')
   const [sortGrade, setSortGrade] = useState('')
-  const [currency, setCurrency] = useState<Currency>('AFN')
+  const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY)
   const [ppm, setPpm] = useState('')
   const [deduction, setDeduction] = useState('')
   const [status, setStatus] = useState('in_warehouse')
@@ -63,7 +65,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
     setLength(carpet ? String(carpet.length) : '')
     setWidth(carpet ? String(carpet.width) : '')
     setSortGrade(carpet?.sortGrade ?? '')
-    setCurrency(carpet?.currency ?? 'AFN')
+    setCurrency(carpet?.currency ?? DEFAULT_CURRENCY)
     setPpm(carpet ? centsToInput(carpet.pricePerMeterCents) : '')
     setDeduction(carpet ? centsToInput(carpet.sortDeductionCents) : '')
     setStatus(carpet?.status ?? 'in_warehouse')
@@ -192,8 +194,11 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
               disabled={locked}
               className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm disabled:opacity-50"
             >
-              <option value="AFN">AFN</option>
-              <option value="USD">USD</option>
+              {ENABLED_CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </select>
           </Labeled>
           <Labeled label={t('carpets.status', 'Status')}>

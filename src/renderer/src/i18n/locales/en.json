@@ -139,7 +139,7 @@
     "archivedBadge": "Archived",
     "archive": "Archive",
     "restore": "Restore",
-    "archiveDisabledReason": "A client can only be archived when both AFN and USD balances are zero.",
+    "archiveDisabledReason": "A client can only be archived when the balance is zero.",
     "archiveConfirmTitle": "Archive this client?",
     "archiveConfirmBody": "The client will be hidden from the default list. You can restore them later.",
     "back": "Back to clients",
@@ -299,7 +299,7 @@
     "grandTotal": "Grand total",
     "savePrint": "Save & Print",
     "noLines": "Add at least one line.",
-    "currencyMismatch": "All carpet lines must share one currency (AFN/USD).",
+    "currencyMismatch": "All carpet lines must share the same currency.",
     "mismatchWarn": "A line’s area/total was overridden. The printed invoice is the record; the posted ledger sale uses the carpet’s stored area.",
     "errAlreadySold": "One of the carpets is already sold. Refresh and try again.",
     "errCarpetMissing": "A selected carpet no longer exists."

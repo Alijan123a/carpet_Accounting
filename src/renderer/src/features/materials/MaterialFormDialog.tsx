@@ -9,7 +9,7 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
-import type { Currency } from '@shared/accounting'
+import { ENABLED_CURRENCIES, DEFAULT_CURRENCY, type Currency } from '@shared/accounting'
 
 /** Create a new material (tar) lot: just a name + currency. Lines are added later. */
 export function MaterialFormDialog({
@@ -23,14 +23,14 @@ export function MaterialFormDialog({
 }): JSX.Element {
   const { t } = useTranslation()
   const [name, setName] = useState('')
-  const [currency, setCurrency] = useState<Currency>('AFN')
+  const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     if (open) {
       setName('')
-      setCurrency('AFN')
+      setCurrency(DEFAULT_CURRENCY)
       setError(null)
     }
   }, [open])
@@ -67,8 +67,11 @@ export function MaterialFormDialog({
               onChange={(e) => setCurrency(e.target.value as Currency)}
               className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
             >
-              <option value="AFN">AFN</option>
-              <option value="USD">USD</option>
+              {ENABLED_CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </select>
           </label>
           {error && <p className="text-sm text-destructive">{error}</p>}

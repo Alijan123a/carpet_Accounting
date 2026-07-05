@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Language } from '@renderer/i18n'
-import type { Currency } from '@shared/accounting'
+import { ENABLED_CURRENCIES, DEFAULT_CURRENCY, type Currency } from '@shared/accounting'
 
 export type Theme = 'light' | 'dark'
 export type Calendar = 'shamsi' | 'gregorian'
@@ -30,7 +30,7 @@ export const useSettings = create<SettingsState>()(
       theme: 'light',
       language: 'fa',
       calendar: 'shamsi',
-      defaultCurrency: 'AFN',
+      defaultCurrency: DEFAULT_CURRENCY,
       setTheme: (theme) => set({ theme }),
       toggleTheme: () =>
         set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
@@ -38,6 +38,18 @@ export const useSettings = create<SettingsState>()(
       setCalendar: (calendar) => set({ calendar }),
       setDefaultCurrency: (defaultCurrency) => set({ defaultCurrency })
     }),
-    { name: 'carpet-accounting-settings' }
+    {
+      name: 'carpet-accounting-settings',
+      version: 2,
+      // A pre-existing install may have 'AFN' persisted as the default currency;
+      // coerce it to an enabled currency so disabled AFN never leaks back in.
+      migrate: (persisted): unknown => {
+        const s = persisted as Partial<SettingsState> | undefined
+        if (s && s.defaultCurrency && !ENABLED_CURRENCIES.includes(s.defaultCurrency)) {
+          s.defaultCurrency = DEFAULT_CURRENCY
+        }
+        return s
+      }
+    }
   )
 )
