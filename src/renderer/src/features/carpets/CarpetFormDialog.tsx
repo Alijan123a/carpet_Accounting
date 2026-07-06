@@ -9,6 +9,7 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { DateInput } from '@renderer/components/ui/date-input'
 import { useSettings } from '@renderer/store/settings'
 import { startOfDayEpoch } from '@renderer/lib/date'
 import {
@@ -257,7 +258,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
             </Labeled>
             {sellerId && (
               <Labeled label={t('carpets.buyDate', 'Purchase date')}>
-                <Input type="date" value={buyDate} onChange={(e) => setBuyDate(e.target.value)} />
+                <DateInput value={buyDate} onChange={setBuyDate} />
               </Labeled>
             )}
           </div>

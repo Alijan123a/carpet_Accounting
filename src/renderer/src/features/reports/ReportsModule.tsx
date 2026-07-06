@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { FileDown, Play } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { DateInput } from '@renderer/components/ui/date-input'
 import { useSettings } from '@renderer/store/settings'
 import { startOfDayEpoch, endOfDayEpoch, formatDateTime } from '@renderer/lib/date'
 import type { ReportId, ReportParams, ReportResult, RenderedReport } from '@shared/reports'
@@ -163,10 +164,10 @@ export function ReportsModule(): JSX.Element {
         {needs.dateRange && (
           <>
             <Field label={t('reports.from', 'From')}>
-              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9 w-40" />
+              <DateInput value={from} onChange={setFrom} className="h-9 w-56" />
             </Field>
             <Field label={t('reports.to', 'To')}>
-              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9 w-40" />
+              <DateInput value={to} onChange={setTo} className="h-9 w-56" />
             </Field>
           </>
         )}

@@ -9,6 +9,7 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { DateInput } from '@renderer/components/ui/date-input'
 import { Typeahead } from '@renderer/components/ui/typeahead'
 import { useSettings } from '@renderer/store/settings'
 import { startOfDayEpoch } from '@renderer/lib/date'
@@ -203,12 +204,12 @@ export function OrderFormDialog({
           </label>
           <label className="block space-y-1">
             <span className="text-xs font-medium text-muted-foreground">{t('orders.orderDate', 'Order date')}</span>
-            <Input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} />
+            <DateInput value={orderDate} onChange={setOrderDate} />
           </label>
 
           <label className="block space-y-1">
             <span className="text-xs font-medium text-muted-foreground">{t('orders.dueDate', 'Due date')}</span>
-            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <DateInput value={dueDate} onChange={setDueDate} />
           </label>
           <label className="block space-y-1">
             <span className="text-xs font-medium text-muted-foreground">{t('orders.notes', 'Notes')}</span>

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ArrowRight, Pencil, Archive, ArchiveRestore, Undo2, Wallet } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
-import { Input } from '@renderer/components/ui/input'
+import { DateInput } from '@renderer/components/ui/date-input'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatDate, startOfDayEpoch, endOfDayEpoch } from '@renderer/lib/date'
@@ -229,11 +229,11 @@ export function ClientDetail({
       <div className="mb-3 flex flex-wrap items-end gap-3">
         <label className="space-y-1 text-xs text-muted-foreground">
           <span className="block">{t('statement.from', 'From')}</span>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9 w-40" />
+          <DateInput value={from} onChange={setFrom} className="h-9 w-56" />
         </label>
         <label className="space-y-1 text-xs text-muted-foreground">
           <span className="block">{t('statement.to', 'To')}</span>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9 w-40" />
+          <DateInput value={to} onChange={setTo} className="h-9 w-56" />
         </label>
         <label className="space-y-1 text-xs text-muted-foreground">
           <span className="block">{t('statement.typeFilter', 'Type')}</span>

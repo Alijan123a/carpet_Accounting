@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import { formatCents } from '@shared/accounting'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@renderer/components/ui/card'
-import { Input } from '@renderer/components/ui/input'
+import { DateInput } from '@renderer/components/ui/date-input'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { startOfDayEpoch, endOfDayEpoch } from '@renderer/lib/date'
@@ -135,9 +135,9 @@ export function Dashboard(): JSX.Element {
           </div>
           {preset === 'custom' && (
             <div className="flex items-center gap-1.5">
-              <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-9 w-36" />
+              <DateInput value={customFrom} onChange={setCustomFrom} className="h-9 w-56" />
               <span className="text-xs text-muted-foreground">→</span>
-              <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-9 w-36" />
+              <DateInput value={customTo} onChange={setCustomTo} className="h-9 w-56" />
             </div>
           )}
         </div>

@@ -9,6 +9,7 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { DateInput } from '@renderer/components/ui/date-input'
 import { startOfDayEpoch } from '@renderer/lib/date'
 import {
   parseMoneyToCents,
@@ -136,7 +137,7 @@ export function SellCarpetDialog({
 
           <label className="block space-y-1">
             <span className="text-xs font-medium text-muted-foreground">{t('payment.date', 'Date')}</span>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <DateInput value={date} onChange={setDate} />
           </label>
 
           {/* Live preview */}

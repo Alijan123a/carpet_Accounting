@@ -9,6 +9,7 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { DateInput } from '@renderer/components/ui/date-input'
 import { startOfDayEpoch } from '@renderer/lib/date'
 import { parseMoneyToCents, formatCents, materialLineTotalCents, materialLineProfitCents } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
@@ -122,7 +123,7 @@ export function MaterialLineDialog({
           </div>
           <label className="block space-y-1">
             <span className="text-xs font-medium text-muted-foreground">{t('material.date', 'Date')}</span>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <DateInput value={date} onChange={setDate} />
           </label>
 
           <div className="rounded-2xl border border-border/70 bg-card p-3 text-sm shadow-card">
