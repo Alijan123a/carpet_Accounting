@@ -44,7 +44,8 @@
     "delete": "Delete",
     "create": "Create",
     "rename": "Rename",
-    "manage": "Manage"
+    "manage": "Manage",
+    "deleteTypeToConfirm": "To confirm, type <b>{{name}}</b> below:"
   },
   "settings": {
     "title": "Settings",
@@ -149,7 +150,10 @@
     "profile": "Profile",
     "owesUs": "owes us",
     "weOwe": "we owe",
-    "settled": "settled"
+    "settled": "settled",
+    "deleteConfirmTitle": "Delete this client?",
+    "deleteConfirmBody": "Only clients without any transactions or records can be deleted.",
+    "deleteHasRecords": "This client has transactions or records and cannot be deleted. Archive instead."
   },
   "statement": {
     "title": "Statement",
@@ -227,7 +231,10 @@
     "financialsLocked": "A purchase is recorded for this carpet; financial fields are locked. Reverse the purchase to change them.",
     "allStatuses": "All statuses",
     "allGrades": "All grades",
-    "createdAt": "Added"
+    "createdAt": "Added",
+    "deleteConfirmTitle": "Delete this carpet?",
+    "deleteConfirmBody": "Only carpets without ledger transactions can be deleted.",
+    "deleteHasTransactions": "This carpet has ledger transactions and cannot be deleted. Reverse them or archive it instead."
   },
   "statusMgr": {
     "title": "Carpet statuses",
@@ -237,7 +244,9 @@
     "defaultBadge": "default",
     "cannotDeleteDefault": "Default statuses cannot be deleted.",
     "inUse": "This status is in use by one or more carpets.",
-    "labelsRequired": "Both labels are required."
+    "labelsRequired": "Both labels are required.",
+    "deleteConfirmTitle": "Delete this status?",
+    "deleteConfirmBody": "Statuses that are in use cannot be deleted."
   },
   "material": {
     "title": "Material (Tar)",
@@ -267,7 +276,12 @@
     "avgBuyPerKg": "Avg buy / kg",
     "nameRequired": "Name is required.",
     "kgRequired": "Kilograms must be greater than 0.",
-    "noLines": "No lines yet."
+    "noLines": "No lines yet.",
+    "deleteConfirmTitle": "Delete this material?",
+    "deleteConfirmBody": "Only materials without any buy/sell lines can be deleted.",
+    "deleteHasLines": "This material has buy/sell lines and cannot be deleted. Archive it instead.",
+    "deleteLineConfirmTitle": "Delete this line?",
+    "deleteLineConfirmBody": "A reversing transaction will be posted in the client account, and the line stops counting toward stock and profit."
   },
   "sale": {
     "title": "Sell carpet",

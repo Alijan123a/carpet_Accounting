@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { ArrowRight, Pencil, Archive, ArchiveRestore, Undo2, Wallet } from 'lucide-react'
+import { ArrowRight, Pencil, Archive, ArchiveRestore, Undo2, Wallet, Trash2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { DateInput } from '@renderer/components/ui/date-input'
@@ -16,6 +16,7 @@ import { ClientFormDialog } from './ClientFormDialog'
 import { PaymentDialog } from './PaymentDialog'
 import { TransactionDetailDialog } from './TransactionDetailDialog'
 import { ConfirmDialog } from '@renderer/components/ConfirmDialog'
+import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
@@ -38,6 +39,8 @@ export function ClientDetail({
   const [editOpen, setEditOpen] = useState(false)
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -151,6 +154,25 @@ export function ClientDetail({
     }
   }
 
+  async function doDelete(): Promise<void> {
+    setBusy(true)
+    setDeleteError(null)
+    try {
+      const res = await window.api.clients.remove(clientId)
+      if (!res.ok) {
+        setDeleteError(
+          t('clients.deleteHasRecords', 'This client has transactions or records and cannot be deleted. Archive instead.')
+        )
+        return
+      }
+      setDeleteOpen(false)
+      onChanged()
+      onBack()
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function doReverse(): Promise<void> {
     if (!reverseTarget) return
     setBusy(true)
@@ -213,6 +235,18 @@ export function ClientDetail({
               {t('clients.archive', 'Archive')}
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            onClick={() => {
+              setDeleteError(null)
+              setDeleteOpen(true)
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+            {t('common.delete', 'Delete')}
+          </Button>
         </div>
       </div>
 
@@ -357,6 +391,16 @@ export function ClientDetail({
         confirmLabel={t('clients.archive', 'Archive')}
         busy={busy}
         onConfirm={doArchive}
+      />
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={t('clients.deleteConfirmTitle', 'Delete this client?')}
+        body={t('clients.deleteConfirmBody', 'Only clients without any transactions or records can be deleted. This cannot be undone from the client screen.')}
+        expectedText={client?.name ?? ''}
+        busy={busy}
+        error={deleteError}
+        onConfirm={doDelete}
       />
       <ConfirmDialog
         open={reverseTarget !== null}

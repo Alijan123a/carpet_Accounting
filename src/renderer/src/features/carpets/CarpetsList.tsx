@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Pencil, Plus, Archive, ArchiveRestore, SlidersHorizontal, Tag, FileText, PackagePlus } from 'lucide-react'
+import { Pencil, Plus, Archive, ArchiveRestore, SlidersHorizontal, Tag, FileText, PackagePlus, Trash2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
@@ -15,12 +15,13 @@ import { StatusesDialog } from './StatusesDialog'
 import { SellCarpetDialog } from './SellCarpetDialog'
 import { SellInvoiceDialog } from './SellInvoiceDialog'
 import { BuyInvoiceDialog } from './BuyInvoiceDialog'
+import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
 const GRID =
-  'grid grid-cols-[120px_64px_64px_72px_80px_56px_110px_100px_120px_120px_100px_92px] items-center gap-2 px-3'
-const MIN_W = 'min-w-[1080px]'
+  'grid grid-cols-[120px_64px_64px_72px_80px_56px_110px_100px_120px_120px_100px_130px] items-center gap-2 px-3'
+const MIN_W = 'min-w-[1120px]'
 
 function Profit({ cents }: { cents: number | null }): JSX.Element {
   if (cents == null) return <span className="text-muted-foreground">—</span>
@@ -53,6 +54,9 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
   const [invoiceOpen, setInvoiceOpen] = useState(false)
   const [buyInvoiceOpen, setBuyInvoiceOpen] = useState(false)
   const [sellTarget, setSellTarget] = useState<CarpetListItem | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<CarpetListItem | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
 
   const rowsRef = useRef<CarpetListItem[]>([])
   const loadingRef = useRef(false)
@@ -129,6 +133,25 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
     const detail = await window.api.carpets.get(id)
     setEditCarpet(detail)
     setFormOpen(true)
+  }
+
+  async function doDelete(): Promise<void> {
+    if (!deleteTarget) return
+    setDeleteBusy(true)
+    setDeleteError(null)
+    try {
+      const res = await window.api.carpets.remove(deleteTarget.id)
+      if (!res.ok) {
+        setDeleteError(
+          t('carpets.deleteHasTransactions', 'This carpet has ledger transactions and cannot be deleted. Reverse them or archive it instead.')
+        )
+        return
+      }
+      setDeleteTarget(null)
+      refresh()
+    } finally {
+      setDeleteBusy(false)
+    }
   }
 
   async function toggleArchive(c: CarpetListItem): Promise<void> {
@@ -330,6 +353,19 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
                           {c.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
                         </Button>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        title={t('common.delete', 'Delete')}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteError(null)
+                          setDeleteTarget(c)
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </span>
                   </div>
                 )
@@ -344,6 +380,16 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
       <StatusesDialog open={statusesOpen} onOpenChange={setStatusesOpen} onChanged={loadMeta} />
       <SellInvoiceDialog open={invoiceOpen} onOpenChange={setInvoiceOpen} onSaved={refresh} />
       <BuyInvoiceDialog open={buyInvoiceOpen} onOpenChange={setBuyInvoiceOpen} onSaved={refresh} />
+      <DeleteConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title={t('carpets.deleteConfirmTitle', 'Delete this carpet?')}
+        body={t('carpets.deleteConfirmBody', 'Only carpets without ledger transactions can be deleted.')}
+        expectedText={deleteTarget?.labelNumber ?? ''}
+        busy={deleteBusy}
+        error={deleteError}
+        onConfirm={doDelete}
+      />
       <SellCarpetDialog
         open={sellTarget !== null}
         onOpenChange={(o) => !o && setSellTarget(null)}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Plus, Archive, ArchiveRestore } from 'lucide-react'
+import { Plus, Archive, ArchiveRestore, Trash2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
@@ -9,10 +9,11 @@ import { cn } from '@renderer/lib/utils'
 import { formatCents } from '@shared/accounting'
 import type { MaterialListItem } from '@shared/contracts'
 import { MaterialFormDialog } from './MaterialFormDialog'
+import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
-const GRID = 'grid grid-cols-[1fr_64px_110px_110px_110px_120px_56px] items-center gap-3 px-4'
+const GRID = 'grid grid-cols-[1fr_64px_110px_110px_110px_120px_92px] items-center gap-3 px-4'
 
 const kg = (n: number): string => n.toLocaleString('en-US', { maximumFractionDigits: 3 })
 
@@ -26,6 +27,9 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<MaterialListItem | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
 
   const rowsRef = useRef<MaterialListItem[]>([])
   const loadingRef = useRef(false)
@@ -87,6 +91,25 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
     if (m.archived) await window.api.materials.restore(m.id)
     else await window.api.materials.archive(m.id)
     refresh()
+  }
+
+  async function doDelete(): Promise<void> {
+    if (!deleteTarget) return
+    setDeleteBusy(true)
+    setDeleteError(null)
+    try {
+      const res = await window.api.materials.remove(deleteTarget.id)
+      if (!res.ok) {
+        setDeleteError(
+          t('material.deleteHasLines', 'This material has buy/sell lines and cannot be deleted. Archive it instead.')
+        )
+        return
+      }
+      setDeleteTarget(null)
+      refresh()
+    } finally {
+      setDeleteBusy(false)
+    }
   }
 
   return (
@@ -171,7 +194,7 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
                   >
                     {formatCents(m.profitCents)}
                   </span>
-                  <span className="flex justify-end">
+                  <span className="flex justify-end gap-1">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -183,6 +206,19 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
                       }}
                     >
                       {m.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      title={t('common.delete', 'Delete')}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteError(null)
+                        setDeleteTarget(m)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </span>
                 </div>
@@ -200,6 +236,16 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
           refresh()
           onSelect(id)
         }}
+      />
+      <DeleteConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title={t('material.deleteConfirmTitle', 'Delete this material?')}
+        body={t('material.deleteConfirmBody', 'Only materials without any buy/sell lines can be deleted.')}
+        expectedText={deleteTarget?.name ?? ''}
+        busy={deleteBusy}
+        error={deleteError}
+        onConfirm={doDelete}
       />
     </div>
   )

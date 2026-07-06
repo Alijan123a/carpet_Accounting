@@ -114,7 +114,9 @@ CREATE TABLE IF NOT EXISTS material_lines (
   currency          TEXT NOT NULL,
   transaction_id    INTEGER REFERENCES transactions(id),
   transaction_date  INTEGER NOT NULL,
-  created_at        INTEGER NOT NULL
+  created_at        INTEGER NOT NULL,
+  deleted           INTEGER NOT NULL DEFAULT 0,
+  deleted_at        INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_ml_material ON material_lines(material_id);
 CREATE INDEX IF NOT EXISTS idx_ml_client ON material_lines(client_id);
@@ -222,6 +224,17 @@ function runColumnUpgrades(sqlite: Database.Database): void {
   if (!hasColumn(sqlite, 'carpets', 'quality')) {
     sqlite.exec(`ALTER TABLE carpets ADD COLUMN quality TEXT;`)
   }
+
+  // material_lines.deleted — soft-delete flag. A line's money movement lives in
+  // the immutable ledger, so "deleting" a line = post a reversal transaction +
+  // hide the line from stock/profit (the row must stay: transactions reference
+  // it via material_line_id and FKs are ON). Index created here, after the
+  // column is guaranteed to exist (same pattern as clients.kind).
+  if (!hasColumn(sqlite, 'material_lines', 'deleted')) {
+    sqlite.exec(`ALTER TABLE material_lines ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;`)
+    sqlite.exec(`ALTER TABLE material_lines ADD COLUMN deleted_at INTEGER;`)
+  }
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_ml_deleted ON material_lines(deleted);`)
 }
 
 /** Create all tables/indexes/triggers and seed reference data. */

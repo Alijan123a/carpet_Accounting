@@ -10,6 +10,8 @@ import {
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import type { CarpetStatus } from '@shared/contracts'
+import { useSettings } from '@renderer/store/settings'
+import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 interface Props {
   open: boolean
@@ -19,10 +21,12 @@ interface Props {
 
 export function StatusesDialog({ open, onOpenChange, onChanged }: Props): JSX.Element {
   const { t } = useTranslation()
+  const language = useSettings((s) => s.language)
   const [rows, setRows] = useState<CarpetStatus[]>([])
   const [newFa, setNewFa] = useState('')
   const [newEn, setNewEn] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<CarpetStatus | null>(null)
 
   const reload = async (): Promise<void> => {
     setRows(await window.api.carpetStatuses.list())
@@ -59,8 +63,10 @@ export function StatusesDialog({ open, onOpenChange, onChanged }: Props): JSX.El
             ? t('statusMgr.inUse', 'This status is in use.')
             : (res.reason ?? 'error')
       )
+      setDeleteTarget(null)
       return
     }
+    setDeleteTarget(null)
     void reload()
   }
 
@@ -106,7 +112,7 @@ export function StatusesDialog({ open, onOpenChange, onChanged }: Props): JSX.El
                 className="h-8 w-8"
                 title={t('common.delete', 'Delete')}
                 disabled={s.isDefault}
-                onClick={() => remove(s)}
+                onClick={() => setDeleteTarget(s)}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -130,6 +136,15 @@ export function StatusesDialog({ open, onOpenChange, onChanged }: Props): JSX.El
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
+
+        <DeleteConfirmDialog
+          open={deleteTarget !== null}
+          onOpenChange={(o) => !o && setDeleteTarget(null)}
+          title={t('statusMgr.deleteConfirmTitle', 'Delete this status?')}
+          body={t('statusMgr.deleteConfirmBody', 'Statuses that are in use cannot be deleted.')}
+          expectedText={deleteTarget ? (language === 'fa' ? deleteTarget.labelFa : deleteTarget.labelEn) : ''}
+          onConfirm={() => deleteTarget && void remove(deleteTarget)}
+        />
       </DialogContent>
     </Dialog>
   )

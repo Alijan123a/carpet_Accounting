@@ -540,6 +540,23 @@ export function registerCarpetsIpc(getDb: () => DB): void {
     getDb().update(schema.carpets).set({ archived: false, archivedAt: null }).where(eq(schema.carpets.id, id)).run()
   })
 
+  // Hard delete — ONLY for carpets never touched by the ledger (no purchase or
+  // sale transaction, including reversals). Ledger-linked carpets can only be
+  // archived; their money history must stay intact (CLAUDE.md §3).
+  ipcMain.handle('carpets:remove', (_e, id: number): { ok: boolean; reason?: string } => {
+    const db = getDb()
+    const carpet = db.select().from(schema.carpets).where(eq(schema.carpets.id, id)).get()
+    if (!carpet) return { ok: false, reason: 'not_found' }
+    const txCount = db
+      .select({ c: sql<number>`COUNT(*)` })
+      .from(schema.transactions)
+      .where(eq(schema.transactions.carpetId, id))
+      .get()
+    if (Number(txCount?.c ?? 0) > 0) return { ok: false, reason: 'has_transactions' }
+    db.delete(schema.carpets).where(eq(schema.carpets.id, id)).run()
+    return { ok: true }
+  })
+
   ipcMain.handle('carpets:sortGrades', (): string[] => {
     const rows = getDb()
       .selectDistinct({ g: schema.carpets.sortGrade })

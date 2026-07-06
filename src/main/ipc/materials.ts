@@ -3,6 +3,7 @@ import { and, or, eq, like, inArray, asc, desc, sql, type SQL, type AnyColumn } 
 import { alias } from 'drizzle-orm/sqlite-core'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
+import { reverseTransaction } from '../accounting/ledger'
 import {
   materialLineTotalCents,
   weightedAverageBuyPricePerKgCents,
@@ -51,7 +52,7 @@ function summarize(lines: schema.MaterialLineRow[]): {
 }
 
 /** Net stock (bought − sold kg) as a correlated subquery, for ORDER BY. */
-const stockSort: SQL = sql`(SELECT COALESCE(SUM(CASE WHEN ml.direction = 'buy' THEN ml.kilograms ELSE -ml.kilograms END), 0) FROM material_lines ml WHERE ml.material_id = ${schema.materials.id})`
+const stockSort: SQL = sql`(SELECT COALESCE(SUM(CASE WHEN ml.direction = 'buy' THEN ml.kilograms ELSE -ml.kilograms END), 0) FROM material_lines ml WHERE ml.material_id = ${schema.materials.id} AND ml.deleted = 0)`
 
 /** Whitelisted sort columns for the materials list. */
 const MATERIAL_SORTS: Record<string, SQL | AnyColumn> = {
@@ -83,7 +84,11 @@ export function listMaterials(db: DB, params: MaterialsListParams): MaterialsLis
 
   const ids = rows.map((r) => r.id)
   const lines = ids.length
-    ? db.select().from(schema.materialLines).where(inArray(schema.materialLines.materialId, ids)).all()
+    ? db
+        .select()
+        .from(schema.materialLines)
+        .where(and(inArray(schema.materialLines.materialId, ids), eq(schema.materialLines.deleted, false)))
+        .all()
     : []
   const byMaterial = new Map<number, schema.MaterialLineRow[]>()
   for (const l of lines) {
@@ -111,7 +116,9 @@ export function listMaterials(db: DB, params: MaterialsListParams): MaterialsLis
 export function getMaterial(db: DB, id: number): MaterialDetailView | null {
   const m = db.select().from(schema.materials).where(eq(schema.materials.id, id)).get()
   if (!m) return null
-  const lineRows = db.select().from(schema.materialLines).where(eq(schema.materialLines.materialId, id)).all()
+  // Deleted lines are excluded everywhere: their ledger movement was reversed.
+  const activeLines = and(eq(schema.materialLines.materialId, id), eq(schema.materialLines.deleted, false))
+  const lineRows = db.select().from(schema.materialLines).where(activeLines).all()
   const s = summarize(lineRows)
 
   const client = alias(schema.clients, 'ml_client')
@@ -119,7 +126,7 @@ export function getMaterial(db: DB, id: number): MaterialDetailView | null {
     .select({ line: schema.materialLines, clientName: client.name })
     .from(schema.materialLines)
     .leftJoin(client, eq(schema.materialLines.clientId, client.id))
-    .where(eq(schema.materialLines.materialId, id))
+    .where(activeLines)
     .orderBy(asc(schema.materialLines.transactionDate), asc(schema.materialLines.id))
     .all()
 
@@ -223,11 +230,62 @@ export function probeMaterials(db: DB): MaterialDetailView | null {
   return getMaterial(db, id)
 }
 
+/**
+ * "Delete" a material line, keeping money correct: post a reversal for the
+ * line's ledger transaction (unless already reversed), then soft-delete the
+ * line so it stops counting toward stock/profit. The row itself must remain —
+ * the immutable transaction references it (FKs are ON).
+ */
+export function removeMaterialLine(db: DB, lineId: number): { ok: boolean; reason?: string } {
+  return db.transaction((tx) => {
+    const line = tx.select().from(schema.materialLines).where(eq(schema.materialLines.id, lineId)).get()
+    if (!line || line.deleted) return { ok: false, reason: 'not_found' }
+    if (line.transactionId != null) {
+      const alreadyReversed = tx
+        .select({ c: sql<number>`COUNT(*)` })
+        .from(schema.transactions)
+        .where(eq(schema.transactions.reversesTransactionId, line.transactionId))
+        .get()
+      if (Number(alreadyReversed?.c ?? 0) === 0) {
+        reverseTransaction(tx as unknown as DB, line.transactionId)
+      }
+    }
+    tx.update(schema.materialLines)
+      .set({ deleted: true, deletedAt: Date.now() })
+      .where(eq(schema.materialLines.id, lineId))
+      .run()
+    return { ok: true }
+  })
+}
+
 export function registerMaterialsIpc(getDb: () => DB): void {
   ipcMain.handle('materials:list', (_e, params: MaterialsListParams) => listMaterials(getDb(), params))
   ipcMain.handle('materials:get', (_e, id: number) => getMaterial(getDb(), id))
   ipcMain.handle('materials:create', (_e, input: MaterialInput) => createMaterial(getDb(), input))
   ipcMain.handle('materials:addLine', (_e, input: MaterialLineInput) => addMaterialLine(getDb(), input))
+  ipcMain.handle('materials:removeLine', (_e, lineId: number) => removeMaterialLine(getDb(), lineId))
+
+  // Rename only — the currency is locked once chosen (lines inherit it).
+  ipcMain.handle('materials:update', (_e, id: number, input: MaterialInput): void => {
+    const name = input.name.trim()
+    if (!name) throw new Error('Material name is required')
+    getDb().update(schema.materials).set({ name }).where(eq(schema.materials.id, id)).run()
+  })
+
+  // Hard delete — ONLY for material lots with no lines at all (deleted lines
+  // included: their rows are still referenced by ledger transactions).
+  ipcMain.handle('materials:remove', (_e, id: number): { ok: boolean; reason?: string } => {
+    const db = getDb()
+    const lineCount = db
+      .select({ c: sql<number>`COUNT(*)` })
+      .from(schema.materialLines)
+      .where(eq(schema.materialLines.materialId, id))
+      .get()
+    if (Number(lineCount?.c ?? 0) > 0) return { ok: false, reason: 'has_lines' }
+    db.delete(schema.materials).where(eq(schema.materials.id, id)).run()
+    return { ok: true }
+  })
+
   ipcMain.handle('materials:archive', (_e, id: number) => {
     getDb().update(schema.materials).set({ archived: true, archivedAt: Date.now() }).where(eq(schema.materials.id, id)).run()
   })

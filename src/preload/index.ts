@@ -12,6 +12,7 @@ const api = {
     update: (id: number, input: unknown) => ipcRenderer.invoke('clients:update', id, input),
     archive: (id: number) => ipcRenderer.invoke('clients:archive', id),
     restore: (id: number) => ipcRenderer.invoke('clients:restore', id),
+    remove: (id: number) => ipcRenderer.invoke('clients:remove', id),
     transactions: (params: unknown) => ipcRenderer.invoke('clients:transactions', params),
     addPayment: (input: unknown) => ipcRenderer.invoke('clients:addPayment', input)
   },
@@ -29,6 +30,7 @@ const api = {
     update: (id: number, input: unknown) => ipcRenderer.invoke('carpets:update', id, input),
     archive: (id: number) => ipcRenderer.invoke('carpets:archive', id),
     restore: (id: number) => ipcRenderer.invoke('carpets:restore', id),
+    remove: (id: number) => ipcRenderer.invoke('carpets:remove', id),
     sortGrades: () => ipcRenderer.invoke('carpets:sortGrades'),
     sell: (input: unknown) => ipcRenderer.invoke('carpets:sell', input),
     nextInvoiceNumber: () => ipcRenderer.invoke('carpets:nextInvoiceNumber'),
@@ -39,9 +41,12 @@ const api = {
     list: (params: unknown) => ipcRenderer.invoke('materials:list', params),
     get: (id: number) => ipcRenderer.invoke('materials:get', id),
     create: (input: unknown) => ipcRenderer.invoke('materials:create', input),
+    update: (id: number, input: unknown) => ipcRenderer.invoke('materials:update', id, input),
     addLine: (input: unknown) => ipcRenderer.invoke('materials:addLine', input),
+    removeLine: (lineId: number) => ipcRenderer.invoke('materials:removeLine', lineId),
     archive: (id: number) => ipcRenderer.invoke('materials:archive', id),
-    restore: (id: number) => ipcRenderer.invoke('materials:restore', id)
+    restore: (id: number) => ipcRenderer.invoke('materials:restore', id),
+    remove: (id: number) => ipcRenderer.invoke('materials:remove', id)
   },
 
   carpetStatuses: {

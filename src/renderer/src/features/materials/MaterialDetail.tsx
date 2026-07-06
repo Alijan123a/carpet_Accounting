@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowRight, Plus, Archive, ArchiveRestore } from 'lucide-react'
+import { ArrowRight, Plus, Archive, ArchiveRestore, Pencil, Trash2, Check, X } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatCents } from '@shared/accounting'
 import { formatDate } from '@renderer/lib/date'
-import type { MaterialDetailView } from '@shared/contracts'
+import type { MaterialDetailView, MaterialLineView } from '@shared/contracts'
 import { MaterialLineDialog } from './MaterialLineDialog'
+import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const kg = (n: number): string => n.toLocaleString('en-US', { maximumFractionDigits: 3 })
-const LINE_GRID = 'grid grid-cols-[100px_70px_minmax(120px,1fr)_90px_110px_120px_110px] items-center gap-3 px-3'
+const LINE_GRID = 'grid grid-cols-[100px_70px_minmax(120px,1fr)_90px_110px_120px_110px_44px] items-center gap-3 px-3'
 
 export function MaterialDetail({
   materialId,
@@ -29,6 +31,11 @@ export function MaterialDetail({
     direction: 'buy'
   })
   const [busy, setBusy] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteLine, setDeleteLine] = useState<MaterialLineView | null>(null)
 
   const load = useCallback(async (): Promise<void> => {
     setMaterial(await window.api.materials.get(materialId))
@@ -55,6 +62,50 @@ export function MaterialDetail({
     }
   }
 
+  async function saveRename(): Promise<void> {
+    if (!material || !newName.trim()) return
+    setBusy(true)
+    try {
+      await window.api.materials.update(material.id, { name: newName.trim(), currency: material.currency })
+      setRenaming(false)
+      refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function doDeleteLot(): Promise<void> {
+    if (!material) return
+    setBusy(true)
+    setDeleteError(null)
+    try {
+      const res = await window.api.materials.remove(material.id)
+      if (!res.ok) {
+        setDeleteError(
+          t('material.deleteHasLines', 'This material has buy/sell lines and cannot be deleted. Archive it instead.')
+        )
+        return
+      }
+      setDeleteOpen(false)
+      onChanged()
+      onBack()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function doDeleteLine(): Promise<void> {
+    if (!deleteLine) return
+    setBusy(true)
+    try {
+      await window.api.materials.removeLine(deleteLine.id)
+      setDeleteLine(null)
+      refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (!material) {
     return <div className="p-6 text-sm text-muted-foreground">{t('common.loading', 'Loading…')}</div>
   }
@@ -69,7 +120,33 @@ export function MaterialDetail({
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold tracking-tight">{material.name}</h2>
+              {renaming ? (
+                <>
+                  <Input value={newName} onChange={(e) => setNewName(e.target.value)} className="h-9 w-56" autoFocus />
+                  <Button variant="ghost" size="icon" className="h-8 w-8" title={t('common.save', 'Save')} onClick={saveRename} disabled={busy || !newName.trim()}>
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" title={t('common.cancel', 'Cancel')} onClick={() => setRenaming(false)} disabled={busy}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-2xl font-bold tracking-tight">{material.name}</h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    title={t('common.edit', 'Edit')}
+                    onClick={() => {
+                      setNewName(material.name)
+                      setRenaming(true)
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
               <span className="rounded bg-accent px-2 py-0.5 text-xs text-accent-foreground">{cur}</span>
               {material.archived && (
                 <span className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
@@ -90,6 +167,19 @@ export function MaterialDetail({
           </Button>
           <Button variant="outline" size="sm" onClick={toggleArchive} disabled={busy}>
             {material.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            onClick={() => {
+              setDeleteError(null)
+              setDeleteOpen(true)
+            }}
+            disabled={busy}
+          >
+            <Trash2 className="h-4 w-4" />
+            {t('common.delete', 'Delete')}
           </Button>
         </div>
       </div>
@@ -122,6 +212,7 @@ export function MaterialDetail({
           <span className="text-end">{t('material.pricePerKg', 'Price/kg')}</span>
           <span className="text-end">{t('material.lineTotal', 'Total')}</span>
           <span className="text-end">{t('material.lineProfit', 'Profit')}</span>
+          <span />
         </div>
         <div className="flex-1 overflow-auto">
           {material.lines.length === 0 && (
@@ -151,6 +242,17 @@ export function MaterialDetail({
               >
                 {l.lineProfitCents == null ? '—' : formatCents(l.lineProfitCents)}
               </span>
+              <span className="flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  title={t('common.delete', 'Delete')}
+                  onClick={() => setDeleteLine(l)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </span>
             </div>
           ))}
         </div>
@@ -164,6 +266,28 @@ export function MaterialDetail({
         currency={cur}
         avgBuyPerKgCents={material.avgBuyPerKgCents}
         onSaved={refresh}
+      />
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={t('material.deleteConfirmTitle', 'Delete this material?')}
+        body={t('material.deleteConfirmBody', 'Only materials without any buy/sell lines can be deleted.')}
+        expectedText={material.name}
+        busy={busy}
+        error={deleteError}
+        onConfirm={doDeleteLot}
+      />
+      <DeleteConfirmDialog
+        open={deleteLine !== null}
+        onOpenChange={(o) => !o && setDeleteLine(null)}
+        title={t('material.deleteLineConfirmTitle', 'Delete this line?')}
+        body={t(
+          'material.deleteLineConfirmBody',
+          'A reversing transaction will be posted in the client account, and the line stops counting toward stock and profit.'
+        )}
+        expectedText={material.name}
+        busy={busy}
+        onConfirm={doDeleteLine}
       />
     </div>
   )

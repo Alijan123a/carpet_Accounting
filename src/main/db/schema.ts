@@ -151,7 +151,10 @@ export const materialLines = sqliteTable(
     currency: text('currency').$type<Currency>().notNull(),
     transactionId: integer('transaction_id').references((): any => transactions.id),
     transactionDate: integer('transaction_date').notNull(),
-    createdAt: integer('created_at').notNull()
+    createdAt: integer('created_at').notNull(),
+    /** Soft delete: hidden from stock/profit; its ledger tx has been reversed. */
+    deleted: integer('deleted', { mode: 'boolean' }).notNull().default(false),
+    deletedAt: integer('deleted_at')
   },
   (t) => ({
     materialIdx: index('idx_ml_material').on(t.materialId),

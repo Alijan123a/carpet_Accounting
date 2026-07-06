@@ -102,6 +102,8 @@ export interface ClientsApi {
   update: (id: number, input: ClientProfileInput) => Promise<void>
   archive: (id: number) => Promise<{ ok: boolean; reason?: string }>
   restore: (id: number) => Promise<void>
+  /** Hard delete; refused ('has_records') once the client has any history. */
+  remove: (id: number) => Promise<{ ok: boolean; reason?: string }>
   transactions: (params: ClientTransactionsParams) => Promise<ClientTransactionsResult>
   addPayment: (input: PaymentInput) => Promise<number>
 }
@@ -250,6 +252,8 @@ export interface CarpetsApi {
   update: (id: number, input: CarpetEditInput) => Promise<{ ok: boolean; reason?: string }>
   archive: (id: number) => Promise<{ ok: boolean; reason?: string }>
   restore: (id: number) => Promise<void>
+  /** Hard delete; refused ('has_transactions') once ledger-linked. */
+  remove: (id: number) => Promise<{ ok: boolean; reason?: string }>
   sortGrades: () => Promise<string[]>
   sell: (input: CarpetSellInput) => Promise<{ ok: boolean; reason?: string }>
   /** Suggested next invoice number (sequential; the user may override it). */
@@ -389,9 +393,15 @@ export interface MaterialsApi {
   list: (params: MaterialsListParams) => Promise<MaterialsListResult>
   get: (id: number) => Promise<MaterialDetailView | null>
   create: (input: MaterialInput) => Promise<number>
+  /** Rename only — the lot currency is locked once chosen. */
+  update: (id: number, input: MaterialInput) => Promise<void>
   addLine: (input: MaterialLineInput) => Promise<number>
+  /** Posts a reversal for the line's transaction, then soft-deletes the line. */
+  removeLine: (lineId: number) => Promise<{ ok: boolean; reason?: string }>
   archive: (id: number) => Promise<void>
   restore: (id: number) => Promise<void>
+  /** Hard delete; refused ('has_lines') once the lot has any lines. */
+  remove: (id: number) => Promise<{ ok: boolean; reason?: string }>
 }
 
 // --- Expenses (Phase 5) -----------------------------------------------------

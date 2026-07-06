@@ -13,7 +13,7 @@ import type { Currency } from '@shared/accounting'
 import { formatDate, startOfDayEpoch, endOfDayEpoch } from '@renderer/lib/date'
 import type { ExpenseView } from '@shared/contracts'
 import { ExpenseFormDialog } from './ExpenseFormDialog'
-import { ConfirmDialog } from '@renderer/components/ConfirmDialog'
+import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
@@ -220,13 +220,12 @@ export function ExpensesModule(): JSX.Element {
       </div>
 
       <ExpenseFormDialog open={formOpen} onOpenChange={setFormOpen} expense={editExpense} onSaved={refresh} />
-      <ConfirmDialog
+      <DeleteConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
         title={t('expenses.deleteConfirmTitle', 'Delete this expense?')}
         body={t('expenses.deleteConfirmBody', 'This permanently removes the expense.')}
-        confirmLabel={t('common.delete', 'Delete')}
-        destructive
+        expectedText={deleteTarget?.category ?? ''}
         busy={busy}
         onConfirm={doDelete}
       />

@@ -294,6 +294,29 @@ export function registerClientsIpc(getDb: () => DB): void {
       .run()
   })
 
+  // Hard delete — ONLY for clients with no history at all. Any ledger
+  // transaction, carpet link, material line, order or invoice keeps the row
+  // (FKs are ON and the ledger is immutable); the UI offers Archive instead.
+  ipcMain.handle('clients:remove', (_e, id: number): { ok: boolean; reason?: string } => {
+    const db = getDb()
+    const count = (q: { c: number } | undefined): number => Number(q?.c ?? 0)
+    const refs =
+      count(db.select({ c: sql<number>`COUNT(*)` }).from(schema.transactions).where(eq(schema.transactions.clientId, id)).get()) +
+      count(
+        db
+          .select({ c: sql<number>`COUNT(*)` })
+          .from(schema.carpets)
+          .where(or(eq(schema.carpets.boughtFromClientId, id), eq(schema.carpets.soldToClientId, id)))
+          .get()
+      ) +
+      count(db.select({ c: sql<number>`COUNT(*)` }).from(schema.materialLines).where(eq(schema.materialLines.clientId, id)).get()) +
+      count(db.select({ c: sql<number>`COUNT(*)` }).from(schema.orders).where(eq(schema.orders.buyerClientId, id)).get()) +
+      count(db.select({ c: sql<number>`COUNT(*)` }).from(schema.invoices).where(eq(schema.invoices.buyerClientId, id)).get())
+    if (refs > 0) return { ok: false, reason: 'has_records' }
+    db.delete(schema.clients).where(eq(schema.clients.id, id)).run()
+    return { ok: true }
+  })
+
   ipcMain.handle('clients:transactions', (_e, params: ClientTransactionsParams): ClientTransactionsResult =>
     queryTransactions(getDb(), params)
   )

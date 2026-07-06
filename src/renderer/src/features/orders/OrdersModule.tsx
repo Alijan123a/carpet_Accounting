@@ -13,7 +13,7 @@ import { ORDER_STATUSES } from '@shared/contracts'
 import type { OrderStatus, OrderView } from '@shared/contracts'
 import { OrderFormDialog } from './OrderFormDialog'
 import { orderStatusLabel, orderStatusBadge } from './orderStatus'
-import { ConfirmDialog } from '@renderer/components/ConfirmDialog'
+import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 52
@@ -254,13 +254,12 @@ export function OrdersModule(): JSX.Element {
       </div>
 
       <OrderFormDialog open={formOpen} onOpenChange={setFormOpen} order={editOrder} onSaved={refresh} />
-      <ConfirmDialog
+      <DeleteConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
         title={t('orders.deleteConfirmTitle', 'Delete this order?')}
         body={t('orders.deleteConfirmBody', 'This permanently removes the order.')}
-        confirmLabel={t('common.delete', 'Delete')}
-        destructive
+        expectedText={deleteTarget?.title ?? ''}
         busy={busy}
         onConfirm={doDelete}
       />
