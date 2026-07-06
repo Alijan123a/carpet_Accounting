@@ -17,8 +17,7 @@ import {
   formatCents,
   effectivePricePerMeterCents,
   carpetTotalPriceCents,
-  ENABLED_CURRENCIES,
-  DEFAULT_CURRENCY
+  ENABLED_CURRENCIES
 } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { CarpetDetailView, CarpetStatus } from '@shared/contracts'
@@ -39,6 +38,7 @@ const SORT_GRADES: string[] = ['A', 'B', 'C']
 export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props): JSX.Element {
   const { t } = useTranslation()
   const language = useSettings((s) => s.language)
+  const defaultCurrency = useSettings((s) => s.defaultCurrency)
   const isEdit = !!carpet
   const locked = !!carpet?.hasBuyTransaction // financials locked once a purchase exists
 
@@ -47,7 +47,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
   const [width, setWidth] = useState('')
   const [sortGrade, setSortGrade] = useState('')
   const [quality, setQuality] = useState('')
-  const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY)
+  const [currency, setCurrency] = useState<Currency>(defaultCurrency)
   const [ppm, setPpm] = useState('')
   const [deduction, setDeduction] = useState('')
   const [status, setStatus] = useState('in_warehouse')
@@ -67,7 +67,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
     setWidth(carpet ? String(carpet.width) : '')
     setSortGrade(carpet?.sortGrade ?? '')
     setQuality(carpet?.quality ?? '')
-    setCurrency(carpet?.currency ?? DEFAULT_CURRENCY)
+    setCurrency(carpet?.currency ?? defaultCurrency)
     setPpm(carpet ? centsToInput(carpet.pricePerMeterCents) : '')
     setDeduction(carpet ? centsToInput(carpet.sortDeductionCents) : '')
     setStatus(carpet?.status ?? 'in_warehouse')

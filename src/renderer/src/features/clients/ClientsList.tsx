@@ -11,7 +11,7 @@ import { ClientFormDialog } from './ClientFormDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 52
-const GRID = 'grid grid-cols-[1fr_130px_120px_56px] items-center gap-3 px-4'
+const GRID = 'grid grid-cols-[1fr_130px_110px_110px_56px] items-center gap-3 px-4'
 
 export function ClientsList({
   kind,
@@ -135,6 +135,7 @@ export function ClientsList({
           <span>{t('clients.name', 'Name')}</span>
           <span>{t('clients.phone', 'Phone')}</span>
           <span className="text-end">USD</span>
+          <span className="text-end">AFN</span>
           <span />
         </div>
 
@@ -170,6 +171,9 @@ export function ClientsList({
                   <span className="truncate text-muted-foreground">{c.phone || t('common.none', '—')}</span>
                   <span className="text-end">
                     <BalanceAmount cents={c.balances.USD} />
+                  </span>
+                  <span className="text-end">
+                    <BalanceAmount cents={c.balances.AFN} />
                   </span>
                   <span className="flex justify-end">
                     <Button

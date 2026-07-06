@@ -9,7 +9,8 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
-import { ENABLED_CURRENCIES, DEFAULT_CURRENCY, type Currency } from '@shared/accounting'
+import { ENABLED_CURRENCIES, type Currency } from '@shared/accounting'
+import { useSettings } from '@renderer/store/settings'
 
 /** Create a new material (tar) lot: just a name + currency. Lines are added later. */
 export function MaterialFormDialog({
@@ -22,15 +23,16 @@ export function MaterialFormDialog({
   onSaved: (id: number) => void
 }): JSX.Element {
   const { t } = useTranslation()
+  const defaultCurrency = useSettings((s) => s.defaultCurrency)
   const [name, setName] = useState('')
-  const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY)
+  const [currency, setCurrency] = useState<Currency>(defaultCurrency)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     if (open) {
       setName('')
-      setCurrency(DEFAULT_CURRENCY)
+      setCurrency(defaultCurrency)
       setError(null)
     }
   }, [open])

@@ -57,6 +57,7 @@ function rangeFor(preset: RangePreset, from: string, to: string): { fromDate: nu
 }
 
 const USD_COLOR = '#0d9488' // teal-600
+const AFN_COLOR = '#6366f1' // indigo-500
 const NET_COLOR = '#10b981' // emerald-500
 const EXP_COLOR = '#f59e0b' // amber-500
 
@@ -67,8 +68,8 @@ export function Dashboard(): JSX.Element {
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [data, setData] = useState<DashboardSummary | null>(null)
-  // AFN is disabled app-wide for now, so the composition is shown in USD only.
-  const donutCur = defaultCurrency
+  // Profit-composition donut is per currency (AFN/USD are never summed).
+  const [donutCur, setDonutCur] = useState<'AFN' | 'USD'>(defaultCurrency)
 
   const range = useMemo(() => rangeFor(preset, customFrom, customTo), [preset, customFrom, customTo])
 
@@ -91,7 +92,7 @@ export function Dashboard(): JSX.Element {
   // Keep integer cents in the chart data; format to 2 decimals only at display
   // (axis ticks + tooltip) via formatCents — no money arithmetic in the UI.
   const chartData = useMemo(
-    () => (data?.turnover ?? []).map((p) => ({ period: p.period, USD: p.usd })),
+    () => (data?.turnover ?? []).map((p) => ({ period: p.period, USD: p.usd, AFN: p.afn })),
     [data]
   )
 
@@ -146,12 +147,15 @@ export function Dashboard(): JSX.Element {
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard gradient="from-emerald-500 to-teal-600" icon={TrendingUp} title={t('dashboard.receivables', 'Receivables')}>
           <StatMoney label="USD" cents={data.receivables.USD} />
+          <StatMoney label="AFN" cents={data.receivables.AFN} />
         </StatCard>
         <StatCard gradient="from-rose-500 to-red-600" icon={TrendingDown} title={t('dashboard.payables', 'Payables')}>
           <StatMoney label="USD" cents={data.payables.USD} />
+          <StatMoney label="AFN" cents={data.payables.AFN} />
         </StatCard>
         <StatCard gradient="from-indigo-500 to-violet-600" icon={PiggyBank} title={t('dashboard.netProfit', 'Net profit')}>
           <StatMoney label="USD" cents={data.periodProfit.USD.netProfitCents} />
+          <StatMoney label="AFN" cents={data.periodProfit.AFN.netProfitCents} />
         </StatCard>
         <StatCard gradient="from-sky-500 to-blue-600" icon={Package} title={t('dashboard.warehouse', 'Carpets in warehouse')}>
           <StatBig value={data.warehouseCount.toLocaleString('en-US')} unit={t('dashboard.carpetsUnit', 'carpets')} />
@@ -175,6 +179,7 @@ export function Dashboard(): JSX.Element {
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <LegendDot color={USD_COLOR} label="USD" />
+              <LegendDot color={AFN_COLOR} label="AFN" />
             </div>
           </CardHeader>
           <CardContent>
@@ -185,6 +190,10 @@ export function Dashboard(): JSX.Element {
                     <linearGradient id="usdFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={USD_COLOR} stopOpacity={0.3} />
                       <stop offset="100%" stopColor={USD_COLOR} stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="afnFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={AFN_COLOR} stopOpacity={0.3} />
+                      <stop offset="100%" stopColor={AFN_COLOR} stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
@@ -208,6 +217,7 @@ export function Dashboard(): JSX.Element {
                     formatter={(value: number) => formatCents(Number(value))}
                   />
                   <Area type="monotone" dataKey="USD" stroke={USD_COLOR} strokeWidth={2.5} fill="url(#usdFill)" />
+                  <Area type="monotone" dataKey="AFN" stroke={AFN_COLOR} strokeWidth={2.5} fill="url(#afnFill)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -221,7 +231,20 @@ export function Dashboard(): JSX.Element {
               <CardTitle>{t('dashboard.profitComposition', 'Profit composition')}</CardTitle>
               <CardDescription>{rangeLabel}</CardDescription>
             </div>
-            <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">USD</span>
+            <div className="flex gap-1 rounded-md bg-muted p-0.5">
+              {(['USD', 'AFN'] as const).map((cur) => (
+                <button
+                  key={cur}
+                  onClick={() => setDonutCur(cur)}
+                  className={cn(
+                    'rounded px-2 py-1 text-xs font-medium transition-colors',
+                    donutCur === cur ? 'bg-card text-foreground shadow-soft' : 'text-muted-foreground'
+                  )}
+                >
+                  {cur}
+                </button>
+              ))}
+            </div>
           </CardHeader>
           <CardContent>
             {donut.length === 0 ? (

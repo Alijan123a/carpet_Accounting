@@ -10,9 +10,10 @@ import {
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { startOfDayEpoch } from '@renderer/lib/date'
-import { parseMoneyToCents, centsToInput, ENABLED_CURRENCIES, DEFAULT_CURRENCY } from '@shared/accounting'
+import { parseMoneyToCents, centsToInput, ENABLED_CURRENCIES } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { ExpenseView } from '@shared/contracts'
+import { useSettings } from '@renderer/store/settings'
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10)
 const toDateInput = (epoch: number): string => new Date(epoch).toISOString().slice(0, 10)
@@ -29,9 +30,10 @@ export function ExpenseFormDialog({
   onSaved: () => void
 }): JSX.Element {
   const { t } = useTranslation()
+  const defaultCurrency = useSettings((s) => s.defaultCurrency)
   const [category, setCategory] = useState('')
   const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY)
+  const [currency, setCurrency] = useState<Currency>(defaultCurrency)
   const [date, setDate] = useState(todayStr())
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -41,7 +43,7 @@ export function ExpenseFormDialog({
     if (!open) return
     setCategory(expense?.category ?? '')
     setAmount(expense ? centsToInput(expense.amountCents) : '')
-    setCurrency(expense?.currency ?? DEFAULT_CURRENCY)
+    setCurrency(expense?.currency ?? defaultCurrency)
     setDate(expense ? toDateInput(expense.expenseDate) : todayStr())
     setNote(expense?.note ?? '')
     setError(null)

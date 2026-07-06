@@ -14,7 +14,8 @@ import {
 } from '../reporting'
 
 type DB = BetterSQLite3Database<typeof schema>
-// Report sections are emitted per enabled currency (AFN is disabled for now).
+// Report sections are emitted per enabled currency — AFN and USD totals are
+// always computed and shown separately, never summed together.
 const CURRENCIES: Currency[] = [...ENABLED_CURRENCIES]
 
 function col(

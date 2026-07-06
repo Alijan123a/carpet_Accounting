@@ -10,9 +10,10 @@ import {
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { startOfDayEpoch } from '@renderer/lib/date'
-import { parseMoneyToCents, ENABLED_CURRENCIES, DEFAULT_CURRENCY } from '@shared/accounting'
+import { parseMoneyToCents, ENABLED_CURRENCIES } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { PaymentDirection } from '@shared/contracts'
+import { useSettings } from '@renderer/store/settings'
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10)
 
@@ -28,8 +29,9 @@ export function PaymentDialog({
   onSaved: () => void
 }): JSX.Element {
   const { t } = useTranslation()
+  const defaultCurrency = useSettings((s) => s.defaultCurrency)
   const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY)
+  const [currency, setCurrency] = useState<Currency>(defaultCurrency)
   const [direction, setDirection] = useState<PaymentDirection>('fromClient')
   const [date, setDate] = useState(todayStr())
   const [note, setNote] = useState('')
@@ -39,7 +41,7 @@ export function PaymentDialog({
   useEffect(() => {
     if (open) {
       setAmount('')
-      setCurrency(DEFAULT_CURRENCY)
+      setCurrency(defaultCurrency)
       setDirection('fromClient')
       setDate(todayStr())
       setNote('')

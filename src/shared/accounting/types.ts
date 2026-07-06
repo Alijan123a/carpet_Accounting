@@ -18,12 +18,11 @@ export type Currency = 'AFN' | 'USD'
 export const CURRENCIES: readonly Currency[] = ['AFN', 'USD'] as const
 
 /**
- * Currencies the UI currently exposes for entry and display. AFN is disabled for
- * now (the trader works in USD only) — flip this back to `CURRENCIES` to re-enable
- * it everywhere. Every currency picker, balance column, dashboard tile, and
- * report section is driven off this list, so this is the single switch.
+ * Currencies the UI exposes for entry and display. Every currency picker,
+ * balance column, dashboard tile, and report section is driven off this list.
+ * AFN and USD are both enabled; they are always shown/totalled SEPARATELY.
  */
-export const ENABLED_CURRENCIES: readonly Currency[] = ['USD'] as const
+export const ENABLED_CURRENCIES: readonly Currency[] = CURRENCIES
 
 /** Currency pre-selected for new entries. */
 export const DEFAULT_CURRENCY: Currency = 'USD'
