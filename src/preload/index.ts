@@ -4,9 +4,6 @@ import { contextBridge, ipcRenderer } from 'electron'
 const api = {
   getVersion: (): Promise<string> => ipcRenderer.invoke('app:getVersion'),
 
-  // TEMPORARY (Phase 1 dev page) — remove after verification.
-  devResetSeedCompute: () => ipcRenderer.invoke('dev:resetSeedCompute'),
-
   // Clients module (Phase 2).
   clients: {
     list: (params: unknown) => ipcRenderer.invoke('clients:list', params),
