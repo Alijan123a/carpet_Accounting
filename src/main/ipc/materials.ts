@@ -4,6 +4,7 @@ import { alias } from 'drizzle-orm/sqlite-core'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
 import { reverseTransaction } from '../accounting/ledger'
+import { logChange } from '../changeLog'
 import {
   materialLineTotalCents,
   weightedAverageBuyPricePerKgCents,
@@ -259,17 +260,59 @@ export function removeMaterialLine(db: DB, lineId: number): { ok: boolean; reaso
 }
 
 export function registerMaterialsIpc(getDb: () => DB): void {
+  const materialRow = (db: DB, id: number): schema.MaterialRow | undefined =>
+    db.select().from(schema.materials).where(eq(schema.materials.id, id)).get()
+
   ipcMain.handle('materials:list', (_e, params: MaterialsListParams) => listMaterials(getDb(), params))
   ipcMain.handle('materials:get', (_e, id: number) => getMaterial(getDb(), id))
-  ipcMain.handle('materials:create', (_e, input: MaterialInput) => createMaterial(getDb(), input))
-  ipcMain.handle('materials:addLine', (_e, input: MaterialLineInput) => addMaterialLine(getDb(), input))
-  ipcMain.handle('materials:removeLine', (_e, lineId: number) => removeMaterialLine(getDb(), lineId))
+
+  ipcMain.handle('materials:create', (_e, input: MaterialInput) => {
+    const db = getDb()
+    const id = createMaterial(db, input)
+    logChange(db, { entity: 'material', entityId: id, action: 'create', summary: input.name.trim(), after: materialRow(db, id) })
+    return id
+  })
+
+  ipcMain.handle('materials:addLine', (_e, input: MaterialLineInput) => {
+    const db = getDb()
+    const lineId = addMaterialLine(db, input)
+    const line = db.select().from(schema.materialLines).where(eq(schema.materialLines.id, lineId)).get()
+    const material = materialRow(db, input.materialId)
+    logChange(db, {
+      entity: 'material_line',
+      entityId: lineId,
+      action: 'create',
+      summary: `${material?.name ?? `#${input.materialId}`} — ${input.direction} ${input.kilograms} kg`,
+      after: line
+    })
+    return lineId
+  })
+
+  ipcMain.handle('materials:removeLine', (_e, lineId: number) => {
+    const db = getDb()
+    const before = db.select().from(schema.materialLines).where(eq(schema.materialLines.id, lineId)).get()
+    const res = removeMaterialLine(db, lineId)
+    if (res.ok && before) {
+      const material = materialRow(db, before.materialId)
+      logChange(db, {
+        entity: 'material_line',
+        entityId: lineId,
+        action: 'delete',
+        summary: `${material?.name ?? `#${before.materialId}`} — ${before.direction} ${before.kilograms} kg`,
+        before
+      })
+    }
+    return res
+  })
 
   // Rename only — the currency is locked once chosen (lines inherit it).
   ipcMain.handle('materials:update', (_e, id: number, input: MaterialInput): void => {
+    const db = getDb()
     const name = input.name.trim()
     if (!name) throw new Error('Material name is required')
-    getDb().update(schema.materials).set({ name }).where(eq(schema.materials.id, id)).run()
+    const before = materialRow(db, id)
+    db.update(schema.materials).set({ name }).where(eq(schema.materials.id, id)).run()
+    logChange(db, { entity: 'material', entityId: id, action: 'update', summary: name, before, after: materialRow(db, id) })
   })
 
   // Hard delete — ONLY for material lots with no lines at all (deleted lines
@@ -282,14 +325,22 @@ export function registerMaterialsIpc(getDb: () => DB): void {
       .where(eq(schema.materialLines.materialId, id))
       .get()
     if (Number(lineCount?.c ?? 0) > 0) return { ok: false, reason: 'has_lines' }
+    const before = materialRow(db, id)
     db.delete(schema.materials).where(eq(schema.materials.id, id)).run()
+    logChange(db, { entity: 'material', entityId: id, action: 'delete', summary: before?.name ?? `#${id}`, before })
     return { ok: true }
   })
 
   ipcMain.handle('materials:archive', (_e, id: number) => {
-    getDb().update(schema.materials).set({ archived: true, archivedAt: Date.now() }).where(eq(schema.materials.id, id)).run()
+    const db = getDb()
+    const before = materialRow(db, id)
+    db.update(schema.materials).set({ archived: true, archivedAt: Date.now() }).where(eq(schema.materials.id, id)).run()
+    logChange(db, { entity: 'material', entityId: id, action: 'archive', summary: before?.name ?? `#${id}`, before, after: materialRow(db, id) })
   })
   ipcMain.handle('materials:restore', (_e, id: number) => {
-    getDb().update(schema.materials).set({ archived: false, archivedAt: null }).where(eq(schema.materials.id, id)).run()
+    const db = getDb()
+    const before = materialRow(db, id)
+    db.update(schema.materials).set({ archived: false, archivedAt: null }).where(eq(schema.materials.id, id)).run()
+    logChange(db, { entity: 'material', entityId: id, action: 'restore', summary: before?.name ?? `#${id}`, before, after: materialRow(db, id) })
   })
 }

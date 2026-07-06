@@ -13,7 +13,8 @@ import type {
   AuthApi,
   LicenseApi,
   ConfigApi,
-  BackupApi
+  BackupApi,
+  SystemApi
 } from '../shared/contracts'
 
 export interface Api {
@@ -33,6 +34,7 @@ export interface Api {
   license: LicenseApi
   config: ConfigApi
   backup: BackupApi
+  system: SystemApi
 }
 
 declare global {

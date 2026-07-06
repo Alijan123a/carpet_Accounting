@@ -11,6 +11,7 @@ import { OrdersModule } from '@renderer/features/orders/OrdersModule'
 import { Dashboard } from '@renderer/features/dashboard/Dashboard'
 import { ReportsModule } from '@renderer/features/reports/ReportsModule'
 import { ArchivePage } from '@renderer/features/archive/ArchivePage'
+import { SystemChangesPage } from '@renderer/features/system/SystemChangesPage'
 import { LockScreen } from '@renderer/features/auth/LockScreen'
 import { ActivationScreen } from '@renderer/features/license/ActivationScreen'
 import type { LicenseStatus } from '@shared/contracts'
@@ -38,6 +39,8 @@ function MainApp(): JSX.Element {
         <ReportsModule />
       ) : route === 'archive' ? (
         <ArchivePage />
+      ) : route === 'changes' ? (
+        <SystemChangesPage />
       ) : route === 'settings' ? (
         <Settings />
       ) : (

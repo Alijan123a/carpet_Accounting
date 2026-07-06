@@ -249,6 +249,34 @@ export const orders = sqliteTable(
   })
 )
 
+/**
+ * Audit log of every mutation (create/update/delete/archive/sell/payment/…),
+ * shown on the System Changes screen with an Undo action. Snapshots are full
+ * row JSON. An undo is itself logged as a new row (undoOfChangeId set) and the
+ * undone change gets undoneAt/undoneByChangeId stamped.
+ */
+export const systemChanges = sqliteTable(
+  'system_changes',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    entity: text('entity').notNull(),
+    entityId: integer('entity_id'),
+    action: text('action').notNull(),
+    summary: text('summary').notNull(),
+    beforeJson: text('before_json'),
+    afterJson: text('after_json'),
+    createdAt: integer('created_at').notNull(),
+    undoneAt: integer('undone_at'),
+    undoneByChangeId: integer('undone_by_change_id'),
+    undoOfChangeId: integer('undo_of_change_id')
+  },
+  (t) => ({
+    entityIdx: index('idx_sc_entity').on(t.entity, t.entityId),
+    createdIdx: index('idx_sc_created').on(t.createdAt),
+    undoneIdx: index('idx_sc_undone').on(t.undoneAt)
+  })
+)
+
 export type ClientRow = typeof clients.$inferSelect
 export type CarpetRow = typeof carpets.$inferSelect
 export type MaterialRow = typeof materials.$inferSelect
@@ -257,3 +285,4 @@ export type TransactionRow = typeof transactions.$inferSelect
 export type ExpenseRow = typeof expenses.$inferSelect
 export type InvoiceRow = typeof invoices.$inferSelect
 export type OrderRow = typeof orders.$inferSelect
+export type SystemChangeRow = typeof systemChanges.$inferSelect

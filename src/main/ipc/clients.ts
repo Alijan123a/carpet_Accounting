@@ -3,6 +3,7 @@ import { and, or, eq, like, inArray, gte, lte, asc, desc, sql, type SQL, type An
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
 import { reverseTransaction, postTransaction } from '../accounting/ledger'
+import { logChange } from '../changeLog'
 import { postingAmountCents, type PerCurrency, type Currency } from '../../shared/accounting'
 import type {
   ClientProfileInput,
@@ -252,7 +253,10 @@ export function registerClientsIpc(getDb: () => DB): void {
         createdAt: Date.now()
       })
       .run()
-    return Number(res.lastInsertRowid)
+    const id = Number(res.lastInsertRowid)
+    const row = db.select().from(schema.clients).where(eq(schema.clients.id, id)).get()
+    logChange(db, { entity: 'client', entityId: id, action: 'create', summary: name, after: row })
+    return id
   })
 
   // Profile fields only — balances are NEVER edited (they derive from transactions).
@@ -260,6 +264,7 @@ export function registerClientsIpc(getDb: () => DB): void {
     const db = getDb()
     const name = input.name.trim()
     if (!name) throw new Error('Client name is required')
+    const before = db.select().from(schema.clients).where(eq(schema.clients.id, id)).get()
     db.update(schema.clients)
       .set({
         name,
@@ -270,6 +275,8 @@ export function registerClientsIpc(getDb: () => DB): void {
       })
       .where(eq(schema.clients.id, id))
       .run()
+    const after = db.select().from(schema.clients).where(eq(schema.clients.id, id)).get()
+    logChange(db, { entity: 'client', entityId: id, action: 'update', summary: name, before, after })
   })
 
   // Archive allowed ONLY when BOTH balances are zero (enforced server-side too).
@@ -279,19 +286,25 @@ export function registerClientsIpc(getDb: () => DB): void {
     if (bal.AFN !== 0 || bal.USD !== 0) {
       return { ok: false, reason: 'balance_nonzero' }
     }
+    const before = db.select().from(schema.clients).where(eq(schema.clients.id, id)).get()
     db.update(schema.clients)
       .set({ archived: true, archivedAt: Date.now() })
       .where(eq(schema.clients.id, id))
       .run()
+    const after = db.select().from(schema.clients).where(eq(schema.clients.id, id)).get()
+    logChange(db, { entity: 'client', entityId: id, action: 'archive', summary: before?.name ?? `#${id}`, before, after })
     return { ok: true }
   })
 
   ipcMain.handle('clients:restore', (_e, id: number): void => {
     const db = getDb()
+    const before = db.select().from(schema.clients).where(eq(schema.clients.id, id)).get()
     db.update(schema.clients)
       .set({ archived: false, archivedAt: null })
       .where(eq(schema.clients.id, id))
       .run()
+    const after = db.select().from(schema.clients).where(eq(schema.clients.id, id)).get()
+    logChange(db, { entity: 'client', entityId: id, action: 'restore', summary: before?.name ?? `#${id}`, before, after })
   })
 
   // Hard delete — ONLY for clients with no history at all. Any ledger
@@ -313,7 +326,9 @@ export function registerClientsIpc(getDb: () => DB): void {
       count(db.select({ c: sql<number>`COUNT(*)` }).from(schema.orders).where(eq(schema.orders.buyerClientId, id)).get()) +
       count(db.select({ c: sql<number>`COUNT(*)` }).from(schema.invoices).where(eq(schema.invoices.buyerClientId, id)).get())
     if (refs > 0) return { ok: false, reason: 'has_records' }
+    const before = db.select().from(schema.clients).where(eq(schema.clients.id, id)).get()
     db.delete(schema.clients).where(eq(schema.clients.id, id)).run()
+    logChange(db, { entity: 'client', entityId: id, action: 'delete', summary: before?.name ?? `#${id}`, before })
     return { ok: true }
   })
 
@@ -321,10 +336,35 @@ export function registerClientsIpc(getDb: () => DB): void {
     queryTransactions(getDb(), params)
   )
 
-  ipcMain.handle('clients:addPayment', (_e, input: PaymentInput): number => addPayment(getDb(), input))
+  ipcMain.handle('clients:addPayment', (_e, input: PaymentInput): number => {
+    const db = getDb()
+    const txId = addPayment(db, input)
+    const tx = db.select().from(schema.transactions).where(eq(schema.transactions.id, txId)).get()
+    const client = db.select().from(schema.clients).where(eq(schema.clients.id, input.clientId)).get()
+    logChange(db, {
+      entity: 'transaction',
+      entityId: txId,
+      action: 'payment',
+      summary: `${client?.name ?? `#${input.clientId}`} — ${(input.amountCents / 100).toFixed(2)} ${input.currency}`,
+      after: tx
+    })
+    return txId
+  })
 
   // Immutable ledger: a transaction is undone by POSTING a reversal, never edited.
   ipcMain.handle('transactions:reverse', (_e, id: number): number => {
-    return reverseTransaction(getDb(), id)
+    const db = getDb()
+    const original = db.select().from(schema.transactions).where(eq(schema.transactions.id, id)).get()
+    const reversalId = reverseTransaction(db, id)
+    const reversal = db.select().from(schema.transactions).where(eq(schema.transactions.id, reversalId)).get()
+    logChange(db, {
+      entity: 'transaction',
+      entityId: id,
+      action: 'reverse',
+      summary: original?.note ?? `#${id}`,
+      before: original,
+      after: reversal
+    })
+    return reversalId
   })
 }

@@ -115,6 +115,12 @@ const api = {
     set: (patch: unknown) => ipcRenderer.invoke('config:set', patch)
   },
 
+  // System changes (audit log + undo).
+  system: {
+    list: (params: unknown) => ipcRenderer.invoke('system:list', params),
+    undo: (changeId: number) => ipcRenderer.invoke('system:undo', changeId)
+  },
+
   // Backup (Phase 6).
   backup: {
     now: () => ipcRenderer.invoke('backup:now'),

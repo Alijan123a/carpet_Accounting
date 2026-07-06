@@ -164,6 +164,8 @@ export interface CarpetsBatchResult {
   ok: boolean
   /** Number of carpets created. */
   created?: number
+  /** Ids of the created carpets (for audit logging). */
+  ids?: number[]
   reason?: string
   /** The offending label when reason is 'label_taken' / 'duplicate_label'. */
   label?: string
@@ -580,6 +582,68 @@ export interface LicenseApi {
   activate: (key: string) => Promise<{ ok: boolean; reason?: LicenseStatus['reason'] }>
   /** This machine's hardware fingerprint (SHA-256 hex) — for support/license transfer. */
   fingerprint: () => Promise<string>
+}
+
+// --- System changes (audit log + undo) ---------------------------------------
+
+export type ChangeEntity =
+  | 'client'
+  | 'carpet'
+  | 'material'
+  | 'material_line'
+  | 'expense'
+  | 'order'
+  | 'carpet_status'
+  | 'transaction'
+  | 'invoice'
+
+export type ChangeAction =
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'archive'
+  | 'restore'
+  | 'sell'
+  | 'payment'
+  | 'reverse'
+  | 'undo'
+
+export interface SystemChangeView {
+  id: number
+  entity: ChangeEntity
+  entityId: number | null
+  action: ChangeAction
+  summary: string
+  createdAt: number
+  undoneAt: number | null
+  /** Set when this row itself records an undo of another change. */
+  undoOfChangeId: number | null
+}
+
+export interface SystemChangesListParams extends SortParams {
+  search?: string
+  entity?: ChangeEntity | 'all'
+  limit: number
+  offset: number
+}
+
+export interface SystemChangesListResult {
+  rows: SystemChangeView[]
+  total: number
+}
+
+export type UndoFailReason =
+  | 'not_found'
+  | 'already_undone'
+  | 'is_undo'
+  | 'not_latest'
+  | 'has_records'
+  | 'in_use'
+  | 'not_undoable'
+
+export interface SystemApi {
+  list: (params: SystemChangesListParams) => Promise<SystemChangesListResult>
+  undo: (changeId: number) => Promise<{ ok: boolean; reason?: UndoFailReason }>
 }
 
 export type BackupFrequency = 'off' | 'onClose' | 'daily'

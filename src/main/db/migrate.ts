@@ -178,6 +178,26 @@ CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_date ON orders(order_date);
 CREATE INDEX IF NOT EXISTS idx_orders_archived ON orders(archived);
 
+-- System changes: audit log of every mutation, powering the «تغییرات سیستم»
+-- screen and its Undo. before/after are full-row JSON snapshots. Undo NEVER
+-- edits the ledger — ledger-linked changes are undone by posting reversals.
+CREATE TABLE IF NOT EXISTS system_changes (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  entity              TEXT NOT NULL,
+  entity_id           INTEGER,
+  action              TEXT NOT NULL,
+  summary             TEXT NOT NULL,
+  before_json         TEXT,
+  after_json          TEXT,
+  created_at          INTEGER NOT NULL,
+  undone_at           INTEGER,
+  undone_by_change_id INTEGER,
+  undo_of_change_id   INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_sc_entity ON system_changes(entity, entity_id);
+CREATE INDEX IF NOT EXISTS idx_sc_created ON system_changes(created_at);
+CREATE INDEX IF NOT EXISTS idx_sc_undone ON system_changes(undone_at);
+
 -- Immutable ledger: block edits and deletes of posted transactions.
 CREATE TRIGGER IF NOT EXISTS trg_tx_no_update
 BEFORE UPDATE ON transactions

@@ -8,6 +8,7 @@ import {
   Receipt,
   BarChart3,
   Archive,
+  History,
   Settings,
   type LucideIcon
 } from 'lucide-react'
@@ -22,6 +23,7 @@ export type Route =
   | 'expenses'
   | 'reports'
   | 'archive'
+  | 'changes'
   | 'settings'
 
 export interface NavItem {
@@ -43,5 +45,6 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'expenses', i18nKey: 'nav.expenses', label: 'Expenses', icon: Receipt },
   { key: 'reports', i18nKey: 'nav.reports', label: 'Reports', icon: BarChart3 },
   { key: 'archive', i18nKey: 'nav.archive', label: 'Archive', icon: Archive },
+  { key: 'changes', i18nKey: 'nav.changes', label: 'System changes', icon: History },
   { key: 'settings', i18nKey: 'nav.settings', label: 'Settings', icon: Settings }
 ]

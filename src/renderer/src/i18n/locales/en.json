@@ -15,7 +15,8 @@
     "transactions": "Transactions",
     "reports": "Reports",
     "archive": "Archive",
-    "settings": "Settings"
+    "settings": "Settings",
+    "changes": "System changes"
   },
   "topbar": {
     "toggleTheme": "Toggle theme",
@@ -497,5 +498,49 @@
     "switchCalendar": "Switch calendar (Shamsi / Gregorian)",
     "shamsiShort": "Shamsi",
     "gregorianShort": "Greg."
+  },
+  "changes": {
+    "title": "System changes",
+    "subtitle": "Every change made in the app, newest first. Undo restores data safely — money is corrected by reversal, never by editing history.",
+    "searchPlaceholder": "Search changes…",
+    "total": "{{total}} changes",
+    "when": "When",
+    "entityCol": "Section",
+    "actionCol": "Action",
+    "summaryCol": "Details",
+    "undoCol": "Undo",
+    "empty": "No changes recorded yet.",
+    "undo": "Undo",
+    "undoneBadge": "Undone",
+    "undoBadge": "Undo",
+    "undoConfirmTitle": "Undo this change?",
+    "failAlreadyUndone": "This change was already undone.",
+    "failIsUndo": "An undo cannot itself be undone.",
+    "failNotLatest": "Newer changes exist for this record — undo those first.",
+    "failHasRecords": "The record now has linked data and cannot be removed.",
+    "failInUse": "The record is in use and cannot be removed.",
+    "failGeneric": "This change cannot be undone.",
+    "entity": {
+      "client": "Client",
+      "carpet": "Carpet",
+      "material": "Material",
+      "material_line": "Material line",
+      "expense": "Expense",
+      "order": "Order",
+      "carpet_status": "Carpet status",
+      "transaction": "Transaction",
+      "invoice": "Invoice"
+    },
+    "action": {
+      "create": "Created",
+      "update": "Edited",
+      "delete": "Deleted",
+      "archive": "Archived",
+      "restore": "Restored",
+      "sell": "Sold",
+      "payment": "Payment",
+      "reverse": "Reversed",
+      "undo": "Undo"
+    }
   }
 }

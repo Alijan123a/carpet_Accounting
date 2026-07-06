@@ -15,7 +15,8 @@
     "transactions": "تراکنش‌ها",
     "reports": "گزارش‌ها",
     "archive": "آرشیف",
-    "settings": "تنظیمات"
+    "settings": "تنظیمات",
+    "changes": "تغییرات سیستم"
   },
   "topbar": {
     "toggleTheme": "تغییر ظاهر",
@@ -497,5 +498,49 @@
     "switchCalendar": "تغییر تقویم (شمسی / میلادی)",
     "shamsiShort": "شمسی",
     "gregorianShort": "میلادی"
+  },
+  "changes": {
+    "title": "تغییرات سیستم",
+    "subtitle": "همه تغییرات برنامه، جدیدترین اول. واگرد داده‌ها را امن برمی‌گرداند — پول با تراکنش واپسی اصلاح می‌شود، نه با تغییر تاریخچه.",
+    "searchPlaceholder": "جستجو در تغییرات…",
+    "total": "{{total}} تغییر",
+    "when": "زمان",
+    "entityCol": "بخش",
+    "actionCol": "عملیات",
+    "summaryCol": "جزئیات",
+    "undoCol": "واگرد",
+    "empty": "هنوز تغییری ثبت نشده است.",
+    "undo": "واگرد",
+    "undoneBadge": "واگرد شده",
+    "undoBadge": "واگرد",
+    "undoConfirmTitle": "این تغییر واگرد شود؟",
+    "failAlreadyUndone": "این تغییر قبلاً واگرد شده است.",
+    "failIsUndo": "خودِ واگرد قابل واگرد نیست.",
+    "failNotLatest": "برای این رکورد تغییرات جدیدتری وجود دارد — اول آنها را واگرد کنید.",
+    "failHasRecords": "این رکورد اکنون داده‌های وابسته دارد و قابل حذف نیست.",
+    "failInUse": "این رکورد در حال استفاده است و قابل حذف نیست.",
+    "failGeneric": "این تغییر قابل واگرد نیست.",
+    "entity": {
+      "client": "مشتری",
+      "carpet": "قالین",
+      "material": "مواد",
+      "material_line": "خط مواد",
+      "expense": "مصارف",
+      "order": "سفارش",
+      "carpet_status": "وضعیت قالین",
+      "transaction": "تراکنش",
+      "invoice": "بل"
+    },
+    "action": {
+      "create": "ایجاد",
+      "update": "ویرایش",
+      "delete": "حذف",
+      "archive": "بایگانی",
+      "restore": "بازیابی",
+      "sell": "فروش",
+      "payment": "پرداخت",
+      "reverse": "واپسی",
+      "undo": "واگرد"
+    }
   }
 }

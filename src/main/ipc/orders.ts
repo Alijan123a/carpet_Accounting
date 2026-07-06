@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { and, or, eq, like, asc, desc, sql, type SQL, type AnyColumn } from 'drizzle-orm'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
+import { logChange } from '../changeLog'
 import type {
   OrderInput,
   OrderStatus,
@@ -117,12 +118,16 @@ function valuesFromInput(input: OrderInput): {
 }
 
 export function registerOrdersIpc(getDb: () => DB): void {
+  const orderRow = (db: DB, id: number): schema.OrderRow | undefined =>
+    db.select().from(schema.orders).where(eq(schema.orders.id, id)).get()
+
   ipcMain.handle('orders:list', (_e, params: OrdersListParams) => listOrders(getDb(), params))
 
   ipcMain.handle('orders:create', (_e, input: OrderInput): number => {
+    const db = getDb()
     const now = Date.now()
     const v = valuesFromInput(input)
-    const res = getDb()
+    const res = db
       .insert(schema.orders)
       .values({
         ...v,
@@ -131,7 +136,9 @@ export function registerOrdersIpc(getDb: () => DB): void {
         createdAt: now
       })
       .run()
-    return Number(res.lastInsertRowid)
+    const id = Number(res.lastInsertRowid)
+    logChange(db, { entity: 'order', entityId: id, action: 'create', summary: v.title, after: orderRow(db, id) })
+    return id
   })
 
   ipcMain.handle('orders:update', (_e, id: number, input: OrderInput): void => {
@@ -143,6 +150,7 @@ export function registerOrdersIpc(getDb: () => DB): void {
     const deliveredAt =
       v.status === 'delivered' ? existing.deliveredAt ?? Date.now() : null
     db.update(schema.orders).set({ ...v, deliveredAt }).where(eq(schema.orders.id, id)).run()
+    logChange(db, { entity: 'order', entityId: id, action: 'update', summary: v.title, before: existing, after: orderRow(db, id) })
   })
 
   ipcMain.handle('orders:setStatus', (_e, id: number, status: OrderStatus): void => {
@@ -151,9 +159,22 @@ export function registerOrdersIpc(getDb: () => DB): void {
     if (!existing) return
     const deliveredAt = status === 'delivered' ? existing.deliveredAt ?? Date.now() : null
     db.update(schema.orders).set({ status, deliveredAt }).where(eq(schema.orders.id, id)).run()
+    logChange(db, {
+      entity: 'order',
+      entityId: id,
+      action: 'update',
+      summary: `${existing.title}: ${existing.status} → ${status}`,
+      before: existing,
+      after: orderRow(db, id)
+    })
   })
 
   ipcMain.handle('orders:remove', (_e, id: number): void => {
-    getDb().delete(schema.orders).where(eq(schema.orders.id, id)).run()
+    const db = getDb()
+    const before = orderRow(db, id)
+    db.delete(schema.orders).where(eq(schema.orders.id, id)).run()
+    if (before) {
+      logChange(db, { entity: 'order', entityId: id, action: 'delete', summary: before.title, before })
+    }
   })
 }

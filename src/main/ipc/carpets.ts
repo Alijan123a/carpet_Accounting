@@ -5,6 +5,7 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
 import { getClientBalances } from '../accounting/ledger'
 import { addPayment } from './clients'
+import { logChange } from '../changeLog'
 import {
   carpetTotalPriceCents,
   carpetProfitCents,
@@ -256,7 +257,8 @@ export function createCarpetsBatch(db: DB, input: CarpetsBatchInput): CarpetsBat
   const seller = input.boughtFromClientId ?? null
   const txDate = input.transactionDate ?? now
 
-  const created = db.transaction((tx): number => {
+  const createdIds = db.transaction((tx): number[] => {
+    const ids: number[] = []
     for (const l of lines) {
       const label = l.labelNumber.trim()
       const area = l.length * l.width
@@ -306,10 +308,11 @@ export function createCarpetsBatch(db: DB, input: CarpetsBatchInput): CarpetsBat
         )
         tx.update(schema.carpets).set({ buyTransactionId: buyTxId }).where(eq(schema.carpets.id, carpetId)).run()
       }
+      ids.push(carpetId)
     }
-    return lines.length
+    return ids
   })
-  return { ok: true, created }
+  return { ok: true, created: createdIds.length, ids: createdIds }
 }
 
 /**
@@ -518,14 +521,110 @@ function listStatuses(db: DB): CarpetStatus[] {
 }
 
 export function registerCarpetsIpc(getDb: () => DB): void {
+  const carpetRow = (db: DB, id: number): schema.CarpetRow | undefined =>
+    db.select().from(schema.carpets).where(eq(schema.carpets.id, id)).get()
+
   ipcMain.handle('carpets:list', (_e, params: CarpetsListParams) => listCarpets(getDb(), params))
   ipcMain.handle('carpets:get', (_e, id: number) => getCarpet(getDb(), id))
-  ipcMain.handle('carpets:create', (_e, input: CarpetInput) => createCarpet(getDb(), input))
-  ipcMain.handle('carpets:createBatch', (_e, input: CarpetsBatchInput) => createCarpetsBatch(getDb(), input))
-  ipcMain.handle('carpets:update', (_e, id: number, input: CarpetEditInput) => updateCarpet(getDb(), id, input))
-  ipcMain.handle('carpets:sell', (_e, input: CarpetSellInput) => sellCarpet(getDb(), input))
+
+  ipcMain.handle('carpets:create', (_e, input: CarpetInput) => {
+    const db = getDb()
+    const res = createCarpet(db, input)
+    if (res.ok && res.id) {
+      logChange(db, {
+        entity: 'carpet',
+        entityId: res.id,
+        action: 'create',
+        summary: input.labelNumber.trim(),
+        after: carpetRow(db, res.id)
+      })
+    }
+    return res
+  })
+
+  ipcMain.handle('carpets:createBatch', (_e, input: CarpetsBatchInput) => {
+    const db = getDb()
+    const res = createCarpetsBatch(db, input)
+    if (res.ok && res.ids) {
+      for (const id of res.ids) {
+        const row = carpetRow(db, id)
+        logChange(db, { entity: 'carpet', entityId: id, action: 'create', summary: row?.labelNumber ?? `#${id}`, after: row })
+      }
+    }
+    return res
+  })
+
+  ipcMain.handle('carpets:update', (_e, id: number, input: CarpetEditInput) => {
+    const db = getDb()
+    const before = carpetRow(db, id)
+    const res = updateCarpet(db, id, input)
+    if (res.ok) {
+      const after = carpetRow(db, id)
+      logChange(db, { entity: 'carpet', entityId: id, action: 'update', summary: after?.labelNumber ?? `#${id}`, before, after })
+    }
+    return res
+  })
+
+  ipcMain.handle('carpets:sell', (_e, input: CarpetSellInput) => {
+    const db = getDb()
+    const before = carpetRow(db, input.carpetId)
+    const res = sellCarpet(db, input)
+    if (res.ok && before) {
+      const after = carpetRow(db, input.carpetId)
+      const buyer = db.select().from(schema.clients).where(eq(schema.clients.id, input.buyerClientId)).get()
+      logChange(db, {
+        entity: 'carpet',
+        entityId: input.carpetId,
+        action: 'sell',
+        summary: `${before.labelNumber} → ${buyer?.name ?? `#${input.buyerClientId}`}`,
+        before,
+        after
+      })
+    }
+    return res
+  })
+
   ipcMain.handle('carpets:nextInvoiceNumber', () => nextInvoiceNumber(getDb()))
-  ipcMain.handle('carpets:sellInvoice', (_e, input: SellInvoiceInput) => sellInvoice(getDb(), input))
+
+  ipcMain.handle('carpets:sellInvoice', (_e, input: SellInvoiceInput) => {
+    const db = getDb()
+    // Pre-sale snapshots of the real carpets on the invoice (for sell undo).
+    const carpetIds = input.lines.map((l) => l.carpetId).filter((x): x is number => x != null)
+    const befores = new Map(carpetIds.map((cid) => [cid, carpetRow(db, cid)]))
+    const res = sellInvoice(db, input)
+    if (res.ok) {
+      const buyer = db.select().from(schema.clients).where(eq(schema.clients.id, input.buyerClientId)).get()
+      const buyerName = buyer?.name ?? `#${input.buyerClientId}`
+      if (res.posted) {
+        for (const cid of carpetIds) {
+          const before = befores.get(cid)
+          const after = carpetRow(db, cid)
+          // Only log carpets this invoice actually sold.
+          if (before && after && before.sellTransactionId == null && after.sellTransactionId != null) {
+            logChange(db, {
+              entity: 'carpet',
+              entityId: cid,
+              action: 'sell',
+              summary: `${before.labelNumber} → ${buyerName}`,
+              before,
+              after
+            })
+          }
+        }
+      }
+      if (res.id) {
+        const inv = db.select().from(schema.invoices).where(eq(schema.invoices.id, res.id)).get()
+        logChange(db, {
+          entity: 'invoice',
+          entityId: res.id,
+          action: 'create',
+          summary: `#${res.number ?? res.id} — ${buyerName}`,
+          after: inv
+        })
+      }
+    }
+    return res
+  })
 
   // A carpet is only sensibly archived once it has been SOLD (CLAUDE.md / Phase 6).
   ipcMain.handle('carpets:archive', (_e, id: number): { ok: boolean; reason?: string } => {
@@ -534,10 +633,14 @@ export function registerCarpetsIpc(getDb: () => DB): void {
     if (!carpet) return { ok: false, reason: 'not_found' }
     if (carpet.sellTransactionId == null) return { ok: false, reason: 'not_sold' }
     db.update(schema.carpets).set({ archived: true, archivedAt: Date.now() }).where(eq(schema.carpets.id, id)).run()
+    logChange(db, { entity: 'carpet', entityId: id, action: 'archive', summary: carpet.labelNumber, before: carpet, after: carpetRow(db, id) })
     return { ok: true }
   })
   ipcMain.handle('carpets:restore', (_e, id: number) => {
-    getDb().update(schema.carpets).set({ archived: false, archivedAt: null }).where(eq(schema.carpets.id, id)).run()
+    const db = getDb()
+    const before = carpetRow(db, id)
+    db.update(schema.carpets).set({ archived: false, archivedAt: null }).where(eq(schema.carpets.id, id)).run()
+    logChange(db, { entity: 'carpet', entityId: id, action: 'restore', summary: before?.labelNumber ?? `#${id}`, before, after: carpetRow(db, id) })
   })
 
   // Hard delete — ONLY for carpets never touched by the ledger (no purchase or
@@ -554,6 +657,7 @@ export function registerCarpetsIpc(getDb: () => DB): void {
       .get()
     if (Number(txCount?.c ?? 0) > 0) return { ok: false, reason: 'has_transactions' }
     db.delete(schema.carpets).where(eq(schema.carpets.id, id)).run()
+    logChange(db, { entity: 'carpet', entityId: id, action: 'delete', summary: carpet.labelNumber, before: carpet })
     return { ok: true }
   })
 
@@ -578,16 +682,22 @@ export function registerCarpetsIpc(getDb: () => DB): void {
     let key = slugify(labelEn)
     let n = 2
     while (existingKeys.has(key)) key = `${slugify(labelEn)}_${n++}`
-    db.insert(schema.carpetStatuses).values({ key, labelFa, labelEn, isDefault: false }).run()
+    const res = db.insert(schema.carpetStatuses).values({ key, labelFa, labelEn, isDefault: false }).run()
+    const newId = Number(res.lastInsertRowid)
+    const row = db.select().from(schema.carpetStatuses).where(eq(schema.carpetStatuses.id, newId)).get()
+    logChange(db, { entity: 'carpet_status', entityId: newId, action: 'create', summary: labelFa, after: row })
     return { ok: true }
   })
 
   ipcMain.handle('carpetStatuses:rename', (_e, id: number, input: CarpetStatusInput): void => {
-    getDb()
-      .update(schema.carpetStatuses)
+    const db = getDb()
+    const before = db.select().from(schema.carpetStatuses).where(eq(schema.carpetStatuses.id, id)).get()
+    db.update(schema.carpetStatuses)
       .set({ labelFa: input.labelFa.trim(), labelEn: input.labelEn.trim() })
       .where(eq(schema.carpetStatuses.id, id))
       .run()
+    const after = db.select().from(schema.carpetStatuses).where(eq(schema.carpetStatuses.id, id)).get()
+    logChange(db, { entity: 'carpet_status', entityId: id, action: 'update', summary: input.labelFa.trim(), before, after })
   })
 
   ipcMain.handle('carpetStatuses:remove', (_e, id: number): { ok: boolean; reason?: string } => {
@@ -598,6 +708,7 @@ export function registerCarpetsIpc(getDb: () => DB): void {
     const inUse = db.select({ c: sql<number>`COUNT(*)` }).from(schema.carpets).where(eq(schema.carpets.status, status.key)).get()
     if (Number(inUse?.c ?? 0) > 0) return { ok: false, reason: 'in_use' }
     db.delete(schema.carpetStatuses).where(eq(schema.carpetStatuses.id, id)).run()
+    logChange(db, { entity: 'carpet_status', entityId: id, action: 'delete', summary: status.labelFa, before: status })
     return { ok: true }
   })
 }

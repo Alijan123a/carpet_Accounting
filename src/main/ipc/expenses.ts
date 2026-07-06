@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { and, or, eq, like, gte, lte, asc, desc, sql, isNotNull, type SQL, type AnyColumn } from 'drizzle-orm'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
+import { logChange } from '../changeLog'
 import type { ExpenseInput, ExpensesListParams, ExpensesListResult, ExpenseView } from '../../shared/contracts'
 
 type DB = BetterSQLite3Database<typeof schema>
@@ -43,8 +44,12 @@ export function listExpenses(db: DB, params: ExpensesListParams): ExpensesListRe
 export function registerExpensesIpc(getDb: () => DB): void {
   ipcMain.handle('expenses:list', (_e, params: ExpensesListParams) => listExpenses(getDb(), params))
 
+  const summaryOf = (input: ExpenseInput): string =>
+    `${input.category.trim() || 'general'} — ${(input.amountCents / 100).toFixed(2)} ${input.currency}`
+
   ipcMain.handle('expenses:create', (_e, input: ExpenseInput): number => {
-    const res = getDb()
+    const db = getDb()
+    const res = db
       .insert(schema.expenses)
       .values({
         category: input.category.trim() || 'general',
@@ -55,12 +60,16 @@ export function registerExpensesIpc(getDb: () => DB): void {
         createdAt: Date.now()
       })
       .run()
-    return Number(res.lastInsertRowid)
+    const id = Number(res.lastInsertRowid)
+    const row = db.select().from(schema.expenses).where(eq(schema.expenses.id, id)).get()
+    logChange(db, { entity: 'expense', entityId: id, action: 'create', summary: summaryOf(input), after: row })
+    return id
   })
 
   ipcMain.handle('expenses:update', (_e, id: number, input: ExpenseInput): void => {
-    getDb()
-      .update(schema.expenses)
+    const db = getDb()
+    const before = db.select().from(schema.expenses).where(eq(schema.expenses.id, id)).get()
+    db.update(schema.expenses)
       .set({
         category: input.category.trim() || 'general',
         amountCents: input.amountCents,
@@ -70,10 +79,23 @@ export function registerExpensesIpc(getDb: () => DB): void {
       })
       .where(eq(schema.expenses.id, id))
       .run()
+    const after = db.select().from(schema.expenses).where(eq(schema.expenses.id, id)).get()
+    logChange(db, { entity: 'expense', entityId: id, action: 'update', summary: summaryOf(input), before, after })
   })
 
   ipcMain.handle('expenses:remove', (_e, id: number): void => {
-    getDb().delete(schema.expenses).where(eq(schema.expenses.id, id)).run()
+    const db = getDb()
+    const before = db.select().from(schema.expenses).where(eq(schema.expenses.id, id)).get()
+    db.delete(schema.expenses).where(eq(schema.expenses.id, id)).run()
+    if (before) {
+      logChange(db, {
+        entity: 'expense',
+        entityId: id,
+        action: 'delete',
+        summary: `${before.category} — ${(before.amountCents / 100).toFixed(2)} ${before.currency}`,
+        before
+      })
+    }
   })
 
   ipcMain.handle('expenses:categories', (): string[] => {
