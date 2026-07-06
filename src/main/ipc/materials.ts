@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { and, or, eq, like, inArray, asc, sql, type SQL } from 'drizzle-orm'
+import { and, or, eq, like, inArray, asc, desc, sql, type SQL, type AnyColumn } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/sqlite-core'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
@@ -50,6 +50,17 @@ function summarize(lines: schema.MaterialLineRow[]): {
   }
 }
 
+/** Net stock (bought − sold kg) as a correlated subquery, for ORDER BY. */
+const stockSort: SQL = sql`(SELECT COALESCE(SUM(CASE WHEN ml.direction = 'buy' THEN ml.kilograms ELSE -ml.kilograms END), 0) FROM material_lines ml WHERE ml.material_id = ${schema.materials.id})`
+
+/** Whitelisted sort columns for the materials list. */
+const MATERIAL_SORTS: Record<string, SQL | AnyColumn> = {
+  name: schema.materials.name,
+  currency: schema.materials.currency,
+  createdAt: schema.materials.createdAt,
+  stockKg: stockSort
+}
+
 export function listMaterials(db: DB, params: MaterialsListParams): MaterialsListResult {
   const conds: (SQL | undefined)[] = []
   if (!params.includeArchived) conds.push(eq(schema.materials.archived, false))
@@ -57,11 +68,14 @@ export function listMaterials(db: DB, params: MaterialsListParams): MaterialsLis
   if (search) conds.push(or(like(schema.materials.name, `%${search}%`)))
   const where = conds.length ? and(...conds) : undefined
 
+  const sortCol = MATERIAL_SORTS[params.sortBy ?? ''] ?? schema.materials.name
+  const dirFn = params.sortDir === 'desc' ? desc : asc
+
   const rows = db
     .select()
     .from(schema.materials)
     .where(where)
-    .orderBy(asc(schema.materials.name))
+    .orderBy(dirFn(sortCol), asc(schema.materials.id))
     .limit(params.limit)
     .offset(params.offset)
     .all()

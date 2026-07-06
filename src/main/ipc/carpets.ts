@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { and, or, eq, like, inArray, isNotNull, desc, sql, type SQL } from 'drizzle-orm'
+import { and, or, eq, like, inArray, isNotNull, asc, desc, sql, type SQL, type AnyColumn } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/sqlite-core'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
@@ -79,20 +79,48 @@ function toListItem(row: schema.CarpetRow): CarpetListItem {
   }
 }
 
+/** Whitelisted sort columns for the carpets list. */
+const CARPET_SORTS: Record<string, AnyColumn> = {
+  labelNumber: schema.carpets.labelNumber,
+  length: schema.carpets.length,
+  width: schema.carpets.width,
+  area: schema.carpets.area,
+  sortGrade: schema.carpets.sortGrade,
+  currency: schema.carpets.currency,
+  pricePerMeterCents: schema.carpets.pricePerMeterCents,
+  sortDeductionCents: schema.carpets.sortDeductionCents,
+  totalPriceCents: schema.carpets.totalPriceCents,
+  status: schema.carpets.status,
+  createdAt: schema.carpets.createdAt
+}
+
 export function listCarpets(db: DB, params: CarpetsListParams): CarpetsListResult {
   const conds: (SQL | undefined)[] = []
   if (!params.includeArchived) conds.push(eq(schema.carpets.archived, false))
   if (params.status && params.status !== 'all') conds.push(eq(schema.carpets.status, params.status))
   if (params.sortGrade && params.sortGrade !== 'all') conds.push(eq(schema.carpets.sortGrade, params.sortGrade))
   const search = params.search?.trim()
-  if (search) conds.push(or(like(schema.carpets.labelNumber, `%${search}%`), like(schema.carpets.sortGrade, `%${search}%`)))
+  if (search) {
+    const pat = `%${search}%`
+    conds.push(
+      or(
+        like(schema.carpets.labelNumber, pat),
+        like(schema.carpets.sortGrade, pat),
+        like(schema.carpets.quality, pat)
+      )
+    )
+  }
   const where = conds.length ? and(...conds) : undefined
+
+  const sortCol = CARPET_SORTS[params.sortBy ?? '']
+  const dirFn = params.sortDir === 'asc' ? asc : desc
+  const orderCols = sortCol ? [dirFn(sortCol), asc(schema.carpets.id)] : [desc(schema.carpets.createdAt)]
 
   const rows = db
     .select()
     .from(schema.carpets)
     .where(where)
-    .orderBy(desc(schema.carpets.createdAt))
+    .orderBy(...orderCols)
     .limit(params.limit)
     .offset(params.offset)
     .all()

@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ArrowRight, Pencil, Archive, ArchiveRestore, Undo2, Wallet } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
+import { Input } from '@renderer/components/ui/input'
 import { DateInput } from '@renderer/components/ui/date-input'
+import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatDate, startOfDayEpoch, endOfDayEpoch } from '@renderer/lib/date'
@@ -43,6 +45,14 @@ export function ClientDetail({
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+  const [sort, setSort] = useState<SortState>({ by: 'transactionDate', dir: 'desc' })
+
+  useEffect(() => {
+    const h = setTimeout(() => setSearch(searchInput), 300)
+    return () => clearTimeout(h)
+  }, [searchInput])
 
   const [rows, setRows] = useState<TransactionView[]>([])
   const [total, setTotal] = useState(0)
@@ -71,6 +81,9 @@ export function ClientDetail({
           fromDate: startOfDayEpoch(from),
           toDate: endOfDayEpoch(to),
           type: typeFilter,
+          search,
+          sortBy: sort.by,
+          sortDir: sort.dir,
           limit: PAGE_SIZE,
           offset
         })
@@ -81,7 +94,7 @@ export function ClientDetail({
         setLoading(false)
       }
     },
-    [clientId, from, to, typeFilter]
+    [clientId, from, to, typeFilter, search, sort]
   )
 
   useEffect(() => {
@@ -250,15 +263,32 @@ export function ClientDetail({
             ))}
           </select>
         </label>
+        <label className="space-y-1 text-xs text-muted-foreground">
+          <span className="block">{t('statement.search', 'Search')}</span>
+          <Input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder={t('statement.searchPlaceholder', 'Note, carpet #, material…')}
+            className="h-9 w-52"
+          />
+        </label>
       </div>
 
       {/* Statement table */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
         <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
-          <span>{t('statement.date', 'Date')}</span>
-          <span>{t('statement.type', 'Type')}</span>
-          <span>{t('statement.currency', 'Cur')}</span>
-          <span className="text-end">{t('statement.amount', 'Amount')}</span>
+          <SortHeader col="transactionDate" sort={sort} onSort={setSort}>
+            {t('statement.date', 'Date')}
+          </SortHeader>
+          <SortHeader col="type" sort={sort} onSort={setSort}>
+            {t('statement.type', 'Type')}
+          </SortHeader>
+          <SortHeader col="currency" sort={sort} onSort={setSort}>
+            {t('statement.currency', 'Cur')}
+          </SortHeader>
+          <SortHeader col="amountCents" sort={sort} onSort={setSort} align="end">
+            {t('statement.amount', 'Amount')}
+          </SortHeader>
           <span>{t('statement.linked', 'Linked')}</span>
           <span>{t('statement.note', 'Note')}</span>
           <span />

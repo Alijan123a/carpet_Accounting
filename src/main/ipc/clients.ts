@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { and, or, eq, like, inArray, gte, lte, desc, sql, type SQL } from 'drizzle-orm'
+import { and, or, eq, like, inArray, gte, lte, asc, desc, sql, type SQL, type AnyColumn } from 'drizzle-orm'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
 import { reverseTransaction, postTransaction } from '../accounting/ledger'
@@ -88,15 +88,45 @@ export function addPayment(db: DB, input: PaymentInput): number {
   })
 }
 
+/** Whitelisted sort columns for the statement view. */
+const TX_SORTS: Record<string, SQL | AnyColumn> = {
+  transactionDate: schema.transactions.transactionDate,
+  type: schema.transactions.type,
+  currency: schema.transactions.currency,
+  amountCents: schema.transactions.amountCents,
+  createdAt: schema.transactions.createdAt
+}
+
 /** Statement query (client transactions with carpet/material labels). */
 export function queryTransactions(db: DB, params: ClientTransactionsParams): ClientTransactionsResult {
-  const conds = [eq(schema.transactions.clientId, params.clientId)]
+  const conds: (SQL | undefined)[] = [eq(schema.transactions.clientId, params.clientId)]
   if (params.type && params.type !== 'all') {
     conds.push(eq(schema.transactions.type, params.type))
   }
   if (params.fromDate != null) conds.push(gte(schema.transactions.transactionDate, params.fromDate))
   if (params.toDate != null) conds.push(lte(schema.transactions.transactionDate, params.toDate))
+  const search = params.search?.trim()
+  if (search) {
+    const pat = `%${search}%`
+    conds.push(
+      or(
+        like(schema.transactions.note, pat),
+        like(schema.carpets.labelNumber, pat),
+        like(schema.materials.name, pat)
+      )
+    )
+  }
   const where = and(...conds)
+
+  const sortCol = TX_SORTS[params.sortBy ?? '']
+  const dirFn = params.sortDir === 'asc' ? asc : desc
+  const orderCols = sortCol
+    ? [dirFn(sortCol), desc(schema.transactions.id)]
+    : [
+        desc(schema.transactions.transactionDate),
+        desc(schema.transactions.createdAt),
+        desc(schema.transactions.id)
+      ]
 
   const rows = db
     .select({
@@ -119,17 +149,35 @@ export function queryTransactions(db: DB, params: ClientTransactionsParams): Cli
     .leftJoin(schema.materialLines, eq(schema.transactions.materialLineId, schema.materialLines.id))
     .leftJoin(schema.materials, eq(schema.materialLines.materialId, schema.materials.id))
     .where(where)
-    .orderBy(
-      desc(schema.transactions.transactionDate),
-      desc(schema.transactions.createdAt),
-      desc(schema.transactions.id)
-    )
+    .orderBy(...orderCols)
     .limit(params.limit)
     .offset(params.offset)
     .all()
 
-  const totalRow = db.select({ c: sql<number>`COUNT(*)` }).from(schema.transactions).where(where).get()
+  // The count needs the same joins as the page query: the search condition may
+  // reference the joined carpet/material columns.
+  const totalRow = db
+    .select({ c: sql<number>`COUNT(*)` })
+    .from(schema.transactions)
+    .leftJoin(schema.carpets, eq(schema.transactions.carpetId, schema.carpets.id))
+    .leftJoin(schema.materialLines, eq(schema.transactions.materialLineId, schema.materialLines.id))
+    .leftJoin(schema.materials, eq(schema.materialLines.materialId, schema.materials.id))
+    .where(where)
+    .get()
   return { rows: rows as TransactionView[], total: Number(totalRow?.c ?? 0) }
+}
+
+/** Signed per-currency balance as a correlated subquery (for ORDER BY). */
+const balanceSort = (currency: Currency): SQL =>
+  sql`(SELECT COALESCE(SUM(t.amount_cents), 0) FROM transactions t WHERE t.client_id = ${schema.clients.id} AND t.currency = ${currency})`
+
+/** Whitelisted sort columns for the clients list. */
+const CLIENT_SORTS: Record<string, SQL | AnyColumn> = {
+  name: schema.clients.name,
+  phone: schema.clients.phone,
+  createdAt: schema.clients.createdAt,
+  balanceUSD: balanceSort('USD'),
+  balanceAFN: balanceSort('AFN')
 }
 
 /** List clients (with balances) — extracted so a headless probe can reuse it. */
@@ -147,11 +195,14 @@ export function listClients(db: DB, params: ClientsListParams): ClientsListResul
   }
   const where = conds.length ? and(...conds) : undefined
 
+  const sortCol = CLIENT_SORTS[params.sortBy ?? ''] ?? schema.clients.name
+  const dirFn = params.sortDir === 'desc' ? desc : asc
+
   const rows = db
     .select()
     .from(schema.clients)
     .where(where)
-    .orderBy(schema.clients.name)
+    .orderBy(dirFn(sortCol), asc(schema.clients.id))
     .limit(params.limit)
     .offset(params.offset)
     .all()

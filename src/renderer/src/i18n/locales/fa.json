@@ -168,7 +168,9 @@
     "empty": "تراکنشی وجود ندارد.",
     "reversedBadge": "برگشتی",
     "carpet": "قالین",
-    "material": "تار"
+    "material": "تار",
+    "search": "جستجو",
+    "searchPlaceholder": "یادداشت، نمبر قالین، مواد…"
   },
   "tx": {
     "type": {
@@ -457,7 +459,8 @@
     "topClients": "مشتریان برتر",
     "turnover": "گردش دوره‌ای",
     "receivablesLabel": "طلبات",
-    "payablesLabel": "بدهی‌ها"
+    "payablesLabel": "بدهی‌ها",
+    "searchRows": "جستجو در سطرها…"
   },
   "license": {
     "activateTitle": "فعال‌سازی لایسنس",

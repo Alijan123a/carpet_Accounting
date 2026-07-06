@@ -168,7 +168,9 @@
     "empty": "No transactions.",
     "reversedBadge": "reversal",
     "carpet": "Carpet",
-    "material": "Material"
+    "material": "Material",
+    "search": "Search",
+    "searchPlaceholder": "Note, carpet #, material…"
   },
   "tx": {
     "type": {
@@ -457,7 +459,8 @@
     "topClients": "Top clients",
     "turnover": "Periodic turnover",
     "receivablesLabel": "Receivables",
-    "payablesLabel": "Payables"
+    "payablesLabel": "Payables",
+    "searchRows": "Search rows…"
   },
   "license": {
     "activateTitle": "Activate your license",

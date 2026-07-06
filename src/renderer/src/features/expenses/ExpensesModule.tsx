@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { DateInput } from '@renderer/components/ui/date-input'
+import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatCents, ENABLED_CURRENCIES } from '@shared/accounting'
@@ -27,6 +28,7 @@ export function ExpensesModule(): JSX.Element {
   const [currency, setCurrency] = useState<Currency | 'all'>('all')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
+  const [sort, setSort] = useState<SortState>({ by: 'expenseDate', dir: 'desc' })
   const [rows, setRows] = useState<ExpenseView[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -65,6 +67,8 @@ export function ExpensesModule(): JSX.Element {
           currency,
           fromDate: startOfDayEpoch(from),
           toDate: endOfDayEpoch(to),
+          sortBy: sort.by,
+          sortDir: sort.dir,
           limit: PAGE_SIZE,
           offset
         })
@@ -75,7 +79,7 @@ export function ExpensesModule(): JSX.Element {
         setLoading(false)
       }
     },
-    [search, category, currency, from, to]
+    [search, category, currency, from, to, sort]
   )
   useEffect(() => {
     void fetchPage(true)
@@ -157,10 +161,18 @@ export function ExpensesModule(): JSX.Element {
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
         <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
-          <span>{t('expenses.date', 'Date')}</span>
-          <span>{t('expenses.category', 'Category')}</span>
-          <span>{t('expenses.currency', 'Cur')}</span>
-          <span className="text-end">{t('expenses.amount', 'Amount')}</span>
+          <SortHeader col="expenseDate" sort={sort} onSort={setSort}>
+            {t('expenses.date', 'Date')}
+          </SortHeader>
+          <SortHeader col="category" sort={sort} onSort={setSort}>
+            {t('expenses.category', 'Category')}
+          </SortHeader>
+          <SortHeader col="currency" sort={sort} onSort={setSort}>
+            {t('expenses.currency', 'Cur')}
+          </SortHeader>
+          <SortHeader col="amountCents" sort={sort} onSort={setSort} align="end">
+            {t('expenses.amount', 'Amount')}
+          </SortHeader>
           <span>{t('expenses.note', 'Note')}</span>
           <span />
         </div>

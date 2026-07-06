@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { and, or, eq, like, gte, lte, desc, sql, isNotNull, type SQL } from 'drizzle-orm'
+import { and, or, eq, like, gte, lte, asc, desc, sql, isNotNull, type SQL, type AnyColumn } from 'drizzle-orm'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
 import type { ExpenseInput, ExpensesListParams, ExpensesListResult, ExpenseView } from '../../shared/contracts'
@@ -16,11 +16,23 @@ export function listExpenses(db: DB, params: ExpensesListParams): ExpensesListRe
   if (params.toDate != null) conds.push(lte(schema.expenses.expenseDate, params.toDate))
   const where = conds.length ? and(...conds) : undefined
 
+  const EXPENSE_SORTS: Record<string, AnyColumn> = {
+    expenseDate: schema.expenses.expenseDate,
+    category: schema.expenses.category,
+    currency: schema.expenses.currency,
+    amountCents: schema.expenses.amountCents
+  }
+  const sortCol = EXPENSE_SORTS[params.sortBy ?? '']
+  const dirFn = params.sortDir === 'asc' ? asc : desc
+  const orderCols = sortCol
+    ? [dirFn(sortCol), desc(schema.expenses.id)]
+    : [desc(schema.expenses.expenseDate), desc(schema.expenses.id)]
+
   const rows = db
     .select()
     .from(schema.expenses)
     .where(where)
-    .orderBy(desc(schema.expenses.expenseDate), desc(schema.expenses.id))
+    .orderBy(...orderCols)
     .limit(params.limit)
     .offset(params.offset)
     .all()

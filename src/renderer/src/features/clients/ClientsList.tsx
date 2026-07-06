@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { Pencil, Plus } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import type { ClientListItem } from '@shared/contracts'
 import { BalanceAmount } from './BalanceAmount'
@@ -24,6 +25,7 @@ export function ClientsList({
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [includeArchived, setIncludeArchived] = useState(false)
+  const [sort, setSort] = useState<SortState>({ by: 'name', dir: 'asc' })
   const [rows, setRows] = useState<ClientListItem[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -49,7 +51,15 @@ export function ClientsList({
       setError(null)
       try {
         const offset = reset ? 0 : rowsRef.current.length
-        const res = await window.api.clients.list({ search, includeArchived, kind, limit: PAGE_SIZE, offset })
+        const res = await window.api.clients.list({
+          search,
+          includeArchived,
+          kind,
+          sortBy: sort.by,
+          sortDir: sort.dir,
+          limit: PAGE_SIZE,
+          offset
+        })
         setTotal(res.total)
         setRows((prev) => (reset ? res.rows : [...prev, ...res.rows]))
       } catch (e) {
@@ -59,7 +69,7 @@ export function ClientsList({
         setLoading(false)
       }
     },
-    [search, includeArchived, kind]
+    [search, includeArchived, kind, sort]
   )
 
   // Reset & reload when filters change.
@@ -132,10 +142,18 @@ export function ClientsList({
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
         {/* Header */}
         <div className={cn(GRID, 'h-10 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
-          <span>{t('clients.name', 'Name')}</span>
-          <span>{t('clients.phone', 'Phone')}</span>
-          <span className="text-end">USD</span>
-          <span className="text-end">AFN</span>
+          <SortHeader col="name" sort={sort} onSort={setSort}>
+            {t('clients.name', 'Name')}
+          </SortHeader>
+          <SortHeader col="phone" sort={sort} onSort={setSort}>
+            {t('clients.phone', 'Phone')}
+          </SortHeader>
+          <SortHeader col="balanceUSD" sort={sort} onSort={setSort} align="end">
+            USD
+          </SortHeader>
+          <SortHeader col="balanceAFN" sort={sort} onSort={setSort} align="end">
+            AFN
+          </SortHeader>
           <span />
         </div>
 

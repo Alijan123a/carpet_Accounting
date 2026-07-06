@@ -5,6 +5,20 @@
 import type { Currency, PerCurrency, TransactionType, PeriodProfitResult } from './accounting'
 import type { ReportId, ReportParams, ReportResult } from './reports'
 
+// --- Sorting ------------------------------------------------------------------
+
+export type SortDir = 'asc' | 'desc'
+
+/**
+ * Column-sort request for list queries. `sortBy` values are whitelisted in each
+ * main-process handler (never interpolated into SQL); unknown keys fall back to
+ * the list's default order.
+ */
+export interface SortParams {
+  sortBy?: string
+  sortDir?: SortDir
+}
+
 // --- Clients ----------------------------------------------------------------
 
 /** Buyer = we sell to them; Seller = we buy from them; Both = either role. */
@@ -30,7 +44,7 @@ export interface ClientListItem {
   balances: PerCurrency
 }
 
-export interface ClientsListParams {
+export interface ClientsListParams extends SortParams {
   search?: string
   includeArchived?: boolean
   /** When set, list only clients acting in this role (matches `kind` OR 'both'). */
@@ -64,11 +78,13 @@ export interface TransactionView {
   reversesTransactionId: number | null
 }
 
-export interface ClientTransactionsParams {
+export interface ClientTransactionsParams extends SortParams {
   clientId: number
   fromDate?: number | null
   toDate?: number | null
   type?: TypeFilter
+  /** Matches note, linked carpet label, or linked material name. */
+  search?: string
   limit: number
   offset: number
 }
@@ -198,7 +214,7 @@ export interface CarpetDetailView extends CarpetListItem {
   soldAt: number | null
 }
 
-export interface CarpetsListParams {
+export interface CarpetsListParams extends SortParams {
   search?: string
   status?: string | 'all'
   sortGrade?: string | 'all'
@@ -357,7 +373,7 @@ export interface MaterialDetailView extends MaterialListItem {
   lines: MaterialLineView[]
 }
 
-export interface MaterialsListParams {
+export interface MaterialsListParams extends SortParams {
   search?: string
   includeArchived?: boolean
   limit: number
@@ -398,7 +414,7 @@ export interface ExpenseView {
   createdAt: number
 }
 
-export interface ExpensesListParams {
+export interface ExpensesListParams extends SortParams {
   search?: string
   category?: string | 'all'
   currency?: Currency | 'all'
@@ -463,7 +479,7 @@ export interface OrderView {
   archived: boolean
 }
 
-export interface OrdersListParams {
+export interface OrdersListParams extends SortParams {
   search?: string
   status?: OrderStatus | 'all'
   includeArchived?: boolean

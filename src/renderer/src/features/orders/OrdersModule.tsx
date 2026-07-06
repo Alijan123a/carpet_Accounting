@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatCents } from '@shared/accounting'
@@ -27,6 +28,7 @@ export function OrdersModule(): JSX.Element {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all')
   const [includeArchived, setIncludeArchived] = useState(false)
+  const [sort, setSort] = useState<SortState>({ by: 'orderDate', dir: 'desc' })
 
   const [rows, setRows] = useState<OrderView[]>([])
   const [total, setTotal] = useState(0)
@@ -56,6 +58,8 @@ export function OrdersModule(): JSX.Element {
           search,
           status: statusFilter,
           includeArchived,
+          sortBy: sort.by,
+          sortDir: sort.dir,
           limit: PAGE_SIZE,
           offset
         })
@@ -66,7 +70,7 @@ export function OrdersModule(): JSX.Element {
         setLoading(false)
       }
     },
-    [search, statusFilter, includeArchived]
+    [search, statusFilter, includeArchived, sort]
   )
   useEffect(() => {
     void fetchPage(true)
@@ -156,12 +160,24 @@ export function OrdersModule(): JSX.Element {
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
         <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
-          <span>{t('orders.orderDate', 'Order date')}</span>
-          <span>{t('orders.buyer', 'Buyer')}</span>
-          <span>{t('orders.titleField', 'Ordered carpet')}</span>
-          <span className="text-end">{t('orders.quantity', 'Qty')}</span>
-          <span className="text-end">{t('orders.price', 'Price')}</span>
-          <span>{t('orders.status.label', 'Status')}</span>
+          <SortHeader col="orderDate" sort={sort} onSort={setSort}>
+            {t('orders.orderDate', 'Order date')}
+          </SortHeader>
+          <SortHeader col="buyerName" sort={sort} onSort={setSort}>
+            {t('orders.buyer', 'Buyer')}
+          </SortHeader>
+          <SortHeader col="title" sort={sort} onSort={setSort}>
+            {t('orders.titleField', 'Ordered carpet')}
+          </SortHeader>
+          <SortHeader col="quantity" sort={sort} onSort={setSort} align="end">
+            {t('orders.quantity', 'Qty')}
+          </SortHeader>
+          <SortHeader col="priceCents" sort={sort} onSort={setSort} align="end">
+            {t('orders.price', 'Price')}
+          </SortHeader>
+          <SortHeader col="status" sort={sort} onSort={setSort}>
+            {t('orders.status.label', 'Status')}
+          </SortHeader>
           <span />
         </div>
         <div ref={parentRef} onScroll={onScroll} className="flex-1 overflow-auto">

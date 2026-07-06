@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { and, or, eq, like, desc, sql, type SQL } from 'drizzle-orm'
+import { and, or, eq, like, asc, desc, sql, type SQL, type AnyColumn } from 'drizzle-orm'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
 import type {
@@ -50,12 +50,27 @@ export function listOrders(db: DB, params: OrdersListParams): OrdersListResult {
   }
   const where = conds.length ? and(...conds) : undefined
 
+  const ORDER_SORTS: Record<string, AnyColumn> = {
+    orderDate: schema.orders.orderDate,
+    dueDate: schema.orders.dueDate,
+    title: schema.orders.title,
+    status: schema.orders.status,
+    quantity: schema.orders.quantity,
+    priceCents: schema.orders.priceCents,
+    buyerName: schema.clients.name
+  }
+  const sortCol = ORDER_SORTS[params.sortBy ?? '']
+  const dirFn = params.sortDir === 'asc' ? asc : desc
+  const orderCols = sortCol
+    ? [dirFn(sortCol), desc(schema.orders.id)]
+    : [desc(schema.orders.orderDate), desc(schema.orders.id)]
+
   const rows = db
     .select({ order: schema.orders, buyerName: schema.clients.name })
     .from(schema.orders)
     .leftJoin(schema.clients, eq(schema.orders.buyerClientId, schema.clients.id))
     .where(where)
-    .orderBy(desc(schema.orders.orderDate), desc(schema.orders.id))
+    .orderBy(...orderCols)
     .limit(params.limit)
     .offset(params.offset)
     .all()

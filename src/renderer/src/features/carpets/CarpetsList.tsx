@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { Pencil, Plus, Archive, ArchiveRestore, SlidersHorizontal, Tag, FileText, PackagePlus } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatCents } from '@shared/accounting'
@@ -36,6 +37,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [gradeFilter, setGradeFilter] = useState<string>('all')
   const [includeArchived, setIncludeArchived] = useState(false)
+  const [sort, setSort] = useState<SortState>({ by: 'createdAt', dir: 'desc' })
 
   const [rows, setRows] = useState<CarpetListItem[]>([])
   const [total, setTotal] = useState(0)
@@ -83,6 +85,8 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
           status: statusFilter,
           sortGrade: gradeFilter,
           includeArchived,
+          sortBy: sort.by,
+          sortDir: sort.dir,
           limit: PAGE_SIZE,
           offset
         })
@@ -95,7 +99,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
         setLoading(false)
       }
     },
-    [search, statusFilter, gradeFilter, includeArchived]
+    [search, statusFilter, gradeFilter, includeArchived, sort]
   )
 
   useEffect(() => {
@@ -215,16 +219,36 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
         <div className={cn(MIN_W, 'flex flex-1 flex-col')}>
           {/* header sits outside the vertical scroll element; both scroll horizontally together */}
           <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
-              <span>{t('carpets.label', 'Label #')}</span>
-              <span className="text-end">{t('carpets.length', 'L')}</span>
-              <span className="text-end">{t('carpets.width', 'W')}</span>
-              <span className="text-end">{t('carpets.area', 'Area')}</span>
-              <span>{t('carpets.sortGrade', 'Grade')}</span>
-              <span>{t('carpets.currency', 'Cur')}</span>
-              <span className="text-end">{t('carpets.pricePerMeter', 'Price/m')}</span>
-              <span className="text-end">{t('carpets.deduction', 'Ded.')}</span>
-              <span className="text-end">{t('carpets.totalPrice', 'Total')}</span>
-              <span>{t('carpets.status', 'Status')}</span>
+              <SortHeader col="labelNumber" sort={sort} onSort={setSort}>
+                {t('carpets.label', 'Label #')}
+              </SortHeader>
+              <SortHeader col="length" sort={sort} onSort={setSort} align="end">
+                {t('carpets.length', 'L')}
+              </SortHeader>
+              <SortHeader col="width" sort={sort} onSort={setSort} align="end">
+                {t('carpets.width', 'W')}
+              </SortHeader>
+              <SortHeader col="area" sort={sort} onSort={setSort} align="end">
+                {t('carpets.area', 'Area')}
+              </SortHeader>
+              <SortHeader col="sortGrade" sort={sort} onSort={setSort}>
+                {t('carpets.sortGrade', 'Grade')}
+              </SortHeader>
+              <SortHeader col="currency" sort={sort} onSort={setSort}>
+                {t('carpets.currency', 'Cur')}
+              </SortHeader>
+              <SortHeader col="pricePerMeterCents" sort={sort} onSort={setSort} align="end">
+                {t('carpets.pricePerMeter', 'Price/m')}
+              </SortHeader>
+              <SortHeader col="sortDeductionCents" sort={sort} onSort={setSort} align="end">
+                {t('carpets.deduction', 'Ded.')}
+              </SortHeader>
+              <SortHeader col="totalPriceCents" sort={sort} onSort={setSort} align="end">
+                {t('carpets.totalPrice', 'Total')}
+              </SortHeader>
+              <SortHeader col="status" sort={sort} onSort={setSort}>
+                {t('carpets.status', 'Status')}
+              </SortHeader>
               <span className="text-end">{t('carpets.profit', 'Profit')}</span>
               <span />
             </div>

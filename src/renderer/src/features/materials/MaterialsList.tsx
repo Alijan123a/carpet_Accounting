@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { Plus, Archive, ArchiveRestore } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { formatCents } from '@shared/accounting'
 import type { MaterialListItem } from '@shared/contracts'
@@ -20,6 +21,7 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [includeArchived, setIncludeArchived] = useState(false)
+  const [sort, setSort] = useState<SortState>({ by: 'name', dir: 'asc' })
   const [rows, setRows] = useState<MaterialListItem[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -41,7 +43,14 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
       setLoading(true)
       try {
         const offset = reset ? 0 : rowsRef.current.length
-        const res = await window.api.materials.list({ search, includeArchived, limit: PAGE_SIZE, offset })
+        const res = await window.api.materials.list({
+          search,
+          includeArchived,
+          sortBy: sort.by,
+          sortDir: sort.dir,
+          limit: PAGE_SIZE,
+          offset
+        })
         setTotal(res.total)
         setRows((prev) => (reset ? res.rows : [...prev, ...res.rows]))
       } finally {
@@ -49,7 +58,7 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
         setLoading(false)
       }
     },
-    [search, includeArchived]
+    [search, includeArchived, sort]
   )
 
   useEffect(() => {
@@ -113,11 +122,17 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
         <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
-          <span>{t('material.name', 'Name')}</span>
-          <span>{t('material.currency', 'Cur')}</span>
+          <SortHeader col="name" sort={sort} onSort={setSort}>
+            {t('material.name', 'Name')}
+          </SortHeader>
+          <SortHeader col="currency" sort={sort} onSort={setSort}>
+            {t('material.currency', 'Cur')}
+          </SortHeader>
           <span className="text-end">{t('material.boughtKg', 'Bought')}</span>
           <span className="text-end">{t('material.soldKg', 'Sold')}</span>
-          <span className="text-end">{t('material.stock', 'Stock')}</span>
+          <SortHeader col="stockKg" sort={sort} onSort={setSort} align="end">
+            {t('material.stock', 'Stock')}
+          </SortHeader>
           <span className="text-end">{t('material.profit', 'Profit')}</span>
           <span />
         </div>
