@@ -76,6 +76,8 @@ export const transactions = sqliteTable(
     amountCents: integer('amount_cents').notNull(),
     carpetId: integer('carpet_id').references((): any => carpets.id),
     materialLineId: integer('material_line_id').references((): any => materialLines.id),
+    /** Sell invoice («بل فروش») this sale was posted from, if any. */
+    invoiceId: integer('invoice_id').references((): any => invoices.id),
     transactionDate: integer('transaction_date').notNull(),
     createdAt: integer('created_at').notNull(),
     reversesTransactionId: integer('reverses_transaction_id'),
@@ -90,6 +92,7 @@ export const transactions = sqliteTable(
     createdAtIdx: index('idx_tx_created').on(t.createdAt),
     carpetIdx: index('idx_tx_carpet').on(t.carpetId),
     materialLineIdx: index('idx_tx_material_line').on(t.materialLineId),
+    invoiceIdx: index('idx_tx_invoice').on(t.invoiceId),
     reversesIdx: index('idx_tx_reverses').on(t.reversesTransactionId)
   })
 )

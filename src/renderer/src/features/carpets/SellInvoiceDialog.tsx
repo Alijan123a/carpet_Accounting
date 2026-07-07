@@ -34,6 +34,8 @@ interface Line {
   key: number
   carpetId: number | null
   goodsType: string
+  /** «تفصیل» — free-text line description. */
+  description: string
   /** Typeahead text / snapshot label (نمبر قالین). */
   label: string
   length: string
@@ -54,6 +56,7 @@ function emptyLine(goodsType: string): Line {
     key: lineSeq++,
     carpetId: null,
     goodsType,
+    description: '',
     label: '',
     length: '',
     width: '',
@@ -209,6 +212,7 @@ export function SellInvoiceDialog({
         return {
           carpetId: l.carpetId,
           goodsType: l.goodsType.trim() || carpetLabel,
+          description: l.description.trim() || null,
           labelNumber: l.label.trim(),
           length: parseFloat(l.length) || 0,
           width: parseFloat(l.width) || 0,
@@ -243,6 +247,7 @@ export function SellInvoiceDialog({
         currency: displayCurrency,
         lines: payloadLines.map((l) => ({
           goodsType: l.goodsType,
+          description: l.description ?? null,
           labelNumber: l.labelNumber,
           length: l.length,
           width: l.width,
@@ -336,9 +341,10 @@ export function SellInvoiceDialog({
 
         {/* Line table */}
         <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-card">
-          <div className="min-w-[860px]">
-            <div className="grid grid-cols-[minmax(90px,1fr)_minmax(120px,1.4fr)_72px_72px_80px_110px_120px_40px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
+          <div className="min-w-[980px]">
+            <div className="grid grid-cols-[minmax(90px,1fr)_minmax(110px,1.2fr)_minmax(120px,1.4fr)_72px_72px_80px_110px_120px_40px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
               <span>{t('invoice.goodsType', 'Goods')}</span>
+              <span>{t('invoice.description', 'Description')}</span>
               <span>{t('invoice.carpetNo', 'Carpet #')}</span>
               <span className="text-end">{t('carpets.length', 'L')}</span>
               <span className="text-end">{t('carpets.width', 'W')}</span>
@@ -352,12 +358,18 @@ export function SellInvoiceDialog({
               return (
                 <div
                   key={l.key}
-                  className="grid grid-cols-[minmax(90px,1fr)_minmax(120px,1.4fr)_72px_72px_80px_110px_120px_40px] items-center gap-2 border-b border-border px-3 py-1.5"
+                  className="grid grid-cols-[minmax(90px,1fr)_minmax(110px,1.2fr)_minmax(120px,1.4fr)_72px_72px_80px_110px_120px_40px] items-center gap-2 border-b border-border px-3 py-1.5"
                 >
                   <Input
                     value={l.goodsType}
                     onChange={(e) => patch(l.key, (x) => ({ ...x, goodsType: e.target.value }))}
                     className="h-9"
+                  />
+                  <Input
+                    value={l.description}
+                    onChange={(e) => patch(l.key, (x) => ({ ...x, description: e.target.value }))}
+                    className="h-9"
+                    placeholder={t('invoice.descriptionPlaceholder', 'Description…')}
                   />
                   <Typeahead
                     value={l.label}

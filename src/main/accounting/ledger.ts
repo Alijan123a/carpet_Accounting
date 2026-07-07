@@ -26,6 +26,7 @@ export function postTransaction(db: DB, payload: LedgerTransaction): number {
       amountCents: payload.amountCents,
       carpetId: payload.carpetId ?? null,
       materialLineId: payload.materialLineId ?? null,
+      invoiceId: payload.invoiceId ?? null,
       transactionDate: payload.transactionDate,
       createdAt: payload.createdAt ?? Date.now(),
       reversesTransactionId: payload.reversesTransactionId ?? null,

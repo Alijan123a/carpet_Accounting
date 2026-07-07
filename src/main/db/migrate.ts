@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   amount_cents            INTEGER NOT NULL,
   carpet_id               INTEGER REFERENCES carpets(id),
   material_line_id        INTEGER REFERENCES material_lines(id),
+  invoice_id              INTEGER REFERENCES invoices(id),
   transaction_date        INTEGER NOT NULL,
   created_at              INTEGER NOT NULL,
   reverses_transaction_id INTEGER REFERENCES transactions(id),
@@ -244,6 +245,14 @@ function runColumnUpgrades(sqlite: Database.Database): void {
   if (!hasColumn(sqlite, 'carpets', 'quality')) {
     sqlite.exec(`ALTER TABLE carpets ADD COLUMN quality TEXT;`)
   }
+
+  // transactions.invoice_id — links a sale to the «بل فروش» it was posted from
+  // (shows the bill number in client statements). Index created here, after
+  // the column is guaranteed to exist on upgraded databases.
+  if (!hasColumn(sqlite, 'transactions', 'invoice_id')) {
+    sqlite.exec(`ALTER TABLE transactions ADD COLUMN invoice_id INTEGER REFERENCES invoices(id);`)
+  }
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tx_invoice ON transactions(invoice_id);`)
 
   // material_lines.deleted — soft-delete flag. A line's money movement lives in
   // the immutable ledger, so "deleting" a line = post a reversal transaction +

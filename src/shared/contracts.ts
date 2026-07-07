@@ -75,6 +75,9 @@ export interface TransactionView {
   carpetLabel: string | null
   materialLineId: number | null
   materialName: string | null
+  /** Sell invoice this sale was posted from («بل فروش» number). */
+  invoiceId: number | null
+  invoiceNumber: string | null
   reversesTransactionId: number | null
 }
 
@@ -288,6 +291,8 @@ export interface SellInvoiceLineInput {
   carpetId: number | null
   /** «نوع جنس» — goods type, defaults to Carpet. */
   goodsType: string
+  /** «تفصیل» — free-text line description (printed and used in the sale note). */
+  description?: string | null
   /** «نمبر قالین» — carpet label (snapshot; free text for non-carpet lines). */
   labelNumber: string
   length: number

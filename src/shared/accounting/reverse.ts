@@ -22,6 +22,7 @@ export function buildReversal(
     amountCents: -original.amountCents,
     carpetId: original.carpetId ?? null,
     materialLineId: original.materialLineId ?? null,
+    invoiceId: original.invoiceId ?? null,
     transactionDate: opts?.transactionDate ?? original.transactionDate,
     createdAt: opts?.createdAt,
     reversesTransactionId: original.id,

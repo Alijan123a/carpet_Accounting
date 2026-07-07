@@ -175,7 +175,12 @@
     "carpet": "قالین",
     "material": "تار",
     "search": "جستجو",
-    "searchPlaceholder": "یادداشت، نمبر قالین، مواد…"
+    "searchPlaceholder": "یادداشت، نمبر قالین، مواد…",
+    "number": "شماره",
+    "billNo": "نمبر بل",
+    "carpetNo": "نمبر قالین",
+    "totalPrice": "قیمت جمله",
+    "description": "تفصیل"
   },
   "tx": {
     "type": {
@@ -192,7 +197,9 @@
     "id": "شناسه",
     "transactionDate": "تاریخ تراکنش",
     "createdAt": "زمان ثبت",
-    "reverses": "برگشت تراکنش"
+    "reverses": "برگشت تراکنش",
+    "carpetSection": "قالین",
+    "pricePerMeter": "فی متر"
   },
   "carpets": {
     "title": "قالین‌ها",
@@ -322,7 +329,9 @@
     "currencyMismatch": "تمام سطرهای قالین باید یک اسعار داشته باشند.",
     "mismatchWarn": "متراژ/جمله یک سطر دستی تغییر داده شده است. بل چاپ‌شده سند رسمی است؛ ثبت در دفتر از متراژ ذخیره‌شده قالین استفاده می‌کند.",
     "errAlreadySold": "یکی از قالین‌ها قبلاً فروخته شده است. صفحه را تازه کرده و دوباره تلاش کنید.",
-    "errCarpetMissing": "یکی از قالین‌های انتخاب‌شده دیگر وجود ندارد."
+    "errCarpetMissing": "یکی از قالین‌های انتخاب‌شده دیگر وجود ندارد.",
+    "description": "تفصیل",
+    "descriptionPlaceholder": "تفصیل…"
   },
   "buyInvoice": {
     "title": "افزودن قالین‌ها (خرید)",

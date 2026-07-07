@@ -113,7 +113,8 @@ export function queryTransactions(db: DB, params: ClientTransactionsParams): Cli
       or(
         like(schema.transactions.note, pat),
         like(schema.carpets.labelNumber, pat),
-        like(schema.materials.name, pat)
+        like(schema.materials.name, pat),
+        like(schema.invoices.number, pat)
       )
     )
   }
@@ -141,14 +142,17 @@ export function queryTransactions(db: DB, params: ClientTransactionsParams): Cli
       note: schema.transactions.note,
       carpetId: schema.transactions.carpetId,
       materialLineId: schema.transactions.materialLineId,
+      invoiceId: schema.transactions.invoiceId,
       reversesTransactionId: schema.transactions.reversesTransactionId,
       carpetLabel: schema.carpets.labelNumber,
-      materialName: schema.materials.name
+      materialName: schema.materials.name,
+      invoiceNumber: schema.invoices.number
     })
     .from(schema.transactions)
     .leftJoin(schema.carpets, eq(schema.transactions.carpetId, schema.carpets.id))
     .leftJoin(schema.materialLines, eq(schema.transactions.materialLineId, schema.materialLines.id))
     .leftJoin(schema.materials, eq(schema.materialLines.materialId, schema.materials.id))
+    .leftJoin(schema.invoices, eq(schema.transactions.invoiceId, schema.invoices.id))
     .where(where)
     .orderBy(...orderCols)
     .limit(params.limit)
@@ -163,6 +167,7 @@ export function queryTransactions(db: DB, params: ClientTransactionsParams): Cli
     .leftJoin(schema.carpets, eq(schema.transactions.carpetId, schema.carpets.id))
     .leftJoin(schema.materialLines, eq(schema.transactions.materialLineId, schema.materialLines.id))
     .leftJoin(schema.materials, eq(schema.materialLines.materialId, schema.materials.id))
+    .leftJoin(schema.invoices, eq(schema.transactions.invoiceId, schema.invoices.id))
     .where(where)
     .get()
   return { rows: rows as TransactionView[], total: Number(totalRow?.c ?? 0) }

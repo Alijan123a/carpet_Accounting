@@ -39,6 +39,8 @@ const MIN_ROWS = 14
 
 export interface InvoiceDocLine {
   goodsType: string
+  /** «تفصیل» — free-text line description. */
+  description?: string | null
   labelNumber: string
   length: number
   width: number
@@ -118,15 +120,16 @@ const styles = StyleSheet.create({
 // Vertical separators drawn per-cell to reproduce the ruled bill grid.
 const COLS = {
   index: 0.55,
-  goods: 1.5,
-  label: 1.6,
-  length: 0.9,
-  width: 0.9,
-  area: 0.9,
-  price: 1.4,
-  total: 1.6
+  goods: 1.2,
+  description: 1.5,
+  label: 1.4,
+  length: 0.8,
+  width: 0.8,
+  area: 0.8,
+  price: 1.3,
+  total: 1.5
 }
-const colOrder = ['index', 'goods', 'label', 'length', 'width', 'area', 'price', 'total'] as const
+const colOrder = ['index', 'goods', 'description', 'label', 'length', 'width', 'area', 'price', 'total'] as const
 
 /** Vertical rule between grid columns (skip after the last column). */
 function sep(key: (typeof colOrder)[number]): { borderRightWidth?: number; borderRightColor?: string } {
@@ -194,6 +197,7 @@ function InvoiceDocument({ data }: { data: InvoiceDocData }): JSX.Element {
               <View style={styles.headerRow}>
                 <Text style={[styles.cellHead, sep('index'), { flex: COLS.index, textAlign: center }]}>شماره</Text>
                 <Text style={[styles.cellHead, sep('goods'), { flex: COLS.goods, textAlign: center }]}>نوع جنس</Text>
+                <Text style={[styles.cellHead, sep('description'), { flex: COLS.description, textAlign: center }]}>تفصیل</Text>
                 <Text style={[styles.cellHead, sep('label'), { flex: COLS.label, textAlign: center }]}>نمبر قالین</Text>
                 <Text style={[styles.cellHead, sep('length'), { flex: COLS.length, textAlign: center }]}>طول</Text>
                 <Text style={[styles.cellHead, sep('width'), { flex: COLS.width, textAlign: center }]}>عرض</Text>
@@ -206,6 +210,7 @@ function InvoiceDocument({ data }: { data: InvoiceDocData }): JSX.Element {
                 <View key={i} style={styles.row} wrap={false}>
                   <Text style={[styles.cell, sep('index'), { flex: COLS.index, textAlign: center }]}>{i + 1}</Text>
                   <Text style={[styles.cell, sep('goods'), { flex: COLS.goods, textAlign: align(dir) }]}>{l.goodsType}</Text>
+                  <Text style={[styles.cell, sep('description'), { flex: COLS.description, textAlign: align(dir) }]}>{l.description || ''}</Text>
                   <Text style={[styles.cell, sep('label'), { flex: COLS.label, textAlign: align(dir) }]}>{l.labelNumber || ''}</Text>
                   <Text style={[styles.cell, sep('length'), { flex: COLS.length, textAlign: center }]}>{l.length || ''}</Text>
                   <Text style={[styles.cell, sep('width'), { flex: COLS.width, textAlign: center }]}>{l.width || ''}</Text>
@@ -222,6 +227,7 @@ function InvoiceDocument({ data }: { data: InvoiceDocData }): JSX.Element {
                     {data.lines.length + i + 1}
                   </Text>
                   <Text style={[styles.cell, sep('goods'), { flex: COLS.goods }]} />
+                  <Text style={[styles.cell, sep('description'), { flex: COLS.description }]} />
                   <Text style={[styles.cell, sep('label'), { flex: COLS.label }]} />
                   <Text style={[styles.cell, sep('length'), { flex: COLS.length }]} />
                   <Text style={[styles.cell, sep('width'), { flex: COLS.width }]} />
@@ -238,7 +244,7 @@ function InvoiceDocument({ data }: { data: InvoiceDocData }): JSX.Element {
                     styles.cellBold,
                     sep('area'),
                     {
-                      flex: COLS.index + COLS.goods + COLS.label + COLS.length + COLS.width + COLS.area,
+                      flex: COLS.index + COLS.goods + COLS.description + COLS.label + COLS.length + COLS.width + COLS.area,
                       textAlign: align(dir, true)
                     }
                   ]}

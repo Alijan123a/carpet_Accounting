@@ -175,7 +175,12 @@
     "carpet": "Carpet",
     "material": "Material",
     "search": "Search",
-    "searchPlaceholder": "Note, carpet #, material…"
+    "searchPlaceholder": "Note, carpet #, material…",
+    "number": "#",
+    "billNo": "Bill #",
+    "carpetNo": "Carpet #",
+    "totalPrice": "Total price",
+    "description": "Description"
   },
   "tx": {
     "type": {
@@ -192,7 +197,9 @@
     "id": "ID",
     "transactionDate": "Transaction date",
     "createdAt": "Recorded at",
-    "reverses": "Reverses"
+    "reverses": "Reverses",
+    "carpetSection": "Carpet",
+    "pricePerMeter": "Price / m"
   },
   "carpets": {
     "title": "Carpets",
@@ -322,7 +329,9 @@
     "currencyMismatch": "All carpet lines must share the same currency.",
     "mismatchWarn": "A line’s area/total was overridden. The printed invoice is the record; the posted ledger sale uses the carpet’s stored area.",
     "errAlreadySold": "One of the carpets is already sold. Refresh and try again.",
-    "errCarpetMissing": "A selected carpet no longer exists."
+    "errCarpetMissing": "A selected carpet no longer exists.",
+    "description": "Description",
+    "descriptionPlaceholder": "Description…"
   },
   "buyInvoice": {
     "title": "Add carpets (buy)",

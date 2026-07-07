@@ -20,7 +20,7 @@ import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
-const GRID = 'grid grid-cols-[110px_110px_56px_130px_minmax(120px,1fr)_minmax(100px,1fr)_72px] items-center gap-3 px-4'
+const GRID = 'grid grid-cols-[44px_110px_90px_110px_150px_minmax(140px,1fr)_72px] items-center gap-3 px-4'
 const TX_TYPES: TransactionType[] = ['purchase', 'sale', 'payment', 'reversal', 'adjustment']
 
 export function ClientDetail({
@@ -311,20 +311,16 @@ export function ClientDetail({
       {/* Statement table */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
         <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
+          <span>{t('statement.number', '#')}</span>
           <SortHeader col="transactionDate" sort={sort} onSort={setSort}>
             {t('statement.date', 'Date')}
           </SortHeader>
-          <SortHeader col="type" sort={sort} onSort={setSort}>
-            {t('statement.type', 'Type')}
-          </SortHeader>
-          <SortHeader col="currency" sort={sort} onSort={setSort}>
-            {t('statement.currency', 'Cur')}
-          </SortHeader>
+          <span>{t('statement.billNo', 'Bill #')}</span>
+          <span>{t('statement.carpetNo', 'Carpet #')}</span>
           <SortHeader col="amountCents" sort={sort} onSort={setSort} align="end">
-            {t('statement.amount', 'Amount')}
+            {t('statement.totalPrice', 'Total price')}
           </SortHeader>
-          <span>{t('statement.linked', 'Linked')}</span>
-          <span>{t('statement.note', 'Note')}</span>
+          <span>{t('statement.description', 'Description')}</span>
           <span />
         </div>
         <div ref={parentRef} onScroll={onScroll} className="flex-1 overflow-auto">
@@ -334,11 +330,6 @@ export function ClientDetail({
           <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>
             {virtualizer.getVirtualItems().map((vi) => {
               const tx = rows[vi.index]
-              const linked = tx.carpetLabel
-                ? `${t('statement.carpet', 'Carpet')} ${tx.carpetLabel}`
-                : tx.materialName
-                  ? `${t('statement.material', 'Material')}: ${tx.materialName}`
-                  : t('common.none', '—')
               return (
                 <div
                   key={tx.id}
@@ -350,13 +341,14 @@ export function ClientDetail({
                   )}
                   style={{ height: `${ROW_HEIGHT}px`, transform: `translateY(${vi.start}px)` }}
                 >
+                  <span className="text-muted-foreground">{vi.index + 1}</span>
                   <span className="text-muted-foreground">{formatDate(tx.transactionDate, calendar)}</span>
-                  <span>{t(`tx.type.${tx.type}`, tx.type)}</span>
-                  <span className="text-muted-foreground">{tx.currency}</span>
+                  <span className="truncate">{tx.invoiceNumber || t('common.none', '—')}</span>
+                  <span className="truncate">{tx.carpetLabel || t('common.none', '—')}</span>
                   <span className="text-end">
                     <BalanceAmount cents={tx.amountCents} />
+                    <span className="ms-1 text-xs text-muted-foreground">{tx.currency}</span>
                   </span>
-                  <span className="truncate text-muted-foreground">{linked}</span>
                   <span className="truncate text-muted-foreground">{tx.note || t('common.none', '—')}</span>
                   <span className="flex justify-end">
                     {tx.type !== 'reversal' && (

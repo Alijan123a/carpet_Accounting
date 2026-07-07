@@ -48,6 +48,8 @@ export interface LedgerTransaction {
   amountCents: number
   carpetId?: number | null
   materialLineId?: number | null
+  /** Sell invoice this transaction was posted from (its «بل» number shows in statements). */
+  invoiceId?: number | null
   /** Business date (user-settable), epoch milliseconds. */
   transactionDate: number
   /** Precise creation timestamp, epoch milliseconds. */

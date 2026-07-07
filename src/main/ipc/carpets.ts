@@ -369,8 +369,15 @@ export function updateCarpet(db: DB, id: number, input: CarpetEditInput): { ok: 
  * mix). Shared by the single-sale path and the batch invoice path so the ledger
  * effect is identical either way.
  */
-function postCarpetSaleTx(tx: Tx, carpet: schema.CarpetRow, input: CarpetSellInput, now: number): void {
+function postCarpetSaleTx(
+  tx: Tx,
+  carpet: schema.CarpetRow,
+  input: CarpetSellInput,
+  now: number,
+  opts?: { invoiceId?: number; description?: string | null }
+): void {
   const sellTotal = carpetTotalPriceCents(input.sellPricePerMeterCents, input.sellSortDeductionCents, carpet.area)
+  const description = opts?.description?.trim()
   const txId = Number(
     tx
       .insert(schema.transactions)
@@ -380,10 +387,14 @@ function postCarpetSaleTx(tx: Tx, carpet: schema.CarpetRow, input: CarpetSellInp
         currency: carpet.currency,
         amountCents: postingAmountCents({ kind: 'sale', amountCents: sellTotal }),
         carpetId: carpet.id,
+        invoiceId: opts?.invoiceId ?? null,
         transactionDate: input.transactionDate ?? now,
         createdAt: now,
-        // Auto-note in Dari (single Afghan trader; see CLAUDE.md §6).
-        note: `فروش قالین نمبر ${carpet.labelNumber}`
+        // Auto-note in Dari (single Afghan trader; see CLAUDE.md §6). The
+        // invoice line's free-text description is appended when present.
+        note: description
+          ? `فروش قالین نمبر ${carpet.labelNumber} — ${description}`
+          : `فروش قالین نمبر ${carpet.labelNumber}`
       })
       .run().lastInsertRowid
   )
@@ -447,30 +458,8 @@ export function sellInvoice(db: DB, input: SellInvoiceInput): SellInvoiceResult 
 
   try {
     const result = db.transaction((tx): { id: number; number: string } => {
-      if (INVOICE_POSTS_TO_LEDGER) {
-        for (const line of input.lines) {
-          if (line.carpetId == null) continue // free-text line: print-only
-          const carpet = tx.select().from(schema.carpets).where(eq(schema.carpets.id, line.carpetId)).get()
-          if (!carpet) throw new InvoiceError('carpet_not_found')
-          if (carpet.sellTransactionId != null) throw new InvoiceError('already_sold')
-          if (carpet.currency !== input.currency) throw new InvoiceError('currency_mismatch')
-          postCarpetSaleTx(
-            tx,
-            carpet,
-            {
-              carpetId: carpet.id,
-              buyerClientId: input.buyerClientId,
-              // The invoice "unit price / m" maps to the carpet sell price/m; no
-              // separate sell deduction on the invoice (see prompt Task B).
-              sellPricePerMeterCents: line.unitPriceCents,
-              sellSortDeductionCents: 0,
-              transactionDate: txDate
-            },
-            now
-          )
-        }
-      }
-
+      // Insert the invoice header FIRST so each posted sale can reference the
+      // invoice id (bill number shows in the client statement).
       const number = input.number.trim()
       const insertedId = Number(
         tx
@@ -490,6 +479,31 @@ export function sellInvoice(db: DB, input: SellInvoiceInput): SellInvoiceResult 
       const finalNumber = number || String(insertedId)
       if (!number) {
         tx.update(schema.invoices).set({ number: finalNumber }).where(eq(schema.invoices.id, insertedId)).run()
+      }
+
+      if (INVOICE_POSTS_TO_LEDGER) {
+        for (const line of input.lines) {
+          if (line.carpetId == null) continue // free-text line: print-only
+          const carpet = tx.select().from(schema.carpets).where(eq(schema.carpets.id, line.carpetId)).get()
+          if (!carpet) throw new InvoiceError('carpet_not_found')
+          if (carpet.sellTransactionId != null) throw new InvoiceError('already_sold')
+          if (carpet.currency !== input.currency) throw new InvoiceError('currency_mismatch')
+          postCarpetSaleTx(
+            tx,
+            carpet,
+            {
+              carpetId: carpet.id,
+              buyerClientId: input.buyerClientId,
+              // The invoice "unit price / m" maps to the carpet sell price/m; no
+              // separate sell deduction on the invoice (see prompt Task B).
+              sellPricePerMeterCents: line.unitPriceCents,
+              sellSortDeductionCents: 0,
+              transactionDate: txDate
+            },
+            now,
+            { invoiceId: insertedId, description: line.description }
+          )
+        }
       }
       return { id: insertedId, number: finalNumber }
     })
