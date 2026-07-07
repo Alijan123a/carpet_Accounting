@@ -71,7 +71,8 @@ const api = {
     create: (input: unknown) => ipcRenderer.invoke('orders:create', input),
     update: (id: number, input: unknown) => ipcRenderer.invoke('orders:update', id, input),
     setStatus: (id: number, status: unknown) => ipcRenderer.invoke('orders:setStatus', id, status),
-    remove: (id: number) => ipcRenderer.invoke('orders:remove', id)
+    remove: (id: number) => ipcRenderer.invoke('orders:remove', id),
+    nextOrderNo: () => ipcRenderer.invoke('orders:nextOrderNo')
   },
 
   // Dashboard (Phase 5).

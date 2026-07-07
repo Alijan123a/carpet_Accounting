@@ -228,6 +228,7 @@ export const orders = sqliteTable(
     buyerClientId: integer('buyer_client_id')
       .notNull()
       .references(() => clients.id),
+    orderNo: text('order_no'),
     title: text('title').notNull(),
     quality: text('quality'),
     length: real('length'),
@@ -240,6 +241,9 @@ export const orders = sqliteTable(
     dueDate: integer('due_date'),
     deliveredAt: integer('delivered_at'),
     notes: text('notes'),
+    // Multi-item body (JSON array of OrderItem) — print/display snapshot, like
+    // invoices.lines_json. Legacy single-line orders leave this NULL.
+    itemsJson: text('items_json'),
     createdAt: integer('created_at').notNull(),
     archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
     archivedAt: integer('archived_at')
@@ -248,7 +252,8 @@ export const orders = sqliteTable(
     buyerIdx: index('idx_orders_buyer').on(t.buyerClientId),
     statusIdx: index('idx_orders_status').on(t.status),
     orderDateIdx: index('idx_orders_date').on(t.orderDate),
-    archivedIdx: index('idx_orders_archived').on(t.archived)
+    archivedIdx: index('idx_orders_archived').on(t.archived),
+    orderNoIdx: index('idx_orders_no').on(t.orderNo)
   })
 )
 

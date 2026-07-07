@@ -341,8 +341,8 @@ export function SellInvoiceDialog({
 
         {/* Line table */}
         <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-card">
-          <div className="min-w-[980px]">
-            <div className="grid grid-cols-[minmax(90px,1fr)_minmax(110px,1.2fr)_minmax(120px,1.4fr)_72px_72px_80px_110px_120px_40px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
+          <div className="min-w-[1020px]">
+            <div className="grid grid-cols-[minmax(90px,1fr)_minmax(100px,1.1fr)_minmax(110px,1.2fr)_96px_96px_104px_110px_120px_40px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
               <span>{t('invoice.goodsType', 'Goods')}</span>
               <span>{t('invoice.description', 'Description')}</span>
               <span>{t('invoice.carpetNo', 'Carpet #')}</span>
@@ -358,7 +358,7 @@ export function SellInvoiceDialog({
               return (
                 <div
                   key={l.key}
-                  className="grid grid-cols-[minmax(90px,1fr)_minmax(110px,1.2fr)_minmax(120px,1.4fr)_72px_72px_80px_110px_120px_40px] items-center gap-2 border-b border-border px-3 py-1.5"
+                  className="grid grid-cols-[minmax(90px,1fr)_minmax(100px,1.1fr)_minmax(110px,1.2fr)_96px_96px_104px_110px_120px_40px] items-center gap-2 border-b border-border px-3 py-1.5"
                 >
                   <Input
                     value={l.goodsType}

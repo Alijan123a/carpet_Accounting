@@ -76,10 +76,19 @@ export function Typeahead<T extends TypeaheadItem>({
   }
 
   function onKeyDown(e: React.KeyboardEvent): void {
-    if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    // With no suggestions to navigate, leave ↑/↓ to the app-wide field
+    // navigation in <Input> (which only acts when we do NOT preventDefault).
+    if (!matches.length) {
+      if (e.key === 'Escape') setOpen(false)
+      return
+    }
+    if (!open && e.key === 'ArrowDown') {
+      e.preventDefault()
       setOpen(true)
       return
     }
+    // Closed + ArrowUp falls through: the global nav moves to the previous field.
+    if (!open && e.key === 'ArrowUp') return
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       setHighlight((h) => Math.min(h + 1, matches.length - 1))

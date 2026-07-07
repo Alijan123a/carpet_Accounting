@@ -5,6 +5,7 @@ import * as schema from '../db/schema'
 import { logChange } from '../changeLog'
 import type {
   OrderInput,
+  OrderItem,
   OrderStatus,
   OrderView,
   OrdersListParams,
@@ -13,11 +14,23 @@ import type {
 
 type DB = BetterSQLite3Database<typeof schema>
 
+/** Parse the items_json snapshot ([] for legacy single-line orders / bad JSON). */
+function parseItems(json: string | null): OrderItem[] {
+  if (!json) return []
+  try {
+    const arr = JSON.parse(json)
+    return Array.isArray(arr) ? (arr as OrderItem[]) : []
+  } catch {
+    return []
+  }
+}
+
 function toView(row: schema.OrderRow, buyerName: string | null): OrderView {
   return {
     id: row.id,
     buyerClientId: row.buyerClientId,
     buyerName,
+    orderNo: row.orderNo,
     title: row.title,
     quality: row.quality,
     length: row.length,
@@ -31,7 +44,8 @@ function toView(row: schema.OrderRow, buyerName: string | null): OrderView {
     deliveredAt: row.deliveredAt,
     notes: row.notes,
     createdAt: row.createdAt,
-    archived: row.archived
+    archived: row.archived,
+    items: parseItems(row.itemsJson)
   }
 }
 
@@ -43,6 +57,7 @@ export function listOrders(db: DB, params: OrdersListParams): OrdersListResult {
   if (search) {
     conds.push(
       or(
+        like(schema.orders.orderNo, `%${search}%`),
         like(schema.orders.title, `%${search}%`),
         like(schema.orders.quality, `%${search}%`),
         like(schema.clients.name, `%${search}%`)
@@ -54,6 +69,7 @@ export function listOrders(db: DB, params: OrdersListParams): OrdersListResult {
   const ORDER_SORTS: Record<string, AnyColumn> = {
     orderDate: schema.orders.orderDate,
     dueDate: schema.orders.dueDate,
+    orderNo: schema.orders.orderNo,
     title: schema.orders.title,
     status: schema.orders.status,
     quantity: schema.orders.quantity,
@@ -89,6 +105,7 @@ export function listOrders(db: DB, params: OrdersListParams): OrdersListResult {
 /** Shared field mapping for create/update (excludes lifecycle-only columns). */
 function valuesFromInput(input: OrderInput): {
   buyerClientId: number
+  orderNo: string | null
   title: string
   quality: string | null
   length: number | null
@@ -100,9 +117,11 @@ function valuesFromInput(input: OrderInput): {
   orderDate: number
   dueDate: number | null
   notes: string | null
+  itemsJson: string | null
 } {
   return {
     buyerClientId: input.buyerClientId,
+    orderNo: input.orderNo?.trim() || null,
     title: input.title.trim(),
     quality: input.quality?.trim() || null,
     length: input.length ?? null,
@@ -113,8 +132,15 @@ function valuesFromInput(input: OrderInput): {
     status: input.status,
     orderDate: input.orderDate,
     dueDate: input.dueDate ?? null,
-    notes: input.notes?.trim() || null
+    notes: input.notes?.trim() || null,
+    itemsJson: input.items?.length ? JSON.stringify(input.items) : null
   }
+}
+
+/** Suggested next «نمبر سفارش»: sequential over the orders table. */
+export function nextOrderNo(db: DB): string {
+  const row = db.select({ m: sql<number>`COALESCE(MAX(${schema.orders.id}), 0)` }).from(schema.orders).get()
+  return String(Number(row?.m ?? 0) + 1)
 }
 
 export function registerOrdersIpc(getDb: () => DB): void {
@@ -168,6 +194,8 @@ export function registerOrdersIpc(getDb: () => DB): void {
       after: orderRow(db, id)
     })
   })
+
+  ipcMain.handle('orders:nextOrderNo', () => nextOrderNo(getDb()))
 
   ipcMain.handle('orders:remove', (_e, id: number): void => {
     const db = getDb()

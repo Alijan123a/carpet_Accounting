@@ -7,7 +7,6 @@ import { Input } from '@renderer/components/ui/input'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
-import { formatCents } from '@shared/accounting'
 import { formatDate } from '@renderer/lib/date'
 import { ORDER_STATUSES } from '@shared/contracts'
 import type { OrderStatus, OrderView } from '@shared/contracts'
@@ -18,7 +17,16 @@ import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 52
 const GRID =
-  'grid grid-cols-[100px_minmax(140px,1.2fr)_minmax(160px,1.6fr)_64px_120px_140px_92px] items-center gap-3 px-4'
+  'grid grid-cols-[100px_80px_minmax(140px,1.2fr)_minmax(160px,1.6fr)_64px_90px_140px_92px] items-center gap-3 px-4'
+
+/** Total متراژ of an order: sum of item rows, falling back to legacy W×L. */
+function orderTotalSqm(o: OrderView): number | null {
+  if (o.items.length) {
+    const s = o.items.reduce((sum, it) => sum + (it.sqm ?? 0), 0)
+    return s > 0 ? s : null
+  }
+  return o.length && o.width ? o.length * o.width : null
+}
 
 export function OrdersModule(): JSX.Element {
   const { t } = useTranslation()
@@ -163,6 +171,9 @@ export function OrdersModule(): JSX.Element {
           <SortHeader col="orderDate" sort={sort} onSort={setSort}>
             {t('orders.orderDate', 'Order date')}
           </SortHeader>
+          <SortHeader col="orderNo" sort={sort} onSort={setSort}>
+            {t('orders.orderNo', 'Order #')}
+          </SortHeader>
           <SortHeader col="buyerName" sort={sort} onSort={setSort}>
             {t('orders.buyer', 'Buyer')}
           </SortHeader>
@@ -172,9 +183,7 @@ export function OrdersModule(): JSX.Element {
           <SortHeader col="quantity" sort={sort} onSort={setSort} align="end">
             {t('orders.quantity', 'Qty')}
           </SortHeader>
-          <SortHeader col="priceCents" sort={sort} onSort={setSort} align="end">
-            {t('orders.price', 'Price')}
-          </SortHeader>
+          <span className="text-end">{t('orders.sqm', 'SQM')}</span>
           <SortHeader col="status" sort={sort} onSort={setSort}>
             {t('orders.status.label', 'Status')}
           </SortHeader>
@@ -194,16 +203,17 @@ export function OrdersModule(): JSX.Element {
                   style={{ height: `${ROW_HEIGHT}px`, transform: `translateY(${vi.start}px)` }}
                 >
                   <span className="text-muted-foreground">{formatDate(o.orderDate, calendar)}</span>
+                  <span className="truncate font-mono tabular-nums">{o.orderNo || '—'}</span>
                   <span className="truncate font-medium">{o.buyerName || t('common.none', '—')}</span>
                   <span className="truncate">
                     {o.title}
-                    {o.length && o.width ? (
+                    {!o.items.length && o.length && o.width ? (
                       <span className="text-muted-foreground"> · {o.length}×{o.width}m</span>
                     ) : null}
                   </span>
                   <span className="text-end text-muted-foreground">{o.quantity}</span>
                   <span className="text-end font-mono tabular-nums">
-                    {o.priceCents ? `${formatCents(o.priceCents)} ${o.currency}` : '—'}
+                    {orderTotalSqm(o)?.toFixed(2) ?? '—'}
                   </span>
                   <span>
                     {/* Inline status change — the badge colour reflects the value. */}

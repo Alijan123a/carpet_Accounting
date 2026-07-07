@@ -461,8 +461,33 @@ export type OrderStatus = 'pending' | 'on_work' | 'finished' | 'delivered' | 'ca
 
 export const ORDER_STATUSES: OrderStatus[] = ['pending', 'on_work', 'finished', 'delivered', 'cancelled']
 
+/**
+ * One row of a multi-item order (snapshotted as JSON in orders.items_json).
+ * Free-text specs of the commissioned carpet; SQM defaults to width×length in
+ * the form but the stored value is whatever the user confirmed.
+ */
+export interface OrderItem {
+  /** «نوع قالین» — carpet type, free text. */
+  carpetType: string
+  /** «گراف» — design/graph reference, free text. */
+  graph: string
+  width: number | null
+  length: number | null
+  /** «متراژ» — square meters. */
+  sqm: number | null
+  /** «رنگ متن» — field (ground) colour, free text. */
+  textColor: string
+  /** «رنگ حاشیه» — border colour, free text. */
+  borderColor: string
+  quantity: number
+  /** «تفصیل» — free text. */
+  description: string
+}
+
 export interface OrderInput {
   buyerClientId: number
+  /** «نمبر سفارش» — user-editable order number. */
+  orderNo?: string | null
   title: string
   quality?: string | null
   length?: number | null
@@ -474,12 +499,15 @@ export interface OrderInput {
   orderDate: number
   dueDate?: number | null
   notes?: string | null
+  /** Multi-item body of the order (invoice-style rows). */
+  items?: OrderItem[] | null
 }
 
 export interface OrderView {
   id: number
   buyerClientId: number
   buyerName: string | null
+  orderNo: string | null
   title: string
   quality: string | null
   length: number | null
@@ -494,6 +522,8 @@ export interface OrderView {
   notes: string | null
   createdAt: number
   archived: boolean
+  /** Parsed items_json ([] for legacy single-line orders). */
+  items: OrderItem[]
 }
 
 export interface OrdersListParams extends SortParams {
@@ -516,6 +546,8 @@ export interface OrdersApi {
   /** Quick status change from the list (sets delivered_at when → delivered). */
   setStatus: (id: number, status: OrderStatus) => Promise<void>
   remove: (id: number) => Promise<void>
+  /** Suggested next «نمبر سفارش» (sequential over the orders table). */
+  nextOrderNo: () => Promise<string>
 }
 
 // --- Dashboard (Phase 5) ----------------------------------------------------

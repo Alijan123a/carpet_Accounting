@@ -158,6 +158,7 @@ CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices(transaction_date);
 CREATE TABLE IF NOT EXISTS orders (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
   buyer_client_id   INTEGER NOT NULL REFERENCES clients(id),
+  order_no          TEXT,
   title             TEXT NOT NULL,
   quality           TEXT,
   length            REAL,
@@ -170,6 +171,7 @@ CREATE TABLE IF NOT EXISTS orders (
   due_date          INTEGER,
   delivered_at      INTEGER,
   notes             TEXT,
+  items_json        TEXT,
   created_at        INTEGER NOT NULL,
   archived          INTEGER NOT NULL DEFAULT 0,
   archived_at       INTEGER
@@ -178,6 +180,8 @@ CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_client_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_date ON orders(order_date);
 CREATE INDEX IF NOT EXISTS idx_orders_archived ON orders(archived);
+-- NOTE: idx_orders_no is created in runColumnUpgrades(), AFTER the order_no
+-- column is guaranteed to exist on databases created by an earlier version.
 
 -- System changes: audit log of every mutation, powering the «تغییرات سیستم»
 -- screen and its Undo. before/after are full-row JSON snapshots. Undo NEVER
@@ -264,6 +268,17 @@ function runColumnUpgrades(sqlite: Database.Database): void {
     sqlite.exec(`ALTER TABLE material_lines ADD COLUMN deleted_at INTEGER;`)
   }
   sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_ml_deleted ON material_lines(deleted);`)
+
+  // orders.order_no («نمبر سفارش») + orders.items_json — invoice-style orders
+  // with a user-editable number and a JSON array of item rows. Index created
+  // here, after the column is guaranteed to exist (same pattern as clients.kind).
+  if (!hasColumn(sqlite, 'orders', 'order_no')) {
+    sqlite.exec(`ALTER TABLE orders ADD COLUMN order_no TEXT;`)
+  }
+  if (!hasColumn(sqlite, 'orders', 'items_json')) {
+    sqlite.exec(`ALTER TABLE orders ADD COLUMN items_json TEXT;`)
+  }
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_orders_no ON orders(order_no);`)
 }
 
 /** Create all tables/indexes/triggers and seed reference data. */
