@@ -122,6 +122,18 @@
   }
 }
 
+/* Hide the native up/down spinner buttons on number inputs (Chromium / Electron).
+ * Arrow keys are handled by the Input component for caret/field navigation. */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
