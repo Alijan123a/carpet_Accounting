@@ -14,7 +14,7 @@ import { DateInput } from '@renderer/components/ui/date-input'
 import { Typeahead } from '@renderer/components/ui/typeahead'
 import { useSettings } from '@renderer/store/settings'
 import { startOfDayEpoch } from '@renderer/lib/date'
-import type { ClientListItem, OrderItem, OrderItemStatus, OrderView } from '@shared/contracts'
+import type { ClientListItem, OrderAssignment, OrderItem, OrderView } from '@shared/contracts'
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10)
 const toDateInput = (epoch: number): string => new Date(epoch).toISOString().slice(0, 10)
@@ -36,10 +36,8 @@ interface Row {
   borderColor: string
   quantity: string
   description: string
-  /** Preserved (not edited in this form) so item status survives an edit. */
-  status: OrderItemStatus
-  sellerClientId: number | null
-  sellerName: string | null
+  /** Preserved (not edited in this form) so بافنده hand-offs survive an edit. */
+  assignments: OrderAssignment[]
 }
 
 let rowSeq = 1
@@ -56,9 +54,7 @@ function emptyRow(): Row {
     borderColor: '',
     quantity: '1',
     description: '',
-    status: 'pending',
-    sellerClientId: null,
-    sellerName: null
+    assignments: []
   }
 }
 
@@ -76,9 +72,7 @@ function itemToRow(it: OrderItem): Row {
     borderColor: it.borderColor,
     quantity: String(it.quantity),
     description: it.description,
-    status: it.status ?? 'pending',
-    sellerClientId: it.sellerClientId ?? null,
-    sellerName: it.sellerName ?? null
+    assignments: it.assignments ?? []
   }
 }
 
@@ -209,9 +203,7 @@ export function OrderFormDialog({
       borderColor: r.borderColor.trim(),
       quantity: rowQty(r) || 1,
       description: r.description.trim(),
-      status: r.status,
-      sellerClientId: r.sellerClientId,
-      sellerName: r.sellerName
+      assignments: r.assignments
     }))
 
     setBusy(true)

@@ -462,21 +462,40 @@ export type OrderStatus = 'pending' | 'on_work' | 'finished' | 'delivered' | 'ca
 export const ORDER_STATUSES: OrderStatus[] = ['pending', 'on_work', 'finished', 'delivered', 'cancelled']
 
 /**
- * Per-carpet (per-item) production state. An item starts «در انتظار» (pending),
- * moves to «در حال کار» once handed to a weaver/seller, then «تکمیل» when the
- * carpet is made and «تحویل‌شده» once delivered to us.
+ * Per-carpet production state. Unassigned pieces are «در انتظار» (pending); once
+ * handed to a بافنده an assignment moves «در حال کار», then «تکمیل» when made and
+ * «تحویل‌شده» once delivered. Status is always changed manually.
  */
 export type OrderItemStatus = 'pending' | 'on_work' | 'complete' | 'delivered'
 
 export const ORDER_ITEM_STATUSES: OrderItemStatus[] = ['pending', 'on_work', 'complete', 'delivered']
 
 /**
+ * A partial hand-off of a carpet item to one بافنده (weaver). A single item's
+ * quantity can be split across several assignments (e.g. 5 + 5 + 10), each with
+ * its own date and a manually-set status.
+ */
+export interface OrderAssignment {
+  /** Stable local id (generated in the renderer). */
+  id: string
+  sellerClientId: number
+  /** Snapshot of the بافنده's name at assignment time (for display). */
+  sellerName: string
+  /** How many pieces of the item were handed to this بافنده. */
+  quantity: number
+  /** Business date the pieces were given (epoch ms). */
+  assignedDate: number
+  /** Manually-set production state of this hand-off. */
+  status: OrderItemStatus
+}
+
+/**
  * One row of a multi-item order (snapshotted as JSON in orders.items_json).
  * Free-text specs of the commissioned carpet; SQM defaults to width×length in
  * the form but the stored value is whatever the user confirmed.
  *
- * `status`/`seller*` are optional for backward compatibility with orders saved
- * before per-item tracking existed; the main process normalizes them on read.
+ * `assignments` is optional for backward compatibility with orders saved before
+ * per-carpet hand-offs existed; the main process normalizes it on read.
  */
 export interface OrderItem {
   /** «نوع قالین» — carpet type, free text. */
@@ -494,12 +513,27 @@ export interface OrderItem {
   quantity: number
   /** «تفصیل» — free text. */
   description: string
-  /** Production state of this carpet (defaults to 'pending'). */
-  status?: OrderItemStatus
-  /** Seller/weaver this carpet was handed to, if assigned. */
-  sellerClientId?: number | null
-  /** Snapshot of the seller's name at assignment time (for display). */
-  sellerName?: string | null
+  /** Partial hand-offs of this item to بافنده‌ها (defaults to []). */
+  assignments?: OrderAssignment[]
+}
+
+/** One carpet hand-off, flattened with its parent order — for the بافنده page. */
+export interface SellerAssignmentView {
+  orderId: number
+  orderNo: string | null
+  buyerName: string | null
+  orderDate: number
+  /** Index of the item inside the order (for stable keys). */
+  itemIndex: number
+  assignmentId: string
+  carpetType: string
+  graph: string
+  width: number | null
+  length: number | null
+  sqm: number | null
+  quantity: number
+  assignedDate: number
+  status: OrderItemStatus
 }
 
 export interface OrderInput {
@@ -564,8 +598,10 @@ export interface OrdersApi {
   update: (id: number, input: OrderInput) => Promise<void>
   /** Quick status change from the list (sets delivered_at when → delivered). */
   setStatus: (id: number, status: OrderStatus) => Promise<void>
-  /** Replace the per-item snapshot (per-carpet status / seller assignment). */
+  /** Replace the per-item snapshot (per-carpet بافنده assignments / status). */
   updateItems: (id: number, items: OrderItem[]) => Promise<void>
+  /** Carpets handed to a given بافنده (flattened across all orders). */
+  assignedToSeller: (sellerClientId: number) => Promise<SellerAssignmentView[]>
   remove: (id: number) => Promise<void>
   /** Suggested next «نمبر سفارش» (sequential over the orders table). */
   nextOrderNo: () => Promise<string>

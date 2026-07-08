@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next'
-import type { OrderStatus, OrderItemStatus } from '@shared/contracts'
+import type { OrderItem, OrderStatus, OrderItemStatus } from '@shared/contracts'
 
 /** Localized label for an order status (falls back to English). */
 export function orderStatusLabel(t: TFunction, status: OrderStatus): string {
@@ -56,4 +56,24 @@ export function orderItemStatusBadge(status: OrderItemStatus): string {
     default:
       return 'bg-muted text-muted-foreground'
   }
+}
+
+export type StatusCounts = Record<OrderItemStatus, number>
+
+/** Total pieces of an item already handed to بافنده‌ها. */
+export function assignedQuantity(item: OrderItem): number {
+  return (item.assignments ?? []).reduce((s, a) => s + (a.quantity > 0 ? a.quantity : 0), 0)
+}
+
+/**
+ * Piece counts per status. Assigned pieces carry their hand-off's status; any
+ * still-unassigned remainder of the item's quantity counts as «در انتظار».
+ */
+export function statusCounts(item: OrderItem): StatusCounts {
+  const counts: StatusCounts = { pending: 0, on_work: 0, complete: 0, delivered: 0 }
+  for (const a of item.assignments ?? []) {
+    if (a.quantity > 0) counts[a.status] += a.quantity
+  }
+  counts.pending += Math.max(0, item.quantity - assignedQuantity(item))
+  return counts
 }

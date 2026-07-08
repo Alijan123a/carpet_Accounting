@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { ArrowRight, Pencil, Archive, ArchiveRestore, Undo2, Wallet, Trash2 } from 'lucide-react'
+import { ArrowRight, Pencil, Archive, ArchiveRestore, Undo2, Wallet, Trash2, ClipboardList } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { DateInput } from '@renderer/components/ui/date-input'
@@ -17,6 +17,7 @@ import { PaymentDialog } from './PaymentDialog'
 import { TransactionDetailDialog } from './TransactionDetailDialog'
 import { ConfirmDialog } from '@renderer/components/ConfirmDialog'
 import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
+import { SellerOrders } from '@renderer/features/orders/SellerOrders'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
@@ -43,6 +44,7 @@ export function ClientDetail({
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [showOrders, setShowOrders] = useState(false)
 
   // statement filters
   const [from, setFrom] = useState('')
@@ -187,6 +189,11 @@ export function ClientDetail({
 
   const balances = client?.balances ?? { AFN: 0, USD: 0 }
   const canArchive = balances.AFN === 0 && balances.USD === 0
+  const isSeller = client?.kind === 'seller' || client?.kind === 'both'
+
+  if (showOrders && client) {
+    return <SellerOrders clientId={clientId} clientName={client.name} onBack={() => setShowOrders(false)} />
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -210,6 +217,12 @@ export function ClientDetail({
         </div>
 
         <div className="flex items-center gap-2">
+          {isSeller && (
+            <Button variant="outline" size="sm" onClick={() => setShowOrders(true)}>
+              <ClipboardList className="h-4 w-4" />
+              {t('orders.title', 'Orders')}
+            </Button>
+          )}
           <Button size="sm" onClick={() => setPaymentOpen(true)}>
             <Wallet className="h-4 w-4" />
             {t('payment.title', 'Add payment')}

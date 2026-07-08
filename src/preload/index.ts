@@ -73,6 +73,8 @@ const api = {
     update: (id: number, input: unknown) => ipcRenderer.invoke('orders:update', id, input),
     setStatus: (id: number, status: unknown) => ipcRenderer.invoke('orders:setStatus', id, status),
     updateItems: (id: number, items: unknown) => ipcRenderer.invoke('orders:updateItems', id, items),
+    assignedToSeller: (sellerClientId: number) =>
+      ipcRenderer.invoke('orders:assignedToSeller', sellerClientId),
     remove: (id: number) => ipcRenderer.invoke('orders:remove', id),
     nextOrderNo: () => ipcRenderer.invoke('orders:nextOrderNo')
   },

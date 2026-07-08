@@ -4,35 +4,88 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
 import { logChange } from '../changeLog'
 import type {
+  OrderAssignment,
   OrderInput,
   OrderItem,
+  OrderItemStatus,
   OrderStatus,
   OrderView,
   OrdersListParams,
-  OrdersListResult
+  OrdersListResult,
+  SellerAssignmentView
 } from '../../shared/contracts'
 
 type DB = BetterSQLite3Database<typeof schema>
 
 const ITEM_STATUSES = new Set(['pending', 'on_work', 'complete', 'delivered'])
+const asStatus = (v: unknown): OrderItemStatus =>
+  ITEM_STATUSES.has(v as string) ? (v as OrderItemStatus) : 'pending'
 
-/** Normalize one raw item, filling per-item status/seller defaults (legacy rows). */
-function normalizeItem(raw: OrderItem): OrderItem {
-  const status = ITEM_STATUSES.has(raw.status as string) ? raw.status : 'pending'
+/** Normalize one raw assignment row, dropping invalid entries (returns null). */
+function normalizeAssignment(raw: unknown, fallbackDate: number, seq: number): OrderAssignment | null {
+  if (!raw || typeof raw !== 'object') return null
+  const a = raw as Partial<OrderAssignment>
+  if (a.sellerClientId == null) return null
+  const quantity = Number(a.quantity)
   return {
-    ...raw,
-    status,
-    sellerClientId: raw.sellerClientId ?? null,
-    sellerName: raw.sellerName ?? null
+    id: typeof a.id === 'string' && a.id ? a.id : `${fallbackDate}-${seq}`,
+    sellerClientId: Number(a.sellerClientId),
+    sellerName: typeof a.sellerName === 'string' ? a.sellerName : '',
+    quantity: Number.isFinite(quantity) && quantity > 0 ? Math.trunc(quantity) : 0,
+    assignedDate: Number.isFinite(Number(a.assignedDate)) ? Number(a.assignedDate) : fallbackDate,
+    status: asStatus(a.status)
+  }
+}
+
+/**
+ * Normalize one raw item, filling the assignments array. Legacy items saved with
+ * a single `sellerClientId`/`status` are migrated to a one-entry assignment.
+ */
+function normalizeItem(raw: OrderItem, fallbackDate: number): OrderItem {
+  const legacy = raw as OrderItem & {
+    sellerClientId?: number | null
+    sellerName?: string | null
+    status?: OrderItemStatus
+  }
+  let assignments: OrderAssignment[] = []
+  if (Array.isArray(raw.assignments)) {
+    assignments = raw.assignments
+      .map((a, i) => normalizeAssignment(a, fallbackDate, i))
+      .filter((a): a is OrderAssignment => a !== null)
+  } else if (legacy.sellerClientId != null) {
+    const one = normalizeAssignment(
+      {
+        sellerClientId: legacy.sellerClientId,
+        sellerName: legacy.sellerName ?? '',
+        quantity: raw.quantity,
+        assignedDate: fallbackDate,
+        status: legacy.status ?? 'on_work'
+      },
+      fallbackDate,
+      0
+    )
+    if (one) assignments = [one]
+  }
+  return {
+    carpetType: raw.carpetType,
+    graph: raw.graph,
+    width: raw.width,
+    length: raw.length,
+    sqm: raw.sqm,
+    textColor: raw.textColor,
+    borderColor: raw.borderColor,
+    quantity: raw.quantity,
+    description: raw.description,
+    assignments
   }
 }
 
 /** Parse the items_json snapshot ([] for legacy single-line orders / bad JSON). */
-function parseItems(json: string | null): OrderItem[] {
+function parseItems(json: string | null, fallbackDate: number): OrderItem[] {
   if (!json) return []
   try {
     const arr = JSON.parse(json)
-    return Array.isArray(arr) ? (arr as OrderItem[]).map(normalizeItem) : []
+    return Array.isArray(arr) ? (arr as OrderItem[]).map((it) => normalizeItem(it, fallbackDate)) : []
   } catch {
     return []
   }
@@ -58,7 +111,7 @@ function toView(row: schema.OrderRow, buyerName: string | null): OrderView {
     notes: row.notes,
     createdAt: row.createdAt,
     archived: row.archived,
-    items: parseItems(row.itemsJson)
+    items: parseItems(row.itemsJson, row.orderDate)
   }
 }
 
@@ -223,7 +276,9 @@ export function registerOrdersIpc(getDb: () => DB): void {
     const db = getDb()
     const existing = db.select().from(schema.orders).where(eq(schema.orders.id, id)).get()
     if (!existing) return
-    const normalized = (Array.isArray(items) ? items : []).map(normalizeItem)
+    const normalized = (Array.isArray(items) ? items : []).map((it) =>
+      normalizeItem(it, existing.orderDate)
+    )
     const quantity = normalized.reduce((s, it) => s + (it.quantity > 0 ? Math.trunc(it.quantity) : 0), 0) || 1
     db.update(schema.orders)
       .set({ itemsJson: normalized.length ? JSON.stringify(normalized) : null, quantity })
@@ -237,6 +292,46 @@ export function registerOrdersIpc(getDb: () => DB): void {
       before: existing,
       after: orderRow(db, id)
     })
+  })
+
+  ipcMain.handle('orders:assignedToSeller', (_e, sellerClientId: number): SellerAssignmentView[] => {
+    const db = getDb()
+    // Scan orders (single-user, offline dataset) and flatten matching hand-offs.
+    const rows = db
+      .select({ order: schema.orders, buyerName: schema.clients.name })
+      .from(schema.orders)
+      .leftJoin(schema.clients, eq(schema.orders.buyerClientId, schema.clients.id))
+      .where(eq(schema.orders.archived, false))
+      .all()
+
+    const out: SellerAssignmentView[] = []
+    for (const { order, buyerName } of rows) {
+      const items = parseItems(order.itemsJson, order.orderDate)
+      items.forEach((it, itemIndex) => {
+        for (const a of it.assignments ?? []) {
+          if (a.sellerClientId !== sellerClientId) continue
+          out.push({
+            orderId: order.id,
+            orderNo: order.orderNo,
+            buyerName,
+            orderDate: order.orderDate,
+            itemIndex,
+            assignmentId: a.id,
+            carpetType: it.carpetType,
+            graph: it.graph,
+            width: it.width,
+            length: it.length,
+            sqm: it.sqm,
+            quantity: a.quantity,
+            assignedDate: a.assignedDate,
+            status: a.status
+          })
+        }
+      })
+    }
+    // Newest hand-offs first.
+    out.sort((a, b) => b.assignedDate - a.assignedDate || b.orderId - a.orderId)
+    return out
   })
 
   ipcMain.handle('orders:nextOrderNo', () => nextOrderNo(getDb()))
