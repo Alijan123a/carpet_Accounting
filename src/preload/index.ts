@@ -68,9 +68,11 @@ const api = {
   // Orders («سفارشات»).
   orders: {
     list: (params: unknown) => ipcRenderer.invoke('orders:list', params),
+    get: (id: number) => ipcRenderer.invoke('orders:get', id),
     create: (input: unknown) => ipcRenderer.invoke('orders:create', input),
     update: (id: number, input: unknown) => ipcRenderer.invoke('orders:update', id, input),
     setStatus: (id: number, status: unknown) => ipcRenderer.invoke('orders:setStatus', id, status),
+    updateItems: (id: number, items: unknown) => ipcRenderer.invoke('orders:updateItems', id, items),
     remove: (id: number) => ipcRenderer.invoke('orders:remove', id),
     nextOrderNo: () => ipcRenderer.invoke('orders:nextOrderNo')
   },

@@ -11,6 +11,7 @@ import { formatDate } from '@renderer/lib/date'
 import { ORDER_STATUSES } from '@shared/contracts'
 import type { OrderStatus, OrderView } from '@shared/contracts'
 import { OrderFormDialog } from './OrderFormDialog'
+import { OrderDetail } from './OrderDetail'
 import { orderStatusLabel, orderStatusBadge } from './orderStatus'
 import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
@@ -44,6 +45,7 @@ export function OrdersModule(): JSX.Element {
   const [formOpen, setFormOpen] = useState(false)
   const [editOrder, setEditOrder] = useState<OrderView | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<OrderView | null>(null)
+  const [selectedId, setSelectedId] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
 
   const rowsRef = useRef<OrderView[]>([])
@@ -116,6 +118,19 @@ export function OrdersModule(): JSX.Element {
     } finally {
       setBusy(false)
     }
+  }
+
+  if (selectedId !== null) {
+    return (
+      <OrderDetail
+        orderId={selectedId}
+        onBack={() => {
+          setSelectedId(null)
+          refresh()
+        }}
+        onChanged={refresh}
+      />
+    )
   }
 
   return (
@@ -199,7 +214,12 @@ export function OrdersModule(): JSX.Element {
               return (
                 <div
                   key={o.id}
-                  className={cn(GRID, 'absolute start-0 top-0 w-full border-b border-border text-sm')}
+                  onDoubleClick={() => setSelectedId(o.id)}
+                  title={t('orders.openHint', 'Double-click to open carpets')}
+                  className={cn(
+                    GRID,
+                    'absolute start-0 top-0 w-full cursor-pointer border-b border-border text-sm hover:bg-accent/40'
+                  )}
                   style={{ height: `${ROW_HEIGHT}px`, transform: `translateY(${vi.start}px)` }}
                 >
                   <span className="text-muted-foreground">{formatDate(o.orderDate, calendar)}</span>
@@ -215,7 +235,7 @@ export function OrdersModule(): JSX.Element {
                   <span className="text-end font-mono tabular-nums">
                     {orderTotalSqm(o)?.toFixed(2) ?? '—'}
                   </span>
-                  <span>
+                  <span onDoubleClick={(e) => e.stopPropagation()}>
                     {/* Inline status change — the badge colour reflects the value. */}
                     <select
                       value={o.status}
@@ -232,7 +252,7 @@ export function OrdersModule(): JSX.Element {
                       ))}
                     </select>
                   </span>
-                  <span className="flex justify-end gap-1">
+                  <span className="flex justify-end gap-1" onDoubleClick={(e) => e.stopPropagation()}>
                     <Button
                       variant="ghost"
                       size="icon"

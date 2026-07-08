@@ -462,9 +462,21 @@ export type OrderStatus = 'pending' | 'on_work' | 'finished' | 'delivered' | 'ca
 export const ORDER_STATUSES: OrderStatus[] = ['pending', 'on_work', 'finished', 'delivered', 'cancelled']
 
 /**
+ * Per-carpet (per-item) production state. An item starts «در انتظار» (pending),
+ * moves to «در حال کار» once handed to a weaver/seller, then «تکمیل» when the
+ * carpet is made and «تحویل‌شده» once delivered to us.
+ */
+export type OrderItemStatus = 'pending' | 'on_work' | 'complete' | 'delivered'
+
+export const ORDER_ITEM_STATUSES: OrderItemStatus[] = ['pending', 'on_work', 'complete', 'delivered']
+
+/**
  * One row of a multi-item order (snapshotted as JSON in orders.items_json).
  * Free-text specs of the commissioned carpet; SQM defaults to width×length in
  * the form but the stored value is whatever the user confirmed.
+ *
+ * `status`/`seller*` are optional for backward compatibility with orders saved
+ * before per-item tracking existed; the main process normalizes them on read.
  */
 export interface OrderItem {
   /** «نوع قالین» — carpet type, free text. */
@@ -482,6 +494,12 @@ export interface OrderItem {
   quantity: number
   /** «تفصیل» — free text. */
   description: string
+  /** Production state of this carpet (defaults to 'pending'). */
+  status?: OrderItemStatus
+  /** Seller/weaver this carpet was handed to, if assigned. */
+  sellerClientId?: number | null
+  /** Snapshot of the seller's name at assignment time (for display). */
+  sellerName?: string | null
 }
 
 export interface OrderInput {
@@ -541,10 +559,13 @@ export interface OrdersListResult {
 
 export interface OrdersApi {
   list: (params: OrdersListParams) => Promise<OrdersListResult>
+  get: (id: number) => Promise<OrderView | null>
   create: (input: OrderInput) => Promise<number>
   update: (id: number, input: OrderInput) => Promise<void>
   /** Quick status change from the list (sets delivered_at when → delivered). */
   setStatus: (id: number, status: OrderStatus) => Promise<void>
+  /** Replace the per-item snapshot (per-carpet status / seller assignment). */
+  updateItems: (id: number, items: OrderItem[]) => Promise<void>
   remove: (id: number) => Promise<void>
   /** Suggested next «نمبر سفارش» (sequential over the orders table). */
   nextOrderNo: () => Promise<string>

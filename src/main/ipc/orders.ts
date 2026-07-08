@@ -14,12 +14,25 @@ import type {
 
 type DB = BetterSQLite3Database<typeof schema>
 
+const ITEM_STATUSES = new Set(['pending', 'on_work', 'complete', 'delivered'])
+
+/** Normalize one raw item, filling per-item status/seller defaults (legacy rows). */
+function normalizeItem(raw: OrderItem): OrderItem {
+  const status = ITEM_STATUSES.has(raw.status as string) ? raw.status : 'pending'
+  return {
+    ...raw,
+    status,
+    sellerClientId: raw.sellerClientId ?? null,
+    sellerName: raw.sellerName ?? null
+  }
+}
+
 /** Parse the items_json snapshot ([] for legacy single-line orders / bad JSON). */
 function parseItems(json: string | null): OrderItem[] {
   if (!json) return []
   try {
     const arr = JSON.parse(json)
-    return Array.isArray(arr) ? (arr as OrderItem[]) : []
+    return Array.isArray(arr) ? (arr as OrderItem[]).map(normalizeItem) : []
   } catch {
     return []
   }
@@ -149,6 +162,17 @@ export function registerOrdersIpc(getDb: () => DB): void {
 
   ipcMain.handle('orders:list', (_e, params: OrdersListParams) => listOrders(getDb(), params))
 
+  ipcMain.handle('orders:get', (_e, id: number): OrderView | null => {
+    const db = getDb()
+    const row = db
+      .select({ order: schema.orders, buyerName: schema.clients.name })
+      .from(schema.orders)
+      .leftJoin(schema.clients, eq(schema.orders.buyerClientId, schema.clients.id))
+      .where(eq(schema.orders.id, id))
+      .get()
+    return row ? toView(row.order, row.buyerName) : null
+  })
+
   ipcMain.handle('orders:create', (_e, input: OrderInput): number => {
     const db = getDb()
     const now = Date.now()
@@ -190,6 +214,26 @@ export function registerOrdersIpc(getDb: () => DB): void {
       entityId: id,
       action: 'update',
       summary: `${existing.title}: ${existing.status} → ${status}`,
+      before: existing,
+      after: orderRow(db, id)
+    })
+  })
+
+  ipcMain.handle('orders:updateItems', (_e, id: number, items: OrderItem[]): void => {
+    const db = getDb()
+    const existing = db.select().from(schema.orders).where(eq(schema.orders.id, id)).get()
+    if (!existing) return
+    const normalized = (Array.isArray(items) ? items : []).map(normalizeItem)
+    const quantity = normalized.reduce((s, it) => s + (it.quantity > 0 ? Math.trunc(it.quantity) : 0), 0) || 1
+    db.update(schema.orders)
+      .set({ itemsJson: normalized.length ? JSON.stringify(normalized) : null, quantity })
+      .where(eq(schema.orders.id, id))
+      .run()
+    logChange(db, {
+      entity: 'order',
+      entityId: id,
+      action: 'update',
+      summary: `${existing.title}: اقلام به‌روزرسانی شد`,
       before: existing,
       after: orderRow(db, id)
     })

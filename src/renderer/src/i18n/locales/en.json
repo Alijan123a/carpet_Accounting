@@ -46,7 +46,8 @@
     "create": "Create",
     "rename": "Rename",
     "manage": "Manage",
-    "deleteTypeToConfirm": "To confirm, type <b>{{name}}</b> below:"
+    "deleteTypeToConfirm": "To confirm, type <b>{{name}}</b> below:",
+    "clear": "Clear"
   },
   "settings": {
     "title": "Settings",
@@ -426,6 +427,26 @@
       "finished": "Finished",
       "delivered": "Delivered",
       "cancelled": "Cancelled"
+    },
+    "carpets": "Carpets",
+    "dims": "W×L",
+    "seller": "Seller (weaver)",
+    "sellerPlaceholder": "Type a seller name…",
+    "unassigned": "Unassigned",
+    "assignSeller": "Assign to seller",
+    "assignSellerBody": "Hand {{count}} carpet(s) to a seller to make. They will be marked «On work».",
+    "assign": "Assign",
+    "selectedCount": "{{count}} selected",
+    "setStatus": "Set status",
+    "selectAll": "Select all",
+    "noItems": "No carpets in this order.",
+    "itemStatusLabel": "Status",
+    "openHint": "Double-click to open carpets",
+    "itemStatus": {
+      "pending": "Pending",
+      "on_work": "On work",
+      "complete": "Complete",
+      "delivered": "Delivered"
     }
   },
   "expenses": {

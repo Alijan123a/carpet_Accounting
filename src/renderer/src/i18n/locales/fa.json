@@ -46,7 +46,8 @@
     "create": "ایجاد",
     "rename": "تغییر نام",
     "manage": "مدیریت",
-    "deleteTypeToConfirm": "برای تأیید، <b>{{name}}</b> را در زیر بنویسید:"
+    "deleteTypeToConfirm": "برای تأیید، <b>{{name}}</b> را در زیر بنویسید:",
+    "clear": "پاک کردن"
   },
   "settings": {
     "title": "تنظیمات",
@@ -426,6 +427,26 @@
       "finished": "تکمیل‌شده",
       "delivered": "تحویل‌شده",
       "cancelled": "لغو‌شده"
+    },
+    "carpets": "قالین‌ها",
+    "dims": "عرض×طول",
+    "seller": "فروشنده (بافنده)",
+    "sellerPlaceholder": "نام فروشنده را بنویسید…",
+    "unassigned": "واگذارنشده",
+    "assignSeller": "واگذاری به فروشنده",
+    "assignSellerBody": "{{count}} قالین برای بافت به یک فروشنده واگذار شود. وضعیت آن‌ها «در حال کار» می‌شود.",
+    "assign": "واگذاری",
+    "selectedCount": "{{count}} انتخاب‌شده",
+    "setStatus": "تعیین وضعیت",
+    "selectAll": "انتخاب همه",
+    "noItems": "این سفارش قالینی ندارد.",
+    "itemStatusLabel": "وضعیت",
+    "openHint": "برای باز کردن قالین‌ها دوبار کلیک کنید",
+    "itemStatus": {
+      "pending": "در انتظار",
+      "on_work": "در حال کار",
+      "complete": "تکمیل",
+      "delivered": "تحویل‌شده"
     }
   },
   "expenses": {
