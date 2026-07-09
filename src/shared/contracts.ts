@@ -148,6 +148,11 @@ export interface CarpetBatchLineInput {
   pricePerMeterCents: number
   sortDeductionCents: number
   /**
+   * «متراژ» m². Defaults to length×width, but the user may override it (some
+   * carpets are not a clean L×W rectangle). When 0/unset the server derives it.
+   */
+  area?: number
+  /**
    * Final line total in integer cents. Defaults to (price − deduction) × area
    * but the user may override it directly; when 0/unset the server recomputes.
    */

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -11,31 +10,30 @@ import {
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { DateInput } from '@renderer/components/ui/date-input'
-import { Typeahead } from '@renderer/components/ui/typeahead'
-import { useSettings } from '@renderer/store/settings'
 import { startOfDayEpoch } from '@renderer/lib/date'
 import {
   parseMoneyToCents,
   centsToInput,
   formatCents,
   carpetTotalPriceCents,
-  invoiceGrandTotalCents,
-  ENABLED_CURRENCIES
+  invoiceGrandTotalCents
 } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
-import type { ClientListItem, CarpetBatchLineInput } from '@shared/contracts'
+import type { CarpetBatchLineInput, OrderAssignment, OrderItem } from '@shared/contracts'
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10)
 
 /** Trim float noise on a computed area (m²) before showing it in the input. */
 const round4 = (n: number): number => Math.round(n * 10000) / 10000
 
-/** Sort grades are a fixed set (A, B, C) — same as the single-carpet form. */
+const clamp = (n: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, n))
+
+/** Sort grades are a fixed set (A, B, C) — same as the carpet forms. */
 const SORT_GRADES: string[] = ['A', 'B', 'C']
 
-/** One grid layout string shared by the header and body rows so they line up. */
+/** Shared grid layout (header + body). Mirrors the buy-invoice grid, no remove column. */
 const GRID =
-  'grid grid-cols-[minmax(110px,1.3fr)_minmax(90px,1fr)_64px_64px_72px_68px_100px_100px_110px_36px] items-center gap-2'
+  'grid grid-cols-[minmax(110px,1.3fr)_minmax(90px,1fr)_64px_64px_72px_68px_100px_100px_110px] items-center gap-2'
 
 interface Line {
   key: number
@@ -55,15 +53,18 @@ interface Line {
 }
 
 let lineSeq = 1
-function emptyLine(): Line {
+
+/** A fresh carpet row, pre-seeded from the ordered item's specs. */
+function defaultLine(item: OrderItem | null): Line {
   return {
     key: lineSeq++,
     label: '',
     quality: '',
-    length: '',
-    width: '',
-    area: '',
-    areaManual: false,
+    length: item?.length != null ? String(item.length) : '',
+    width: item?.width != null ? String(item.width) : '',
+    area: item?.sqm != null ? String(round4(item.sqm)) : '',
+    // Keep the ordered متراژ sticky when it was given (it is not always L×W).
+    areaManual: item?.sqm != null,
     grade: '',
     ppm: '',
     deduction: '',
@@ -72,11 +73,7 @@ function emptyLine(): Line {
   }
 }
 
-/**
- * Numbers derived from a line's raw input strings. Area defaults to L×W but may
- * be overridden («متراژ» is not always a clean rectangle); the auto total is
- * (price − deduction) × area, but the user may override «جمله» directly.
- */
+/** Numbers derived from a line's raw input strings (single source for math). */
 function lineCalc(line: Line): {
   areaNum: number
   autoArea: number
@@ -97,74 +94,73 @@ function lineCalc(line: Line): {
 }
 
 /**
- * Bill-style bulk purchase: add several carpets at once. Mirrors the sell
- * invoice UX — a shared header (seller / date / currency) plus a scrollable line
- * grid. New carpets are always «در انبار». Saving posts every carpet (and its
- * purchase transaction, if a seller is chosen) atomically through
- * {@link window.api.carpets.createBatch}.
+ * Record the carpets a بافنده finished for one hand-off. Styled like the bulk
+ * «افزودن قالین‌ها» (buy) grid: the seller is fixed (the hand-off's بافنده), a
+ * quantity picks how many pieces were completed (≤ the hand-off quantity, and it
+ * drives the number of carpet rows), and each row becomes a real warehouse
+ * carpet. Saving posts every carpet + a purchase to the بافنده's account
+ * atomically via {@link window.api.carpets.createBatch}.
  */
-export function BuyInvoiceDialog({
+export function CompleteAssignmentDialog({
   open,
   onOpenChange,
-  onSaved
+  assignment,
+  item,
+  currency,
+  onCompleted
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSaved: () => void
+  assignment: OrderAssignment | null
+  item: OrderItem | null
+  currency: Currency
+  onCompleted: (completedQty: number) => void
 }): JSX.Element {
   const { t } = useTranslation()
-  const defaultCurrency = useSettings((s) => s.defaultCurrency)
+  const maxQty = assignment?.quantity ?? 0
 
-  const [sellers, setSellers] = useState<ClientListItem[]>([])
-
-  const [sellerQuery, setSellerQuery] = useState('')
-  const [seller, setSeller] = useState<ClientListItem | null>(null)
+  const [qty, setQty] = useState('')
   const [date, setDate] = useState(todayStr())
-  const [currency, setCurrency] = useState<Currency>(defaultCurrency)
   const [lines, setLines] = useState<Line[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (!open) return
+    if (!open || !assignment) return
     setError(null)
-    setSellerQuery('')
-    setSeller(null)
+    setBusy(false)
     setDate(todayStr())
-    setCurrency(defaultCurrency)
-    setLines([emptyLine(), emptyLine(), emptyLine()])
-    void window.api.clients
-      .list({ kind: 'seller', includeArchived: false, limit: 1000, offset: 0 })
-      .then((r) => setSellers(r.rows))
+    setQty(String(maxQty))
+    setLines(Array.from({ length: maxQty }, () => defaultLine(item)))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+  }, [open, assignment])
+
+  // Changing the quantity grows/shrinks the row list (rows = pieces completed).
+  function changeQty(raw: string): void {
+    setQty(raw)
+    const n = clamp(parseInt(raw, 10) || 0, 0, maxQty)
+    setLines((prev) => {
+      if (n === prev.length) return prev
+      if (n < prev.length) return prev.slice(0, n)
+      return [...prev, ...Array.from({ length: n - prev.length }, () => defaultLine(item))]
+    })
+  }
+
+  function patch(key: number, updater: (l: Line) => Line): void {
+    setLines((prev) => prev.map((l) => (l.key === key ? updater(l) : l)))
+  }
 
   const grandTotalCents = useMemo(
     () => invoiceGrandTotalCents(lines.map((l) => lineCalc(l).totalCents)),
     [lines]
   )
 
-  function patch(key: number, updater: (l: Line) => Line): void {
-    setLines((prev) => prev.map((l) => (l.key === key ? updater(l) : l)))
-  }
-
-  function addLine(): void {
-    setLines((prev) => [...prev, emptyLine()])
-  }
-
-  function removeLine(key: number): void {
-    setLines((prev) => {
-      const next = prev.filter((l) => l.key !== key)
-      return next.length ? next : [emptyLine()]
-    })
-  }
-
   async function submit(): Promise<void> {
-    // Keep only rows the user actually started (a label makes a row "real").
+    if (!assignment) return
+    // A row counts once it has a label; empty rows are simply skipped.
     const filled = lines.filter((l) => l.label.trim())
-    if (!filled.length) return setError(t('buyInvoice.noLines', 'Add at least one carpet (label required).'))
+    if (!filled.length) return setError(t('complete.noLines', 'Add at least one carpet (label required).'))
 
-    // Every included carpet needs positive dimensions (area = L×W).
     for (const l of filled) {
       if (!((parseFloat(l.length) || 0) > 0 && (parseFloat(l.width) || 0) > 0)) {
         return setError(
@@ -195,15 +191,15 @@ export function BuyInvoiceDialog({
     try {
       const res = await window.api.carpets.createBatch({
         currency,
-        boughtFromClientId: seller?.id ?? null,
-        transactionDate: seller ? startOfDayEpoch(date) : null,
+        boughtFromClientId: assignment.sellerClientId,
+        transactionDate: startOfDayEpoch(date),
         lines: payloadLines
       })
       if (!res.ok) {
         setError(batchError(res.reason, res.label))
         return
       }
-      onSaved()
+      onCompleted(filled.length)
       onOpenChange(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -219,67 +215,57 @@ export function BuyInvoiceDialog({
       case 'duplicate_label':
         return t('buyInvoice.duplicateLabel', 'Label “{{label}}” is repeated in this list.', { label: label ?? '' })
       case 'no_lines':
-        return t('buyInvoice.noLines', 'Add at least one carpet (label required).')
+        return t('complete.noLines', 'Add at least one carpet (label required).')
       default:
         return reason ?? 'error'
     }
   }
 
-  const sellerItems = useMemo(
-    () => sellers.map((s) => ({ id: s.id, label: s.name, sublabel: s.phone ?? undefined })),
-    [sellers]
-  )
+  if (!assignment) return <Dialog open={open} onOpenChange={onOpenChange} />
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl">
         <DialogHeader>
-          <DialogTitle>{t('buyInvoice.title', 'Add carpets (buy)')}</DialogTitle>
+          <DialogTitle>
+            {t('complete.title', 'Complete carpets')} — {item?.carpetType || t('common.none', '—')}
+          </DialogTitle>
         </DialogHeader>
 
-        {/* Shared header: seller + date + currency */}
+        {/* Shared header: بافنده (read-only) + quantity + complete date */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label className="block space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">{t('buyInvoice.seller', 'Bought from (seller)')}</span>
-            <Typeahead
-              value={sellerQuery}
-              onValueChange={(v) => {
-                setSellerQuery(v)
-                setSeller(null)
-              }}
-              items={sellerItems}
-              onSelect={(it) => {
-                const s = sellers.find((x) => x.id === it.id) ?? null
-                setSeller(s)
-                setSellerQuery(s?.name ?? '')
-              }}
-              placeholder={t('buyInvoice.sellerPlaceholder', 'Optional — type a seller name…')}
-            />
-            {seller?.phone && <span className="text-xs text-muted-foreground">{seller.phone}</span>}
-          </label>
-          <label className="block space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">{t('carpets.buyDate', 'Purchase date')}</span>
-            <DateInput value={date} onChange={setDate} disabled={!seller} />
-          </label>
-          <label className="block space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">{t('carpets.currency', 'Currency')}</span>
+            <span className="text-xs font-medium text-muted-foreground">{t('orders.seller', 'بافنده')}</span>
             <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value as Currency)}
-              className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
+              value={assignment.sellerClientId}
+              disabled
+              className="h-10 w-full rounded-lg border border-input bg-muted/50 px-3 text-sm disabled:opacity-100"
             >
-              {ENABLED_CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
+              <option value={assignment.sellerClientId}>{assignment.sellerName || t('common.none', '—')}</option>
             </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              {t('complete.quantity', 'Completed qty')} <span className="text-muted-foreground/70">(≤ {maxQty})</span>
+            </span>
+            <Input
+              type="number"
+              min="0"
+              max={String(maxQty)}
+              value={qty}
+              onChange={(e) => changeQty(e.target.value)}
+              className="h-10 text-end"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">{t('complete.date', 'Completed on')}</span>
+            <DateInput value={date} onChange={setDate} />
           </label>
         </div>
 
-        {/* Line grid */}
+        {/* Line grid — one row per completed carpet */}
         <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-card">
-          <div className="min-w-[960px]">
+          <div className="min-w-[900px]">
             <div className={`${GRID} border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground`}>
               <span>{t('carpets.label', 'Label #')}</span>
               <span>{t('carpets.quality', 'Quality')}</span>
@@ -290,11 +276,14 @@ export function BuyInvoiceDialog({
               <span className="text-end">{t('carpets.pricePerMeter', 'Price/m')}</span>
               <span className="text-end">{t('carpets.deduction', 'Ded.')}</span>
               <span className="text-end">{t('carpets.totalPrice', 'Total')}</span>
-              <span />
             </div>
 
-            {/* Scroll body so rows stay reachable when there are many carpets. */}
-            <div className="max-h-[48vh] overflow-y-auto">
+            <div className="max-h-[44vh] overflow-y-auto">
+              {lines.length === 0 && (
+                <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                  {t('complete.setQty', 'Set a quantity to add carpet rows.')}
+                </div>
+              )}
               {lines.map((l) => {
                 const { autoArea, autoTotalCents } = lineCalc(l)
                 const areaValue = l.areaManual ? l.area : autoArea ? String(round4(autoArea)) : ''
@@ -368,25 +357,12 @@ export function BuyInvoiceDialog({
                       className="h-9 text-end"
                       title={t('buyInvoice.totalHint', 'Defaults to (price − deduction) × area; edit to override.')}
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title={t('invoice.removeLine', 'Remove line')}
-                      onClick={() => removeLine(l.key)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 )
               })}
             </div>
 
-            <div className="flex items-center justify-between px-3 py-2">
-              <Button variant="outline" size="sm" onClick={addLine}>
-                <Plus className="h-4 w-4" />
-                {t('invoice.addLine', 'Add row')}
-              </Button>
+            <div className="flex items-center justify-end px-3 py-2">
               <div className="text-sm">
                 <span className="text-muted-foreground">{t('invoice.grandTotal', 'Grand total')}: </span>
                 <span className="font-mono text-base font-semibold tabular-nums">
@@ -397,11 +373,15 @@ export function BuyInvoiceDialog({
           </div>
         </div>
 
-        {!seller && (
-          <p className="text-xs text-muted-foreground">
-            {t('buyInvoice.noSellerHint', 'No seller selected — carpets are added to the warehouse without posting a purchase to any account.')}
-          </p>
-        )}
+        {/* What completing does (CLAUDE.md §3: purchase posts to the بافنده's account). */}
+        <p className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-2.5 text-xs text-emerald-700 dark:text-emerald-400">
+          {t(
+            'complete.moveHint',
+            'All of these carpets move to the warehouse (گدام), and their total is added to the بافنده’s account in {{currency}}.',
+            { currency }
+          )}
+        </p>
+
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <DialogFooter>
@@ -409,7 +389,7 @@ export function BuyInvoiceDialog({
             {t('common.cancel', 'Cancel')}
           </Button>
           <Button onClick={submit} disabled={busy}>
-            {t('buyInvoice.save', 'Save carpets')}
+            {t('complete.save', 'Complete & add to warehouse')}
           </Button>
         </DialogFooter>
       </DialogContent>

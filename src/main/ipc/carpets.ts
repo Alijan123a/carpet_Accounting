@@ -261,7 +261,8 @@ export function createCarpetsBatch(db: DB, input: CarpetsBatchInput): CarpetsBat
     const ids: number[] = []
     for (const l of lines) {
       const label = l.labelNumber.trim()
-      const area = l.length * l.width
+      // Use the user's explicit «متراژ» when given; otherwise derive it (L×W).
+      const area = l.area && l.area > 0 ? l.area : l.length * l.width
       // Use the user's explicit total when given; otherwise derive it.
       const totalCents =
         l.totalCents && l.totalCents > 0

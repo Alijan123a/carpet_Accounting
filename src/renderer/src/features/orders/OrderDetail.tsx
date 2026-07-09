@@ -182,7 +182,13 @@ export function OrderDetail({
         open={editIndex !== null}
         onOpenChange={(o) => !o && setEditIndex(null)}
         item={editIndex !== null ? items[editIndex] : null}
+        currency={order.currency}
         onSave={(assignments) => editIndex !== null && saveAssignments(editIndex, assignments)}
+        onCommit={(assignments) => {
+          if (editIndex !== null) {
+            void persist(items.map((it, i) => (i === editIndex ? { ...it, assignments } : it)))
+          }
+        }}
       />
     </div>
   )

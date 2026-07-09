@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, CheckCircle2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -15,32 +15,67 @@ import { Typeahead } from '@renderer/components/ui/typeahead'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatDate, startOfDayEpoch } from '@renderer/lib/date'
-import { ORDER_ITEM_STATUSES } from '@shared/contracts'
+import type { Currency } from '@shared/accounting'
 import type { ClientListItem, OrderAssignment, OrderItem, OrderItemStatus } from '@shared/contracts'
 import { orderItemStatusLabel, orderItemStatusBadge } from './orderStatus'
+import { CompleteAssignmentDialog } from './CompleteAssignmentDialog'
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10)
 
 let uidSeq = 0
 const uid = (): string => `${Date.now().toString(36)}-${(uidSeq++).toString(36)}`
 
-const ROW_GRID = 'grid grid-cols-[minmax(110px,1.5fr)_56px_118px_128px_36px] items-center gap-2'
+const ROW_GRID = 'grid grid-cols-[minmax(110px,1.5fr)_50px_112px_88px_minmax(128px,auto)] items-center gap-2'
+
+/** Statuses that can still be completed (a done/delivered hand-off cannot). */
+const canComplete = (s: OrderItemStatus): boolean => s === 'pending' || s === 'on_work'
+
+/**
+ * Apply a completion to the hand-off list: mark the whole hand-off «تکمیل» when
+ * every piece was completed, or split it into a completed piece plus the
+ * still-open remainder when only some pieces were finished.
+ */
+function applyCompletion(
+  list: OrderAssignment[],
+  id: string,
+  completedQty: number
+): OrderAssignment[] {
+  const idx = list.findIndex((a) => a.id === id)
+  if (idx < 0 || completedQty <= 0) return list
+  const a = list[idx]
+  if (completedQty >= a.quantity) {
+    return list.map((x) => (x.id === id ? { ...x, status: 'complete' } : x))
+  }
+  const remaining: OrderAssignment = { ...a, quantity: a.quantity - completedQty }
+  const done: OrderAssignment = { ...a, id: uid(), quantity: completedQty, status: 'complete' }
+  const next = [...list]
+  next.splice(idx, 1, remaining, done)
+  return next
+}
 
 /**
  * Manage the بافنده hand-offs of a single carpet item: split its quantity across
- * several weavers (each with a date), and set each hand-off's status manually.
- * Edits are staged locally and persisted once the user saves.
+ * several weavers (each with a date). A hand-off's status is not edited by hand —
+ * it advances to «تکمیل» through the Complete action, which turns the finished
+ * pieces into warehouse carpets and posts their cost to the بافنده's account.
+ * Add/remove edits are staged locally and saved on «ذخیره»; a completion is a
+ * real ledger posting, so it is committed to the order immediately.
  */
 export function ItemAssignmentsDialog({
   open,
   onOpenChange,
   item,
-  onSave
+  currency,
+  onSave,
+  onCommit
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   item: OrderItem | null
+  currency: Currency
   onSave: (assignments: OrderAssignment[]) => void
+  /** Persist immediately without closing (used after a completion posts). */
+  onCommit: (assignments: OrderAssignment[]) => void
 }): JSX.Element {
   const { t } = useTranslation()
   const { calendar } = useSettings()
@@ -53,6 +88,8 @@ export function ItemAssignmentsDialog({
   const [qty, setQty] = useState('')
   const [date, setDate] = useState(todayStr())
   const [error, setError] = useState<string | null>(null)
+  // The hand-off currently being completed (null = complete dialog closed).
+  const [completing, setCompleting] = useState<OrderAssignment | null>(null)
 
   useEffect(() => {
     if (!open || !item) return
@@ -101,17 +138,24 @@ export function ItemAssignmentsDialog({
     setQuery('')
   }
 
-  function setStatus(id: string, status: OrderItemStatus): void {
-    setList((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)))
-  }
-
   function remove(id: string): void {
     setList((prev) => prev.filter((a) => a.id !== id))
+  }
+
+  // A completion already posted carpets + the بافنده's purchase, so commit the
+  // resulting status change to the order right away (don't wait for «ذخیره»).
+  function handleCompleted(id: string, completedQty: number): void {
+    setList((prev) => {
+      const next = applyCompletion(prev, id, completedQty)
+      onCommit(next)
+      return next
+    })
   }
 
   if (!item) return <Dialog open={open} onOpenChange={onOpenChange} />
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -147,22 +191,28 @@ export function ItemAssignmentsDialog({
               <span className="text-end font-mono tabular-nums">{a.quantity}</span>
               <span className="text-muted-foreground">{formatDate(a.assignedDate, calendar)}</span>
               <span>
-                <select
-                  value={a.status}
-                  onChange={(e) => setStatus(a.id, e.target.value as OrderItemStatus)}
+                <span
                   className={cn(
-                    'h-7 w-full rounded-md border-0 px-2 text-xs font-medium focus:ring-1 focus:ring-ring',
+                    'inline-block rounded-md px-2 py-0.5 text-xs font-medium',
                     orderItemStatusBadge(a.status)
                   )}
                 >
-                  {ORDER_ITEM_STATUSES.map((s) => (
-                    <option key={s} value={s} className="bg-card text-foreground">
-                      {orderItemStatusLabel(t, s)}
-                    </option>
-                  ))}
-                </select>
+                  {orderItemStatusLabel(t, a.status)}
+                </span>
               </span>
-              <span className="flex justify-end">
+              <span className="flex items-center justify-end gap-1">
+                {canComplete(a.status) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1 px-2 text-xs"
+                    title={t('complete.button', 'Complete')}
+                    onClick={() => setCompleting(a)}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {t('complete.button', 'Complete')}
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -181,7 +231,7 @@ export function ItemAssignmentsDialog({
         {remaining > 0 && (
           <div className="space-y-2 rounded-xl border border-dashed border-border p-3">
             <div className="text-xs font-medium text-muted-foreground">{t('orders.addAssignment', 'Hand off to a بافنده')}</div>
-            <div className="grid grid-cols-[minmax(120px,1.6fr)_72px_130px_auto] items-end gap-2">
+            <div className="grid grid-cols-[minmax(140px,1.5fr)_70px_minmax(190px,1fr)_auto] items-end gap-2">
               <label className="space-y-1">
                 <span className="text-xs text-muted-foreground">{t('orders.seller', 'بافنده')}</span>
                 <Typeahead
@@ -232,6 +282,16 @@ export function ItemAssignmentsDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <CompleteAssignmentDialog
+      open={completing !== null}
+      onOpenChange={(o) => !o && setCompleting(null)}
+      assignment={completing}
+      item={item}
+      currency={currency}
+      onCompleted={(qty) => completing && handleCompleted(completing.id, qty)}
+    />
+    </>
   )
 }
 
