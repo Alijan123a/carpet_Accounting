@@ -12,9 +12,11 @@ import { Input } from '@renderer/components/ui/input'
 import { RequiredMark } from '@renderer/components/ui/required-mark'
 import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
+import { Typeahead } from '@renderer/components/ui/typeahead'
 import { startOfDayEpoch } from '@renderer/lib/date'
 import { parseMoneyToCents, formatCents, materialLineTotalCents, materialLineProfitCents } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
+import type { ClientListItem } from '@shared/contracts'
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10)
 
@@ -37,25 +39,34 @@ export function MaterialLineDialog({
   onSaved: () => void
 }): JSX.Element {
   const { t } = useTranslation()
-  const [clientId, setClientId] = useState('')
+  // Client is chosen through a type-to-search field: `query` is the raw text,
+  // `client` is the confirmed selection (null until one is picked).
+  const [query, setQuery] = useState('')
+  const [client, setClient] = useState<ClientListItem | null>(null)
   const [kg, setKg] = useState('')
   const [ppk, setPpk] = useState('')
   const [date, setDate] = useState(todayStr())
-  const [clients, setClients] = useState<{ id: number; name: string }[]>([])
+  const [clients, setClients] = useState<ClientListItem[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     if (!open) return
-    setClientId('')
+    setQuery('')
+    setClient(null)
     setKg('')
     setPpk('')
     setDate(todayStr())
     setError(null)
-    void window.api.clients.list({ includeArchived: false, limit: 1000, offset: 0 }).then((r) =>
-      setClients(r.rows.map((c) => ({ id: c.id, name: c.name })))
-    )
+    void window.api.clients
+      .list({ includeArchived: false, limit: 1000, offset: 0 })
+      .then((r) => setClients(r.rows))
   }, [open])
+
+  const clientItems = useMemo(
+    () => clients.map((c) => ({ id: c.id, label: c.name, sublabel: c.phone ?? undefined })),
+    [clients]
+  )
 
   const calc = useMemo(() => {
     const kilograms = parseFloat(kg) || 0
@@ -66,7 +77,7 @@ export function MaterialLineDialog({
   }, [kg, ppk, currency, avgBuyPerKgCents])
 
   async function submit(): Promise<void> {
-    if (!clientId) return setError(t('material.clientRequired', 'Choose a client.'))
+    if (!client) return setError(t('material.clientRequired', 'Choose a client.'))
     if (calc.kilograms <= 0) return setError(t('material.kgRequired', 'Kilograms must be greater than 0.'))
     setBusy(true)
     setError(null)
@@ -74,7 +85,7 @@ export function MaterialLineDialog({
       await window.api.materials.addLine({
         materialId,
         direction,
-        clientId: Number(clientId),
+        clientId: client.id,
         kilograms: calc.kilograms,
         pricePerKgCents: calc.ppkCents,
         transactionDate: startOfDayEpoch(date)
@@ -102,19 +113,22 @@ export function MaterialLineDialog({
               {t('material.client', 'Client')}
               <RequiredMark />
             </span>
-            <select
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
+            <Typeahead
+              value={query}
+              onValueChange={(v) => {
+                setQuery(v)
+                setClient(null)
+              }}
+              items={clientItems}
+              onSelect={(it) => {
+                const c = clients.find((x) => x.id === it.id) ?? null
+                setClient(c)
+                setQuery(c?.name ?? '')
+              }}
+              placeholder={t('material.clientPlaceholder', 'Type a client name…')}
               autoFocus
-              className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
-            >
-              <option value="">{t('common.select', 'Select…')}</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            />
+            {client?.phone && <span className="text-xs text-muted-foreground">{client.phone}</span>}
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="space-y-1">
