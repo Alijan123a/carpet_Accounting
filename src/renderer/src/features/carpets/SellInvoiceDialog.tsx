@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2 } from 'lucide-react'
 import {
@@ -16,17 +16,21 @@ import { DateInput } from '@renderer/components/ui/date-input'
 import { Typeahead } from '@renderer/components/ui/typeahead'
 import { useSettings } from '@renderer/store/settings'
 import { startOfDayEpoch } from '@renderer/lib/date'
+import { cn } from '@renderer/lib/utils'
 import {
   parseMoneyToCents,
   centsToInput,
   formatCents,
+  currencySymbol,
+  effectivePricePerMeterCents,
   invoiceLineTotalCents,
   invoiceGrandTotalCents,
   ENABLED_CURRENCIES
 } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { CarpetListItem, ClientListItem, SellInvoiceLineInput } from '@shared/contracts'
-import { generateInvoicePdf, type InvoiceDocData } from './SellInvoicePdf'
+import type { InvoiceDocData } from './SellInvoicePdf'
+import { InvoiceExportDialog } from './InvoiceExportDialog'
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10)
 
@@ -69,6 +73,15 @@ function emptyLine(goodsType: string): Line {
     total: '',
     totalManual: false
   }
+}
+
+/** Tiny gray hint under a line field: the carpet's buy-side value / profit. */
+function BuyHint({ children, className }: { children: ReactNode; className?: string }): JSX.Element {
+  return (
+    <div className={cn('mt-0.5 truncate text-end text-[10px] leading-tight text-muted-foreground', className)}>
+      {children}
+    </div>
+  )
 }
 
 /** Numbers derived from a line's raw input strings (single source for math). */
@@ -128,6 +141,8 @@ export function SellInvoiceDialog({
   const [lines, setLines] = useState<Line[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  /** Set once the bill is saved — opens the print/PDF/Excel chooser. */
+  const [savedDoc, setSavedDoc] = useState<InvoiceDocData | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -136,6 +151,7 @@ export function SellInvoiceDialog({
     setBuyer(null)
     setDate(todayStr())
     setCurrency(null)
+    setSavedDoc(null)
     setLines([emptyLine(carpetLabel)])
     void window.api.clients
       .list({ kind: 'buyer', includeArchived: false, limit: 1000, offset: 0 })
@@ -244,7 +260,8 @@ export function SellInvoiceDialog({
         return
       }
 
-      // Print: build the document of record and hand it to the native Save dialog.
+      // Build the document of record and open the print/PDF/Excel chooser
+      // (the bill itself is already saved either way).
       const doc: InvoiceDocData = {
         number: res.number ?? number.trim(),
         dateEpoch: startOfDayEpoch(date) ?? Date.now(),
@@ -265,12 +282,10 @@ export function SellInvoiceDialog({
         direction: language === 'fa' ? 'rtl' : 'ltr',
         calendar
       }
-      const bytes = await generateInvoicePdf(doc)
-      await window.api.pdf.save(`invoice-${doc.number}.pdf`, bytes)
 
       toast.success(t('common.saved', 'Saved.'))
       onSaved()
-      onOpenChange(false)
+      setSavedDoc(doc)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -304,7 +319,7 @@ export function SellInvoiceDialog({
       carpets.map((c) => ({
         id: c.id,
         label: c.labelNumber,
-        sublabel: `${c.area.toFixed(2)} m² · ${c.currency}`
+        sublabel: `${c.area.toFixed(2)} m² · ${currencySymbol(c.currency)}`
       })),
     [carpets]
   )
@@ -316,9 +331,11 @@ export function SellInvoiceDialog({
           <DialogTitle>{t('invoice.title', 'Sell invoice')}</DialogTitle>
         </DialogHeader>
 
-        {/* Header: buyer + number + date + currency */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="block space-y-1">
+        {/* Header: buyer + number + date + currency. 12-col grid so the date
+            field gets real width — the Shamsi day/month/year segments need it
+            (they collapsed in the old equal-quarter layout). */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
+          <label className="block space-y-1 lg:col-span-4">
             <span className="text-xs font-medium text-muted-foreground">
               {t('invoice.buyer', 'Buyer')}
               <RequiredMark />
@@ -339,15 +356,16 @@ export function SellInvoiceDialog({
             />
             {buyer?.phone && <span className="text-xs text-muted-foreground">{buyer.phone}</span>}
           </label>
-          <label className="block space-y-1">
+          <label className="block space-y-1 lg:col-span-2">
             <span className="text-xs font-medium text-muted-foreground">{t('invoice.number', 'Invoice #')}</span>
-            <Input value={number} onChange={(e) => setNumber(e.target.value)} />
+            {/* Bill # is unique and server-assigned — read-only (no edits). */}
+            <Input value={number} readOnly disabled className="bg-muted/50 cursor-not-allowed" />
           </label>
-          <label className="block space-y-1">
+          <label className="block space-y-1 lg:col-span-4">
             <span className="text-xs font-medium text-muted-foreground">{t('invoice.date', 'Date')}</span>
             <DateInput value={date} onChange={setDate} />
           </label>
-          <label className="block space-y-1">
+          <label className="block space-y-1 lg:col-span-2">
             <span className="text-xs font-medium text-muted-foreground">{t('invoice.currency', 'Currency')}</span>
             <select
               value={displayCurrency}
@@ -362,7 +380,7 @@ export function SellInvoiceDialog({
             >
               {ENABLED_CURRENCIES.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {currencySymbol(c)}
                 </option>
               ))}
             </select>
@@ -385,10 +403,16 @@ export function SellInvoiceDialog({
             </div>
 
             {lines.map((l) => {
+              // Buy-side snapshot of the selected carpet: shown as tiny hints
+              // under L / W / SQM / price / total, with the live line profit
+              // (sell total − buy total). Display only — never posted.
+              const buyCarpet = l.carpetId != null ? carpets.find((c) => c.id === l.carpetId) : undefined
+              const profitCents = buyCarpet ? lineCalc(l).totalCents - buyCarpet.totalPriceCents : null
+              const buyLabel = t('invoice.buyShort', 'Buy')
               return (
                 <div
                   key={l.key}
-                  className="grid grid-cols-[minmax(90px,1fr)_minmax(100px,1.1fr)_minmax(110px,1.2fr)_96px_96px_104px_110px_120px_40px] items-center gap-2 border-b border-border px-3 py-1.5"
+                  className="grid grid-cols-[minmax(90px,1fr)_minmax(100px,1.1fr)_minmax(110px,1.2fr)_96px_96px_104px_110px_120px_40px] items-start gap-2 border-b border-border px-3 py-1.5"
                 >
                   <Input
                     value={l.goodsType}
@@ -414,43 +438,75 @@ export function SellInvoiceDialog({
                     placeholder={t('invoice.carpetPlaceholder', 'Label…')}
                     className="min-w-0"
                   />
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={l.length}
-                    onChange={(e) => patch(l.key, (x) => ({ ...x, length: e.target.value }))}
-                    className="h-9 text-end"
-                  />
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={l.width}
-                    onChange={(e) => patch(l.key, (x) => ({ ...x, width: e.target.value }))}
-                    className="h-9 text-end"
-                  />
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={l.area}
-                    onChange={(e) => patch(l.key, (x) => ({ ...x, area: e.target.value, areaManual: true }))}
-                    className="h-9 text-end"
-                    title={t('invoice.areaHint', 'Defaults to L×W; edit to override.')}
-                  />
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={l.ppm}
-                    onChange={(e) => patch(l.key, (x) => ({ ...x, ppm: e.target.value }))}
-                    className="h-9 text-end"
-                  />
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={l.total}
-                    onChange={(e) => patch(l.key, (x) => ({ ...x, total: e.target.value, totalManual: true }))}
-                    className="h-9 text-end"
-                    title={t('invoice.totalHint', 'Defaults to area×price; edit to override.')}
-                  />
+                  <div className="min-w-0">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={l.length}
+                      onChange={(e) => patch(l.key, (x) => ({ ...x, length: e.target.value }))}
+                      className="h-9 text-end"
+                    />
+                    {buyCarpet && <BuyHint>{`${buyLabel} ${buyCarpet.length}`}</BuyHint>}
+                  </div>
+                  <div className="min-w-0">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={l.width}
+                      onChange={(e) => patch(l.key, (x) => ({ ...x, width: e.target.value }))}
+                      className="h-9 text-end"
+                    />
+                    {buyCarpet && <BuyHint>{`${buyLabel} ${buyCarpet.width}`}</BuyHint>}
+                  </div>
+                  <div className="min-w-0">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={l.area}
+                      onChange={(e) => patch(l.key, (x) => ({ ...x, area: e.target.value, areaManual: true }))}
+                      className="h-9 text-end"
+                      title={t('invoice.areaHint', 'Defaults to L×W; edit to override.')}
+                    />
+                    {buyCarpet && <BuyHint>{`${buyLabel} ${buyCarpet.area.toFixed(2)}`}</BuyHint>}
+                  </div>
+                  <div className="min-w-0">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={l.ppm}
+                      onChange={(e) => patch(l.key, (x) => ({ ...x, ppm: e.target.value }))}
+                      className="h-9 text-end"
+                    />
+                    {buyCarpet && (
+                      <BuyHint>
+                        {`${buyLabel} ${formatCents(
+                          effectivePricePerMeterCents(buyCarpet.pricePerMeterCents, buyCarpet.sortDeductionCents)
+                        )}`}
+                      </BuyHint>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={l.total}
+                      onChange={(e) => patch(l.key, (x) => ({ ...x, total: e.target.value, totalManual: true }))}
+                      className="h-9 text-end"
+                      title={t('invoice.totalHint', 'Defaults to area×price; edit to override.')}
+                    />
+                    {buyCarpet && <BuyHint>{`${buyLabel} ${formatCents(buyCarpet.totalPriceCents)}`}</BuyHint>}
+                    {profitCents != null && (
+                      <BuyHint
+                        className={cn(
+                          'font-medium',
+                          profitCents > 0 && 'text-green-600 dark:text-green-400',
+                          profitCents < 0 && 'text-red-600 dark:text-red-400'
+                        )}
+                      >
+                        {`${t('invoice.profitShort', 'Profit')} ${formatCents(profitCents)}`}
+                      </BuyHint>
+                    )}
+                  </div>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -473,7 +529,7 @@ export function SellInvoiceDialog({
               <div className="text-sm">
                 <span className="text-muted-foreground">{t('invoice.grandTotal', 'Grand total')}: </span>
                 <span className="font-mono text-base font-semibold tabular-nums">
-                  {formatCents(grandTotalCents)} {displayCurrency}
+                  {formatCents(grandTotalCents)} {currencySymbol(displayCurrency)}
                 </span>
               </div>
             </div>
@@ -502,6 +558,16 @@ export function SellInvoiceDialog({
             {t('invoice.savePrint', 'Save & Print')}
           </Button>
         </DialogFooter>
+
+        {/* Post-save chooser: print / export PDF / export Excel. Closing it
+            also closes the (already saved) invoice dialog. */}
+        <InvoiceExportDialog
+          doc={savedDoc}
+          onClose={() => {
+            setSavedDoc(null)
+            onOpenChange(false)
+          }}
+        />
       </DialogContent>
     </Dialog>
   )

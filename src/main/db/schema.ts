@@ -12,7 +12,7 @@
  * NOTE: the runtime table DDL lives in migrate.ts (executed at startup). This
  * file is the type-safe query surface; keep the two in sync.
  */
-import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import type { Currency, TransactionType } from '../../shared/accounting/types'
 
 export const clients = sqliteTable(
@@ -199,6 +199,9 @@ export const invoices = sqliteTable(
   },
   (t) => ({
     numberIdx: index('idx_invoices_number').on(t.number),
+    // Bill numbers are unique — enforced by idx_invoices_number_unique,
+    // created in runColumnUpgrades() after legacy duplicates are renamed.
+    numberUniqueIdx: uniqueIndex('idx_invoices_number_unique').on(t.number),
     buyerIdx: index('idx_invoices_buyer').on(t.buyerClientId),
     dateIdx: index('idx_invoices_date').on(t.transactionDate)
   })

@@ -5,7 +5,7 @@ import { Input } from '@renderer/components/ui/input'
 import { toast } from '@renderer/components/ui/toast'
 import { useSettings, type Theme, type Calendar } from '@renderer/store/settings'
 import type { Language } from '@renderer/i18n'
-import { ENABLED_CURRENCIES } from '@shared/accounting'
+import { ENABLED_CURRENCIES, currencySymbol } from '@shared/accounting'
 import type { AppConfig, BackupFrequency } from '@shared/contracts'
 import { StatusesDialog } from '@renderer/features/carpets/StatusesDialog'
 import { ConfirmDialog } from '@renderer/components/ConfirmDialog'
@@ -194,7 +194,7 @@ export function Settings(): JSX.Element {
       <Field title={t('settings.defaultCurrency', 'Default currency')} description={t('settings.defaultCurrencyDesc', 'Pre-selected currency for new entries.')}>
         {ENABLED_CURRENCIES.map((cur) => (
           <Button key={cur} variant={defaultCurrency === cur ? 'default' : 'outline'} size="sm" onClick={() => setDefaultCurrency(cur)}>
-            {cur}
+            {currencySymbol(cur)}
           </Button>
         ))}
       </Field>

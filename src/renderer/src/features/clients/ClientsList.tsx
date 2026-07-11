@@ -6,6 +6,7 @@ import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
+import { currencySymbol } from '@shared/accounting'
 import type { ClientListItem } from '@shared/contracts'
 import { BalanceAmount } from './BalanceAmount'
 import { ClientFormDialog } from './ClientFormDialog'
@@ -150,10 +151,10 @@ export function ClientsList({
             {t('clients.phone', 'Phone')}
           </SortHeader>
           <SortHeader col="balanceUSD" sort={sort} onSort={setSort} align="end">
-            USD
+            {currencySymbol('USD')}
           </SortHeader>
           <SortHeader col="balanceAFN" sort={sort} onSort={setSort} align="end">
-            AFN
+            {currencySymbol('AFN')}
           </SortHeader>
         </div>
 

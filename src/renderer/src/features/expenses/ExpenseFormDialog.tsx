@@ -15,7 +15,7 @@ import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
 import { Typeahead } from '@renderer/components/ui/typeahead'
 import { startOfDayEpoch } from '@renderer/lib/date'
-import { parseMoneyToCents, centsToInput, ENABLED_CURRENCIES } from '@shared/accounting'
+import { parseMoneyToCents, centsToInput, ENABLED_CURRENCIES, currencySymbol } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { ExpenseView, ExpenseType } from '@shared/contracts'
 import { useSettings } from '@renderer/store/settings'
@@ -132,7 +132,7 @@ export function ExpenseFormDialog({
               >
                 {ENABLED_CURRENCIES.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {currencySymbol(c)}
                   </option>
                 ))}
               </select>

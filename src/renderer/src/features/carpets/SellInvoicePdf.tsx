@@ -1,7 +1,8 @@
-import { Document, Page, View, Text, StyleSheet, Font, pdf } from '@react-pdf/renderer'
+import { Document, Page, View, Text, Image, StyleSheet, Font, pdf } from '@react-pdf/renderer'
 import { VAZIR_REGULAR_DATA_URI, VAZIR_BOLD_DATA_URI } from '@renderer/features/reports/fontData'
+import { LOGO_DATA_URI } from './logoData'
 import { formatDate } from '@renderer/lib/date'
-import { formatCents } from '@shared/accounting'
+import { formatCents, currencySymbol } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { Calendar } from '@renderer/store/settings'
 
@@ -24,9 +25,7 @@ Font.register({
 export const BUSINESS_INFO = {
   name: 'شرکت تولیدی قالین رضایی (غزنه)',
   /** Shown as stacked boxes in the top corner, like the printed bill pad. */
-  phones: ['0787286009', '0794235344'],
-  /** Short monogram drawn inside the logo badge. */
-  monogram: 'ق‌ر'
+  phones: ['0787286009', '0794235344']
 }
 
 /** Brand accent (indigo blue) used for the frame, header + table lines. */
@@ -82,16 +81,8 @@ const styles = StyleSheet.create({
     marginBottom: 3
   },
   phoneText: { fontSize: 8, color: BRAND, textAlign: 'center' },
-  logo: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1.5,
-    borderColor: BRAND,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  logoText: { fontSize: 16, fontWeight: 'bold', color: BRAND },
+  // Company logo (embedded JPEG; see logoData.ts).
+  logoImg: { width: 62, height: 62, objectFit: 'contain' },
 
   // Customer / number / date row
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 },
@@ -145,7 +136,7 @@ function align(dir: 'rtl' | 'ltr', end = false): 'left' | 'right' | 'center' {
 function InvoiceDocument({ data }: { data: InvoiceDocData }): JSX.Element {
   const dir = data.direction
   const center: 'center' = 'center'
-  const money = (c: number): string => `${formatCents(c)} ${data.currency}`
+  const money = (c: number): string => `${formatCents(c)} ${currencySymbol(data.currency)}`
 
   // Pad the grid to a fixed number of rows so it always reads like the bill pad.
   const blanks = Math.max(0, MIN_ROWS - data.lines.length)
@@ -169,9 +160,7 @@ function InvoiceDocument({ data }: { data: InvoiceDocData }): JSX.Element {
                 <Text style={styles.billNo}>{data.number}</Text>
               </View>
               <View style={[styles.headerSide, { alignItems: 'center' }]}>
-                <View style={styles.logo}>
-                  <Text style={styles.logoText}>{BUSINESS_INFO.monogram}</Text>
-                </View>
+                <Image src={LOGO_DATA_URI} style={styles.logoImg} />
               </View>
             </View>
 

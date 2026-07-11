@@ -13,7 +13,7 @@ import { RequiredMark } from '@renderer/components/ui/required-mark'
 import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
 import { startOfDayEpoch } from '@renderer/lib/date'
-import { parseMoneyToCents, ENABLED_CURRENCIES } from '@shared/accounting'
+import { parseMoneyToCents, ENABLED_CURRENCIES, currencySymbol } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { PaymentDirection } from '@shared/contracts'
 import { useSettings } from '@renderer/store/settings'
@@ -112,7 +112,7 @@ export function PaymentDialog({
               >
                 {ENABLED_CURRENCIES.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {currencySymbol(c)}
                   </option>
                 ))}
               </select>

@@ -9,7 +9,7 @@ import { DateInput } from '@renderer/components/ui/date-input'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
-import { formatCents, ENABLED_CURRENCIES } from '@shared/accounting'
+import { formatCents, ENABLED_CURRENCIES, currencySymbol } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import { formatDate, startOfDayEpoch, endOfDayEpoch } from '@renderer/lib/date'
 import type { ExpenseView } from '@shared/contracts'
@@ -172,7 +172,7 @@ export function ExpensesModule(): JSX.Element {
           <option value="all">{t('expenses.allCurrencies', 'All currencies')}</option>
           {ENABLED_CURRENCIES.map((c) => (
             <option key={c} value={c}>
-              {c}
+              {currencySymbol(c)}
             </option>
           ))}
         </select>
@@ -226,7 +226,7 @@ export function ExpensesModule(): JSX.Element {
                 >
                   <span className="text-muted-foreground">{formatDate(ex.expenseDate, calendar)}</span>
                   <span className="truncate font-medium">{ex.category}</span>
-                  <span className="text-muted-foreground">{ex.currency}</span>
+                  <span className="text-muted-foreground">{currencySymbol(ex.currency)}</span>
                   <span className="text-end font-mono tabular-nums">{formatCents(ex.amountCents)}</span>
                   <span className="truncate text-muted-foreground">{ex.note || t('common.none', '—')}</span>
                 </div>

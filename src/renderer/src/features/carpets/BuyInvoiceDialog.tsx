@@ -21,7 +21,8 @@ import {
   formatCents,
   carpetTotalPriceCents,
   invoiceGrandTotalCents,
-  ENABLED_CURRENCIES
+  ENABLED_CURRENCIES,
+  currencySymbol
 } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { ClientListItem, CarpetBatchLineInput } from '@shared/contracts'
@@ -275,7 +276,7 @@ export function BuyInvoiceDialog({
             >
               {ENABLED_CURRENCIES.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {currencySymbol(c)}
                 </option>
               ))}
             </select>
@@ -396,7 +397,7 @@ export function BuyInvoiceDialog({
               <div className="text-sm">
                 <span className="text-muted-foreground">{t('invoice.grandTotal', 'Grand total')}: </span>
                 <span className="font-mono text-base font-semibold tabular-nums">
-                  {formatCents(grandTotalCents)} {currency}
+                  {formatCents(grandTotalCents)} {currencySymbol(currency)}
                 </span>
               </div>
             </div>

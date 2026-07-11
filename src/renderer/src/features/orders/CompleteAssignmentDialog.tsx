@@ -16,6 +16,7 @@ import {
   parseMoneyToCents,
   centsToInput,
   formatCents,
+  currencySymbol,
   carpetTotalPriceCents,
   invoiceGrandTotalCents
 } from '@shared/accounting'
@@ -370,7 +371,7 @@ export function CompleteAssignmentDialog({
               <div className="text-sm">
                 <span className="text-muted-foreground">{t('invoice.grandTotal', 'Grand total')}: </span>
                 <span className="font-mono text-base font-semibold tabular-nums">
-                  {formatCents(grandTotalCents)} {currency}
+                  {formatCents(grandTotalCents)} {currencySymbol(currency)}
                 </span>
               </div>
             </div>
@@ -382,7 +383,7 @@ export function CompleteAssignmentDialog({
           {t(
             'complete.moveHint',
             'All of these carpets move to the warehouse (گدام), and their total is added to the بافنده’s account in {{currency}}.',
-            { currency }
+            { currency: currencySymbol(currency) }
           )}
         </p>
 

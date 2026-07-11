@@ -296,6 +296,28 @@ function runColumnUpgrades(sqlite: Database.Database): void {
   }
   sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_carpets_origin ON carpets(origin);`)
 
+  // invoices.number must be UNIQUE — the bill number is server-assigned and
+  // read-only in the UI. Databases from an earlier version may contain
+  // duplicates (the column was only indexed, not unique), so rename those
+  // first (append "-<row id>") and only then create the unique index. The
+  // sqlite_master check makes the whole block run once.
+  const hasUniqueInvoiceNo = sqlite
+    .prepare(`SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_invoices_number_unique'`)
+    .get()
+  if (!hasUniqueInvoiceNo) {
+    const dups = sqlite
+      .prepare(`SELECT id, number FROM invoices WHERE id NOT IN (SELECT MIN(id) FROM invoices GROUP BY number)`)
+      .all() as { id: number; number: string }[]
+    const taken = sqlite.prepare(`SELECT 1 FROM invoices WHERE number = ?`)
+    const rename = sqlite.prepare(`UPDATE invoices SET number = ? WHERE id = ?`)
+    for (const d of dups) {
+      let candidate = `${d.number}-${d.id}`
+      for (let n = 2; taken.get(candidate); n++) candidate = `${d.number}-${d.id}-${n}`
+      rename.run(candidate, d.id)
+    }
+    sqlite.exec(`CREATE UNIQUE INDEX idx_invoices_number_unique ON invoices(number);`)
+  }
+
   // Seed expense_types from any category already used, so existing free-text
   // categories show up as suggestions. INSERT OR IGNORE keeps it idempotent.
   sqlite.exec(

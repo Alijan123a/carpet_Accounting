@@ -33,9 +33,21 @@ export function formatCents(cents: number): string {
   return `${sign}${grouped}.${frac.toString().padStart(2, '0')}`
 }
 
-/** Format integer cents with the currency code, e.g. "45.50 AFN". */
+/**
+ * Display symbol per currency (CLAUDE.md §6): the dollar sign for USD and the
+ * Afghani sign (U+060B) for AFN. Currency CODES stay in storage/contracts;
+ * only DISPLAY uses the symbol — always go through this helper.
+ */
+export const CURRENCY_SYMBOLS: Record<Currency, string> = { USD: '$', AFN: '؋' }
+
+/** The display symbol for a currency, e.g. 'USD' -> "$". */
+export function currencySymbol(currency: Currency): string {
+  return CURRENCY_SYMBOLS[currency]
+}
+
+/** Format integer cents with the currency symbol, e.g. "45.50 ؋". */
 export function formatMoney(cents: number, currency: Currency): string {
-  return `${formatCents(cents)} ${currency}`
+  return `${formatCents(cents)} ${CURRENCY_SYMBOLS[currency]}`
 }
 
 /**

@@ -11,6 +11,7 @@ import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatDate, startOfDayEpoch, endOfDayEpoch } from '@renderer/lib/date'
 import type { ClientListItem, TransactionView, TypeFilter } from '@shared/contracts'
+import { currencySymbol } from '@shared/accounting'
 import type { TransactionType } from '@shared/accounting'
 import { BalanceAmount } from './BalanceAmount'
 import { ClientFormDialog } from './ClientFormDialog'
@@ -374,7 +375,7 @@ export function ClientDetail({
                   <span className="truncate">{tx.carpetLabel || t('common.none', '—')}</span>
                   <span className="text-end">
                     <BalanceAmount cents={tx.amountCents} />
-                    <span className="ms-1 text-xs text-muted-foreground">{tx.currency}</span>
+                    <span className="ms-1 text-xs text-muted-foreground">{currencySymbol(tx.currency)}</span>
                   </span>
                   <span className="truncate text-muted-foreground">{tx.note || t('common.none', '—')}</span>
                   <span className="flex justify-end">

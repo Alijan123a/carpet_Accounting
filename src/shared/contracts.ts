@@ -666,6 +666,21 @@ export interface ReportsApi {
 export interface PdfApi {
   /** Persist PDF bytes via a native Save dialog. */
   save: (fileName: string, bytes: Uint8Array) => Promise<{ ok: boolean; path?: string; canceled?: boolean }>
+  /**
+   * Print a PDF via the Windows shell "Print" verb. `opened: true` means the
+   * verb was unavailable and the file was opened in the viewer instead.
+   */
+  print: (fileName: string, bytes: Uint8Array) => Promise<{ ok: boolean; opened?: boolean }>
+}
+
+export interface FilesApi {
+  /** Persist arbitrary bytes via a native Save dialog with a custom filter (e.g. Excel). */
+  save: (
+    fileName: string,
+    bytes: Uint8Array,
+    filterName: string,
+    extensions: string[]
+  ) => Promise<{ ok: boolean; path?: string; canceled?: boolean }>
 }
 
 // --- Archive / Auth / Config / Backup (Phase 6) -----------------------------

@@ -6,7 +6,7 @@ import { Input } from '@renderer/components/ui/input'
 import { toast } from '@renderer/components/ui/toast'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
-import { formatCents } from '@shared/accounting'
+import { formatCents, currencySymbol } from '@shared/accounting'
 import { formatDate } from '@renderer/lib/date'
 import type { MaterialDetailView, MaterialLineView } from '@shared/contracts'
 import { MaterialLineDialog } from './MaterialLineDialog'
@@ -186,7 +186,7 @@ export function MaterialDetail({
                   </Button>
                 </>
               )}
-              <span className="rounded bg-accent px-2 py-0.5 text-xs text-accent-foreground">{cur}</span>
+              <span className="rounded bg-accent px-2 py-0.5 text-xs text-accent-foreground">{currencySymbol(cur)}</span>
               {material.archived && (
                 <span className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                   {t('clients.archivedBadge', 'Archived')}
@@ -237,7 +237,7 @@ export function MaterialDetail({
         <Stat label={t('material.stock', 'Stock (kg)')} value={kg(material.stockKg)} strong />
         <Stat
           label={t('material.profit', 'Profit')}
-          value={`${formatCents(material.profitCents)} ${cur}`}
+          value={`${formatCents(material.profitCents)} ${currencySymbol(cur)}`}
           colorClass={
             material.profitCents > 0
               ? 'text-green-600 dark:text-green-400'

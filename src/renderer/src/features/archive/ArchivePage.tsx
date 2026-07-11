@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ArchiveRestore } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { toast } from '@renderer/components/ui/toast'
-import { formatCents } from '@shared/accounting'
+import { formatCents, currencySymbol } from '@shared/accounting'
 import type { ArchiveLists } from '@shared/contracts'
 
 const kg = (n: number): string => n.toLocaleString('en-US', { maximumFractionDigits: 3 })
@@ -61,7 +61,7 @@ export function ArchivePage(): JSX.Element {
             <Row
               key={c.id}
               label={c.label}
-              meta={`${formatCents(c.totalPriceCents)} ${c.currency}`}
+              meta={`${formatCents(c.totalPriceCents)} ${currencySymbol(c.currency)}`}
               onRestore={() => restore('carpet', c.id)}
               busy={busy}
               t={t}
@@ -76,7 +76,7 @@ export function ArchivePage(): JSX.Element {
             <Row
               key={m.id}
               label={m.name}
-              meta={`${kg(m.stockKg)} kg · ${m.currency}`}
+              meta={`${kg(m.stockKg)} kg · ${currencySymbol(m.currency)}`}
               onRestore={() => restore('material', m.id)}
               busy={busy}
               t={t}

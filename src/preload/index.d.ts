@@ -10,6 +10,7 @@ import type {
   DashboardApi,
   ReportsApi,
   PdfApi,
+  FilesApi,
   ArchiveApi,
   AuthApi,
   LicenseApi,
@@ -31,6 +32,7 @@ export interface Api {
   dashboard: DashboardApi
   reports: ReportsApi
   pdf: PdfApi
+  files: FilesApi
   archive: ArchiveApi
   auth: AuthApi
   license: LicenseApi

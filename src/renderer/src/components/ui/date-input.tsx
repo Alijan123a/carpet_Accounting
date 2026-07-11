@@ -135,7 +135,7 @@ export function DateInput({ value, onChange, className, disabled }: DateInputPro
             value={jParts?.jm ?? ''}
             onChange={(e) => setPart('jm', e.target.value)}
             disabled={disabled}
-            className={cn(segCls, 'flex-1')}
+            className={cn(segCls, 'min-w-[64px] flex-1')}
             aria-label={t('date.month', 'Month')}
           >
             <option value="" disabled>

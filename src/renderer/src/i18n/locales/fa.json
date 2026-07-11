@@ -352,7 +352,18 @@
     "errAlreadySold": "یکی از قالین‌ها قبلاً فروخته شده است. صفحه را تازه کرده و دوباره تلاش کنید.",
     "errCarpetMissing": "یکی از قالین‌های انتخاب‌شده دیگر وجود ندارد.",
     "description": "تفصیل",
-    "descriptionPlaceholder": "تفصیل…"
+    "descriptionPlaceholder": "تفصیل…",
+    "buyShort": "خرید",
+    "profitShort": "فایده",
+    "exportTitle": "بل ثبت شد",
+    "exportPrompt": "بل را چاپ کنید یا به فایل خروجی بگیرید:",
+    "print": "چاپ",
+    "exportPdf": "PDF",
+    "exportExcel": "Excel",
+    "exportDone": "تمام",
+    "exported": "خروجی گرفته شد.",
+    "printFallback": "بل باز شد — از نمایشگر PDF چاپ کنید.",
+    "printFailed": "چاپ بل ممکن نشد."
   },
   "buyInvoice": {
     "title": "افزودن قالین‌ها (خرید)",

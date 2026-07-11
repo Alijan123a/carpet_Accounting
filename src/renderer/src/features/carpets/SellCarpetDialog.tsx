@@ -18,6 +18,7 @@ import {
   formatCents,
   effectivePricePerMeterCents,
   carpetTotalPriceCents,
+  currencySymbol,
   DEFAULT_CURRENCY
 } from '@shared/accounting'
 import type { CarpetListItem } from '@shared/contracts'
@@ -58,7 +59,8 @@ export function SellCarpetDialog({
     )
   }, [open])
 
-  const cur = carpet?.currency ?? DEFAULT_CURRENCY
+  // Display-only symbol ($ / ؋) — the posted sale uses the carpet's currency code.
+  const cur = currencySymbol(carpet?.currency ?? DEFAULT_CURRENCY)
   const area = carpet?.area ?? 0
   const buyTotal = carpet?.totalPriceCents ?? 0
 

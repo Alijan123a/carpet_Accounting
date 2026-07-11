@@ -20,7 +20,7 @@ import {
   Boxes,
   type LucideIcon
 } from 'lucide-react'
-import { formatCents } from '@shared/accounting'
+import { formatCents, currencySymbol } from '@shared/accounting'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@renderer/components/ui/card'
 import { DateInput } from '@renderer/components/ui/date-input'
 import { cn } from '@renderer/lib/utils'
@@ -150,16 +150,16 @@ export function Dashboard(): JSX.Element {
       {/* KPI tiles */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard gradient="from-emerald-500 to-teal-600" icon={TrendingUp} title={t('dashboard.receivables', 'Receivables')}>
-          <StatMoney label="USD" cents={data.receivables.USD} />
-          <StatMoney label="AFN" cents={data.receivables.AFN} />
+          <StatMoney label={currencySymbol('USD')} cents={data.receivables.USD} />
+          <StatMoney label={currencySymbol('AFN')} cents={data.receivables.AFN} />
         </StatCard>
         <StatCard gradient="from-rose-500 to-red-600" icon={TrendingDown} title={t('dashboard.payables', 'Payables')}>
-          <StatMoney label="USD" cents={data.payables.USD} />
-          <StatMoney label="AFN" cents={data.payables.AFN} />
+          <StatMoney label={currencySymbol('USD')} cents={data.payables.USD} />
+          <StatMoney label={currencySymbol('AFN')} cents={data.payables.AFN} />
         </StatCard>
         <StatCard gradient="from-indigo-500 to-violet-600" icon={PiggyBank} title={t('dashboard.netProfit', 'Net profit')}>
-          <StatMoney label="USD" cents={data.periodProfit.USD.netProfitCents} />
-          <StatMoney label="AFN" cents={data.periodProfit.AFN.netProfitCents} />
+          <StatMoney label={currencySymbol('USD')} cents={data.periodProfit.USD.netProfitCents} />
+          <StatMoney label={currencySymbol('AFN')} cents={data.periodProfit.AFN.netProfitCents} />
         </StatCard>
         <StatCard gradient="from-sky-500 to-blue-600" icon={Package} title={t('dashboard.warehouse', 'Carpets in warehouse')}>
           <StatBig value={data.warehouseCount.toLocaleString('en-US')} unit={t('dashboard.carpetsUnit', 'carpets')} />
@@ -182,8 +182,8 @@ export function Dashboard(): JSX.Element {
               <CardDescription>{rangeLabel}</CardDescription>
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <LegendDot color={USD_COLOR} label="USD" />
-              <LegendDot color={AFN_COLOR} label="AFN" />
+              <LegendDot color={USD_COLOR} label={currencySymbol('USD')} />
+              <LegendDot color={AFN_COLOR} label={currencySymbol('AFN')} />
             </div>
           </CardHeader>
           <CardContent>
@@ -220,8 +220,8 @@ export function Dashboard(): JSX.Element {
                     }}
                     formatter={(value: number) => formatCents(Number(value))}
                   />
-                  <Area type="monotone" dataKey="USD" stroke={USD_COLOR} strokeWidth={2.5} fill="url(#usdFill)" />
-                  <Area type="monotone" dataKey="AFN" stroke={AFN_COLOR} strokeWidth={2.5} fill="url(#afnFill)" />
+                  <Area type="monotone" dataKey="USD" name={currencySymbol('USD')} stroke={USD_COLOR} strokeWidth={2.5} fill="url(#usdFill)" />
+                  <Area type="monotone" dataKey="AFN" name={currencySymbol('AFN')} stroke={AFN_COLOR} strokeWidth={2.5} fill="url(#afnFill)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -246,7 +246,7 @@ export function Dashboard(): JSX.Element {
                     donutCur === cur ? 'bg-card text-foreground shadow-soft' : 'text-muted-foreground'
                   )}
                 >
-                  {cur}
+                  {currencySymbol(cur)}
                 </button>
               ))}
             </div>

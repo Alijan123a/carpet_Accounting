@@ -6,7 +6,7 @@ import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
-import { formatCents } from '@shared/accounting'
+import { formatCents, currencySymbol } from '@shared/accounting'
 import type { MaterialListItem } from '@shared/contracts'
 import { MaterialFormDialog } from './MaterialFormDialog'
 
@@ -153,7 +153,7 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
                       </span>
                     )}
                   </span>
-                  <span className="text-muted-foreground">{m.currency}</span>
+                  <span className="text-muted-foreground">{currencySymbol(m.currency)}</span>
                   <span className="text-end font-mono tabular-nums text-muted-foreground">{kg(m.boughtKg)}</span>
                   <span className="text-end font-mono tabular-nums text-muted-foreground">{kg(m.soldKg)}</span>
                   <span className="text-end font-mono tabular-nums">{kg(m.stockKg)}</span>

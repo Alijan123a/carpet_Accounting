@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { and, or, eq, like, inArray, isNull, isNotNull, asc, desc, sql, type SQL, type AnyColumn } from 'drizzle-orm'
+import { and, or, eq, ne, like, inArray, isNull, isNotNull, asc, desc, sql, type SQL, type AnyColumn } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/sqlite-core'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
@@ -482,12 +482,15 @@ export function sellInvoice(db: DB, input: SellInvoiceInput): SellInvoiceResult 
     const result = db.transaction((tx): { id: number; number: string } => {
       // Insert the invoice header FIRST so each posted sale can reference the
       // invoice id (bill number shows in the client statement).
-      const number = input.number.trim()
+      const requested = input.number.trim()
       const insertedId = Number(
         tx
           .insert(schema.invoices)
           .values({
-            number: number || 'TEMP',
+            // Placeholder; replaced below once the row id is known. Bill
+            // numbers are UNIQUE (idx_invoices_number_unique) and effectively
+            // server-assigned — the UI shows a read-only suggestion.
+            number: `#tmp-${now}`,
             buyerClientId: input.buyerClientId,
             currency: input.currency,
             totalCents: printedTotal,
@@ -497,11 +500,17 @@ export function sellInvoice(db: DB, input: SellInvoiceInput): SellInvoiceResult 
           })
           .run().lastInsertRowid
       )
-      // Fall back to the row id as the number if the caller left it blank.
-      const finalNumber = number || String(insertedId)
-      if (!number) {
-        tx.update(schema.invoices).set({ number: finalNumber }).where(eq(schema.invoices.id, insertedId)).run()
-      }
+      // Pick the first FREE number: the requested one if still available,
+      // else the row id (suffixed in the pathological case even that is taken).
+      const isTaken = (n: string): boolean =>
+        tx
+          .select({ id: schema.invoices.id })
+          .from(schema.invoices)
+          .where(and(eq(schema.invoices.number, n), ne(schema.invoices.id, insertedId)))
+          .get() != null
+      let finalNumber = requested && !isTaken(requested) ? requested : String(insertedId)
+      for (let n = 2; isTaken(finalNumber); n++) finalNumber = `${insertedId}-${n}`
+      tx.update(schema.invoices).set({ number: finalNumber }).where(eq(schema.invoices.id, insertedId)).run()
 
       if (INVOICE_POSTS_TO_LEDGER) {
         for (const line of input.lines) {

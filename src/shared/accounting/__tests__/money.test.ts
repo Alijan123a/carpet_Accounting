@@ -26,9 +26,9 @@ describe('formatCents / formatMoney (display only)', () => {
     expect(formatCents(-5)).toBe('-0.05')
   })
 
-  it('appends the currency code', () => {
-    expect(formatMoney(4550, 'AFN')).toBe('45.50 AFN')
-    expect(formatMoney(32000, 'USD')).toBe('320.00 USD')
+  it('appends the currency symbol (؋ for AFN, $ for USD)', () => {
+    expect(formatMoney(4550, 'AFN')).toBe('45.50 ؋')
+    expect(formatMoney(32000, 'USD')).toBe('320.00 $')
   })
 })
 

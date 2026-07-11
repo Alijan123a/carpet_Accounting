@@ -20,7 +20,8 @@ import {
   formatCents,
   effectivePricePerMeterCents,
   carpetTotalPriceCents,
-  ENABLED_CURRENCIES
+  ENABLED_CURRENCIES,
+  currencySymbol
 } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { CarpetDetailView, CarpetStatus } from '@shared/contracts'
@@ -221,7 +222,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
             >
               {ENABLED_CURRENCIES.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {currencySymbol(c)}
                 </option>
               ))}
             </select>
@@ -242,7 +243,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
               </select>
             </Labeled>
           )}
-          <Labeled label={`${t('carpets.pricePerMeter', 'Price / meter')} (${currency})`}>
+          <Labeled label={`${t('carpets.pricePerMeter', 'Price / meter')} (${currencySymbol(currency)})`}>
             <Input
               type="number"
               step="0.01"
@@ -252,7 +253,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
               disabled={locked}
             />
           </Labeled>
-          <Labeled label={`${t('carpets.deduction', 'Sort deduction')} (${currency})`}>
+          <Labeled label={`${t('carpets.deduction', 'Sort deduction')} (${currencySymbol(currency)})`}>
             <Input
               type="number"
               step="0.01"
@@ -294,9 +295,9 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
           <Calc label={t('carpets.area', 'Area')} value={`${calc.area.toFixed(2)} m²`} />
           <Calc
             label={t('carpets.effectivePerMeter', 'Effective / meter')}
-            value={`${formatCents(calc.effectiveCents)} ${currency}`}
+            value={`${formatCents(calc.effectiveCents)} ${currencySymbol(currency)}`}
           />
-          <Calc label={t('carpets.totalPrice', 'Total price')} value={`${formatCents(calc.totalCents)} ${currency}`} strong />
+          <Calc label={t('carpets.totalPrice', 'Total price')} value={`${formatCents(calc.totalCents)} ${currencySymbol(currency)}`} strong />
         </div>
         {calc.exceeds && (
           <p className="text-xs text-amber-600 dark:text-amber-400">

@@ -14,7 +14,7 @@ import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
 import { Typeahead } from '@renderer/components/ui/typeahead'
 import { startOfDayEpoch } from '@renderer/lib/date'
-import { parseMoneyToCents, formatCents, materialLineTotalCents, materialLineProfitCents } from '@shared/accounting'
+import { parseMoneyToCents, formatCents, currencySymbol, materialLineTotalCents, materialLineProfitCents } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { ClientListItem } from '@shared/contracts'
 
@@ -147,7 +147,7 @@ export function MaterialLineDialog({
             </label>
             <label className="space-y-1">
               <span className="text-xs font-medium text-muted-foreground">
-                {t('material.pricePerKg', 'Price / kg')} ({currency})
+                {t('material.pricePerKg', 'Price / kg')} ({currencySymbol(currency)})
               </span>
               <Input
                 type="number"
@@ -168,7 +168,7 @@ export function MaterialLineDialog({
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t('material.lineTotal', 'Total')}</span>
               <span className="font-mono tabular-nums">
-                {formatCents(calc.total)} {currency}
+                {formatCents(calc.total)} {currencySymbol(currency)}
               </span>
             </div>
             {direction === 'sell' && (
@@ -177,7 +177,7 @@ export function MaterialLineDialog({
                 <span
                   className={`font-mono tabular-nums ${calc.profit > 0 ? 'text-green-600 dark:text-green-400' : calc.profit < 0 ? 'text-red-600 dark:text-red-400' : ''}`}
                 >
-                  {formatCents(calc.profit)} {currency}
+                  {formatCents(calc.profit)} {currencySymbol(currency)}
                 </span>
               </div>
             )}

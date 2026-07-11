@@ -7,7 +7,7 @@ import { Input } from '@renderer/components/ui/input'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
-import { formatCents } from '@shared/accounting'
+import { formatCents, currencySymbol } from '@shared/accounting'
 import type { CarpetListItem, CarpetStatus } from '@shared/contracts'
 import { statusLabel, statusLabelByKey } from './statusLabel'
 import { CarpetFormDialog } from './CarpetFormDialog'
@@ -262,7 +262,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
                     <span className="text-end text-muted-foreground">{c.width}</span>
                     <span className="text-end text-muted-foreground">{c.area.toFixed(2)}</span>
                     <span className="truncate text-muted-foreground">{c.sortGrade || t('common.none', '—')}</span>
-                    <span className="text-muted-foreground">{c.currency}</span>
+                    <span className="text-muted-foreground">{currencySymbol(c.currency)}</span>
                     <span className="text-end font-mono tabular-nums">{formatCents(c.pricePerMeterCents)}</span>
                     <span className="text-end font-mono tabular-nums">{formatCents(c.sortDeductionCents)}</span>
                     <span className="text-end font-mono tabular-nums">{formatCents(c.totalPriceCents)}</span>

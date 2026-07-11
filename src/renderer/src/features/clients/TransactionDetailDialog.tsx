@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
 import { useSettings } from '@renderer/store/settings'
 import { formatDate, formatDateTime } from '@renderer/lib/date'
-import { formatCents } from '@shared/accounting'
+import { formatCents, currencySymbol } from '@shared/accounting'
 import type { TransactionView, CarpetDetailView } from '@shared/contracts'
 import { BalanceAmount } from './BalanceAmount'
 
@@ -52,7 +52,7 @@ export function TransactionDetailDialog({
           <dl className="grid grid-cols-[130px_1fr] gap-x-4 gap-y-3 text-sm">
             <Row label={t('txDetail.id', 'ID')}>#{tx.id}</Row>
             <Row label={t('statement.type', 'Type')}>{t(`tx.type.${tx.type}`, tx.type)}</Row>
-            <Row label={t('statement.currency', 'Currency')}>{tx.currency}</Row>
+            <Row label={t('statement.currency', 'Currency')}>{currencySymbol(tx.currency)}</Row>
             <Row label={t('statement.amount', 'Amount')}>
               <BalanceAmount cents={tx.amountCents} />
             </Row>
@@ -92,21 +92,21 @@ export function TransactionDetailDialog({
                 {ppmCents != null && (
                   <Row label={t('txDetail.pricePerMeter', 'Price / m (فی متر)')}>
                     <span className="font-mono tabular-nums">
-                      {formatCents(ppmCents)} {carpet.currency}
+                      {formatCents(ppmCents)} {currencySymbol(carpet.currency)}
                     </span>
                   </Row>
                 )}
                 {deductionCents != null && deductionCents !== 0 && (
                   <Row label={t('carpets.deduction', 'Deduction')}>
                     <span className="font-mono tabular-nums">
-                      {formatCents(deductionCents)} {carpet.currency}
+                      {formatCents(deductionCents)} {currencySymbol(carpet.currency)}
                     </span>
                   </Row>
                 )}
                 {totalCents != null && (
                   <Row label={t('statement.totalPrice', 'Total price')}>
                     <span className="font-mono tabular-nums">
-                      {formatCents(totalCents)} {carpet.currency}
+                      {formatCents(totalCents)} {currencySymbol(carpet.currency)}
                     </span>
                   </Row>
                 )}

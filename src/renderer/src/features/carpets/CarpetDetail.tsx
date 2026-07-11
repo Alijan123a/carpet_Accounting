@@ -6,7 +6,7 @@ import { toast } from '@renderer/components/ui/toast'
 import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
-import { formatCents } from '@shared/accounting'
+import { formatCents, currencySymbol } from '@shared/accounting'
 import { formatDate } from '@renderer/lib/date'
 import type { CarpetDetailView, CarpetStatus } from '@shared/contracts'
 import { statusLabelByKey } from './statusLabel'
@@ -92,7 +92,8 @@ export function CarpetDetail({
     return <div className="p-6 text-sm text-muted-foreground">{t('common.loading', 'Loading…')}</div>
   }
 
-  const cur = carpet.currency
+  // Currency is DISPLAYED as its symbol ($ / ؋) everywhere.
+  const cur = currencySymbol(carpet.currency)
   return (
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-start justify-between gap-4">

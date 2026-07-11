@@ -97,9 +97,16 @@ const api = {
     run: (id: string, params: unknown) => ipcRenderer.invoke('reports:run', { id, params })
   },
 
-  // PDF export (Phase 5).
+  // PDF export (Phase 5) + printing.
   pdf: {
-    save: (fileName: string, bytes: Uint8Array) => ipcRenderer.invoke('pdf:save', fileName, bytes)
+    save: (fileName: string, bytes: Uint8Array) => ipcRenderer.invoke('pdf:save', fileName, bytes),
+    print: (fileName: string, bytes: Uint8Array) => ipcRenderer.invoke('pdf:print', fileName, bytes)
+  },
+
+  // Generic file save (Excel export).
+  files: {
+    save: (fileName: string, bytes: Uint8Array, filterName: string, extensions: string[]) =>
+      ipcRenderer.invoke('file:save', fileName, bytes, filterName, extensions)
   },
 
   // Archive (Phase 6).

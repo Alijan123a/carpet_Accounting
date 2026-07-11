@@ -11,7 +11,7 @@ import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { RequiredMark } from '@renderer/components/ui/required-mark'
 import { toast } from '@renderer/components/ui/toast'
-import { ENABLED_CURRENCIES, type Currency } from '@shared/accounting'
+import { ENABLED_CURRENCIES, currencySymbol, type Currency } from '@shared/accounting'
 import { useSettings } from '@renderer/store/settings'
 
 /** Create a new material (tar) lot: just a name + currency. Lines are added later. */
@@ -82,7 +82,7 @@ export function MaterialFormDialog({
             >
               {ENABLED_CURRENCIES.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {currencySymbol(c)}
                 </option>
               ))}
             </select>
