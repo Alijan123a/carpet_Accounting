@@ -146,7 +146,8 @@ const api = {
     now: () => ipcRenderer.invoke('backup:now'),
     list: () => ipcRenderer.invoke('backup:list'),
     chooseFolder: () => ipcRenderer.invoke('backup:chooseFolder'),
-    restore: () => ipcRenderer.invoke('backup:restore')
+    restore: () => ipcRenderer.invoke('backup:restore'),
+    resetDb: (password: string) => ipcRenderer.invoke('backup:resetDb', password)
   }
 }
 

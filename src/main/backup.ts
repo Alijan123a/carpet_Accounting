@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, copyFileSync, readdirSync, statSync, unlinkSync,
 import Database from 'better-sqlite3'
 import { getRawDatabase, getDatabasePath, closeDatabase, initDatabase } from './db'
 import { getConfig, setConfig } from './config'
+import { isPasswordSet, verifyPassword } from './auth'
 
 const PREFIX = 'carpet-accounting-backup-'
 const VALIDATE_TABLES = ['clients', 'carpets', 'materials', 'material_lines', 'transactions', 'expenses', 'carpet_statuses']
@@ -180,6 +181,45 @@ export function registerBackupIpc(): void {
     setConfig({ backupFolder: folder })
     return { ok: true, folder }
   })
+
+  // DANGER ZONE: erase the entire database and start fresh. The password is
+  // re-verified HERE in the main process (never trust the renderer), and a
+  // validated safety backup is written to the backup folder first — even an
+  // "erase everything" keeps one escape hatch. The pre-reset file does NOT use
+  // the auto-backup PREFIX, so retention pruning never deletes it.
+  ipcMain.handle(
+    'backup:resetDb',
+    async (_e, password: string): Promise<{ ok: boolean; reason?: string; backup?: string }> => {
+      if (isPasswordSet() && !verifyPassword(String(password ?? '')).ok) {
+        return { ok: false, reason: 'wrong_password' }
+      }
+      const dbPath = getDatabasePath()
+      const cfg = getConfig()
+      try {
+        ensureFolder(cfg.backupFolder)
+        const safety = join(cfg.backupFolder, timestampedName().replace(PREFIX, 'carpet-accounting-pre-reset-'))
+        await getRawDatabase().backup(safety)
+        const v = validateSqlite(safety)
+        if (!v.ok) return { ok: false, reason: `backup_failed: ${v.reason ?? ''}` }
+
+        closeDatabase()
+        for (const ext of ['', '-wal', '-shm']) {
+          const p = dbPath + ext
+          if (existsSync(p)) rmSync(p)
+        }
+        initDatabase() // fresh empty DB: migrations + seed statuses
+        return { ok: true, backup: safety }
+      } catch (e) {
+        // Reopen whatever is on disk so the app stays usable.
+        try {
+          initDatabase()
+        } catch {
+          /* ignore */
+        }
+        return { ok: false, reason: e instanceof Error ? e.message : String(e) }
+      }
+    }
+  )
 
   // Restore from a backup file (validate source -> snapshot current -> replace ->
   // reopen). On ANY failure the original database is rolled back, so a failed

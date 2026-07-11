@@ -810,4 +810,10 @@ export interface BackupApi {
   list: () => Promise<BackupInfo[]>
   chooseFolder: () => Promise<{ ok: boolean; folder?: string; canceled?: boolean }>
   restore: () => Promise<{ ok: boolean; canceled?: boolean; reason?: string; restored?: string }>
+  /**
+   * DANGER: erase the entire database and start fresh. The password is
+   * re-verified in the main process; a validated safety backup is written to
+   * the backup folder first (its path is returned in `backup`).
+   */
+  resetDb: (password: string) => Promise<{ ok: boolean; reason?: string; backup?: string }>
 }

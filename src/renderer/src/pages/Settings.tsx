@@ -9,6 +9,7 @@ import { ENABLED_CURRENCIES, currencySymbol } from '@shared/accounting'
 import type { AppConfig, BackupFrequency } from '@shared/contracts'
 import { StatusesDialog } from '@renderer/features/carpets/StatusesDialog'
 import { ConfirmDialog } from '@renderer/components/ConfirmDialog'
+import { ResetDbDialog } from '@renderer/components/ResetDbDialog'
 import { formatDateTime } from '@renderer/lib/date'
 
 function Field({
@@ -43,6 +44,7 @@ export function Settings(): JSX.Element {
   const [config, setConfig] = useState<AppConfig | null>(null)
   const [statusesOpen, setStatusesOpen] = useState(false)
   const [restoreOpen, setRestoreOpen] = useState(false)
+  const [resetOpen, setResetOpen] = useState(false)
   // Which long-running action is in flight — drives per-button spinners.
   const [busyAction, setBusyAction] = useState<'backup' | 'restore' | 'folder' | 'password' | null>(null)
   const busy = busyAction !== null
@@ -310,10 +312,28 @@ export function Settings(): JSX.Element {
         </Button>
       </Field>
 
+      {/* Danger zone */}
+      <SectionTitle>{t('settings.dangerZone', 'Danger zone')}</SectionTitle>
+      <div className="flex items-center justify-between gap-6 rounded-2xl border border-destructive/40 bg-destructive/5 p-4">
+        <div>
+          <div className="text-sm font-medium text-destructive">{t('settings.resetDb', 'Erase all data')}</div>
+          <div className="text-xs text-muted-foreground">
+            {t(
+              'settings.resetDbDesc',
+              'Delete the entire database and start fresh. Requires the app password and a typed confirmation; a safety backup is saved first.'
+            )}
+          </div>
+        </div>
+        <Button variant="destructive" size="sm" onClick={() => setResetOpen(true)} disabled={busy}>
+          {t('settings.resetDb', 'Erase all data')}
+        </Button>
+      </div>
+
       <div className="px-1 text-xs text-muted-foreground">
         {t('settings.version', 'Version')}: {version}
       </div>
 
+      <ResetDbDialog open={resetOpen} onOpenChange={setResetOpen} />
       <StatusesDialog open={statusesOpen} onOpenChange={setStatusesOpen} onChanged={() => undefined} />
       <ConfirmDialog
         open={restoreOpen}
