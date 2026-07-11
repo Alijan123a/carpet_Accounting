@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, Pencil, Archive, ArchiveRestore, Tag } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
+import { toast } from '@renderer/components/ui/toast'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatCents } from '@shared/accounting'
@@ -48,10 +49,14 @@ export function CarpetDetail({
     try {
       if (carpet.archived) {
         await window.api.carpets.restore(carpet.id)
+        toast.success(t('common.restoredToast', 'Restored.'))
         refresh()
       } else {
         const res = await window.api.carpets.archive(carpet.id)
-        if (res.ok) refresh() // archive button is only shown for sold carpets
+        if (res.ok) {
+          toast.success(t('common.archivedToast', 'Archived.'))
+          refresh() // archive button is only shown for sold carpets
+        }
       }
     } finally {
       setBusy(false)
@@ -67,7 +72,13 @@ export function CarpetDetail({
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <Button variant="ghost" size="icon" onClick={onBack} title={t('common.back', 'Back')}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            title={t('common.back', 'Back')}
+            aria-label={t('common.back', 'Back')}
+          >
             <ArrowRight className="h-4 w-4 rtl:rotate-180" />
           </Button>
           <div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AppSettingsProvider } from '@renderer/providers/AppSettingsProvider'
+import { Toaster } from '@renderer/components/ui/toast'
 import { AppLayout } from '@renderer/components/layout/AppLayout'
 import { Placeholder } from '@renderer/pages/Placeholder'
 import { Settings } from '@renderer/pages/Settings'
@@ -73,7 +74,12 @@ function App(): JSX.Element {
   return (
     <AppSettingsProvider>
       {!ready ? (
-        <div className="flex h-screen w-screen items-center justify-center bg-background text-muted-foreground">…</div>
+        <div
+          aria-busy="true"
+          className="flex h-screen w-screen items-center justify-center bg-background text-muted-foreground"
+        >
+          …
+        </div>
       ) : !licensed ? (
         <ActivationScreen
           reason={licenseReason}
@@ -87,6 +93,7 @@ function App(): JSX.Element {
       ) : (
         <LockScreen mode={isSet ? 'unlock' : 'setup'} onUnlocked={() => setUnlocked(true)} />
       )}
+      <Toaster />
     </AppSettingsProvider>
   )
 }

@@ -123,8 +123,8 @@ export function ReportsModule(): JSX.Element {
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-2xl font-bold tracking-tight">{t('reports.title', 'Reports')}</h2>
-        <Button variant="outline" onClick={exportPdf} disabled={!rendered || exporting}>
-          <FileDown className="h-4 w-4" />
+        <Button variant="outline" onClick={exportPdf} disabled={!rendered} busy={exporting}>
+          {!exporting && <FileDown className="h-4 w-4" />}
           {t('reports.export', 'Export PDF')}
         </Button>
       </div>
@@ -152,7 +152,7 @@ export function ReportsModule(): JSX.Element {
               onChange={(e) => setClientId(e.target.value)}
               className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
             >
-              <option value="">—</option>
+              <option value="">{t('common.select', 'Select…')}</option>
               {clients.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -173,7 +173,7 @@ export function ReportsModule(): JSX.Element {
         )}
         {needs.days && (
           <Field label={t('reports.days', 'Days in stock ≥')}>
-            <Input type="number" value={days} onChange={(e) => setDays(e.target.value)} className="h-9 w-24" />
+            <Input type="number" min="0" value={days} onChange={(e) => setDays(e.target.value)} className="h-9 w-24" />
           </Field>
         )}
         {needs.by && (
@@ -201,14 +201,18 @@ export function ReportsModule(): JSX.Element {
           </Field>
         )}
 
-        <Button onClick={run} disabled={loading}>
-          <Play className="h-4 w-4" />
+        <Button onClick={run} busy={loading}>
+          {!loading && <Play className="h-4 w-4" />}
           {t('reports.run', 'Run')}
         </Button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
         {loading && <p className="text-sm text-muted-foreground">{t('common.loading', 'Loading…')}</p>}
         {!loading && rendered && <ReportTable sections={rendered.sections} />}
         {!loading && !rendered && !error && (

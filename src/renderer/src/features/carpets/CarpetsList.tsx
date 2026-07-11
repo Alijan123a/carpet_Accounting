@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { Pencil, Plus, Archive, ArchiveRestore, SlidersHorizontal, Tag, FileText, PackagePlus, Trash2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { toast } from '@renderer/components/ui/toast'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
@@ -148,6 +149,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
         return
       }
       setDeleteTarget(null)
+      toast.success(t('common.deleted', 'Deleted.'))
       refresh()
     } finally {
       setDeleteBusy(false)
@@ -157,11 +159,15 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
   async function toggleArchive(c: CarpetListItem): Promise<void> {
     if (c.archived) {
       await window.api.carpets.restore(c.id)
+      toast.success(t('common.restoredToast', 'Restored.'))
       refresh()
       return
     }
     const res = await window.api.carpets.archive(c.id)
-    if (res.ok) refresh() // archive is only offered for sold carpets, so this should succeed
+    if (res.ok) {
+      toast.success(t('common.archivedToast', 'Archived.'))
+      refresh() // archive is only offered for sold carpets, so this should succeed
+    }
   }
 
   return (
@@ -276,7 +282,11 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
               <span />
             </div>
           <div ref={parentRef} onScroll={onScroll} className="flex-1 overflow-y-auto">
-            {error && <div className="p-4 text-sm text-destructive">{error}</div>}
+            {error && (
+              <div role="alert" className="p-4 text-sm text-destructive">
+                {error}
+              </div>
+            )}
             {!error && rows.length === 0 && !loading && (
               <div className="p-8 text-center text-sm text-muted-foreground">{t('carpets.empty', 'No carpets found.')}</div>
             )}
@@ -319,6 +329,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
                           size="icon"
                           className="h-8 w-8"
                           title={t('sale.sellAction', 'Sell')}
+                          aria-label={t('sale.sellAction', 'Sell')}
                           onClick={(e) => {
                             e.stopPropagation()
                             setSellTarget(c)
@@ -332,6 +343,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
                         size="icon"
                         className="h-8 w-8"
                         title={t('common.edit', 'Edit')}
+                        aria-label={t('common.edit', 'Edit')}
                         onClick={(e) => {
                           e.stopPropagation()
                           void openEdit(c.id)
@@ -345,6 +357,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
                           size="icon"
                           className="h-8 w-8"
                           title={c.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
+                          aria-label={c.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
                           onClick={(e) => {
                             e.stopPropagation()
                             void toggleArchive(c)
@@ -358,6 +371,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
                         title={t('common.delete', 'Delete')}
+                        aria-label={t('common.delete', 'Delete')}
                         onClick={(e) => {
                           e.stopPropagation()
                           setDeleteError(null)

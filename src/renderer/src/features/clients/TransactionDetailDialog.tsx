@@ -73,6 +73,11 @@ export function TransactionDetailDialog({
               <span className="whitespace-pre-wrap break-words">{tx.note || t('common.none', '—')}</span>
             </Row>
 
+            {tx.carpetId != null && !carpet && (
+              <dt className="col-span-2 mt-1 border-t border-border pt-3 text-xs text-muted-foreground">
+                {t('common.loading', 'Loading…')}
+              </dt>
+            )}
             {carpet && (
               <>
                 <dt className="col-span-2 mt-1 border-t border-border pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

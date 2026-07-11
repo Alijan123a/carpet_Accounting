@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { toast } from '@renderer/components/ui/toast'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
@@ -103,9 +104,14 @@ export function OrdersModule(): JSX.Element {
   }
 
   async function changeStatus(o: OrderView, status: OrderStatus): Promise<void> {
-    await window.api.orders.setStatus(o.id, status)
-    // Patch in place so the row updates without a full reload.
-    setRows((prev) => prev.map((r) => (r.id === o.id ? { ...r, status } : r)))
+    try {
+      await window.api.orders.setStatus(o.id, status)
+      // Patch in place so the row updates without a full reload.
+      setRows((prev) => prev.map((r) => (r.id === o.id ? { ...r, status } : r)))
+      toast.success(t('common.saved', 'Saved.'))
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('common.error', 'An error occurred.'))
+    }
   }
 
   async function doDelete(): Promise<void> {
@@ -114,6 +120,7 @@ export function OrdersModule(): JSX.Element {
     try {
       await window.api.orders.remove(deleteTarget.id)
       setDeleteTarget(null)
+      toast.success(t('common.deleted', 'Deleted.'))
       refresh()
     } finally {
       setBusy(false)
@@ -223,7 +230,7 @@ export function OrdersModule(): JSX.Element {
                   style={{ height: `${ROW_HEIGHT}px`, transform: `translateY(${vi.start}px)` }}
                 >
                   <span className="text-muted-foreground">{formatDate(o.orderDate, calendar)}</span>
-                  <span className="truncate font-mono tabular-nums">{o.orderNo || '—'}</span>
+                  <span className="truncate font-mono tabular-nums">{o.orderNo || t('common.none', '—')}</span>
                   <span className="truncate font-medium">{o.buyerName || t('common.none', '—')}</span>
                   <span className="truncate">
                     {o.title}
@@ -239,6 +246,7 @@ export function OrdersModule(): JSX.Element {
                     {/* Inline status change — the badge colour reflects the value. */}
                     <select
                       value={o.status}
+                      aria-label={t('orders.status.label', 'Status')}
                       onChange={(e) => void changeStatus(o, e.target.value as OrderStatus)}
                       className={cn(
                         'h-7 w-full rounded-md border-0 px-2 text-xs font-medium focus:ring-1 focus:ring-ring',
@@ -258,6 +266,7 @@ export function OrdersModule(): JSX.Element {
                       size="icon"
                       className="h-8 w-8"
                       title={t('common.edit', 'Edit')}
+                      aria-label={t('common.edit', 'Edit')}
                       onClick={() => {
                         setEditOrder(o)
                         setFormOpen(true)
@@ -270,6 +279,7 @@ export function OrdersModule(): JSX.Element {
                       size="icon"
                       className="h-8 w-8"
                       title={t('common.delete', 'Delete')}
+                      aria-label={t('common.delete', 'Delete')}
                       onClick={() => setDeleteTarget(o)}
                     >
                       <Trash2 className="h-4 w-4" />

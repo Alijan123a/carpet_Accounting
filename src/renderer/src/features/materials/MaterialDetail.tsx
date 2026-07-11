@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ArrowRight, Plus, Archive, ArchiveRestore, Pencil, Trash2, Check, X } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { toast } from '@renderer/components/ui/toast'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatCents } from '@shared/accounting'
@@ -54,8 +55,13 @@ export function MaterialDetail({
     if (!material) return
     setBusy(true)
     try {
-      if (material.archived) await window.api.materials.restore(material.id)
-      else await window.api.materials.archive(material.id)
+      if (material.archived) {
+        await window.api.materials.restore(material.id)
+        toast.success(t('common.restoredToast', 'Restored.'))
+      } else {
+        await window.api.materials.archive(material.id)
+        toast.success(t('common.archivedToast', 'Archived.'))
+      }
       refresh()
     } finally {
       setBusy(false)
@@ -68,6 +74,7 @@ export function MaterialDetail({
     try {
       await window.api.materials.update(material.id, { name: newName.trim(), currency: material.currency })
       setRenaming(false)
+      toast.success(t('common.saved', 'Saved.'))
       refresh()
     } finally {
       setBusy(false)
@@ -87,6 +94,7 @@ export function MaterialDetail({
         return
       }
       setDeleteOpen(false)
+      toast.success(t('common.deleted', 'Deleted.'))
       onChanged()
       onBack()
     } finally {
@@ -100,6 +108,7 @@ export function MaterialDetail({
     try {
       await window.api.materials.removeLine(deleteLine.id)
       setDeleteLine(null)
+      toast.success(t('common.deleted', 'Deleted.'))
       refresh()
     } finally {
       setBusy(false)
@@ -115,18 +124,46 @@ export function MaterialDetail({
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <Button variant="ghost" size="icon" onClick={onBack} title={t('common.back', 'Back')}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            title={t('common.back', 'Back')}
+            aria-label={t('common.back', 'Back')}
+          >
             <ArrowRight className="h-4 w-4 rtl:rotate-180" />
           </Button>
           <div>
             <div className="flex items-center gap-2">
               {renaming ? (
                 <>
-                  <Input value={newName} onChange={(e) => setNewName(e.target.value)} className="h-9 w-56" autoFocus />
-                  <Button variant="ghost" size="icon" className="h-8 w-8" title={t('common.save', 'Save')} onClick={saveRename} disabled={busy || !newName.trim()}>
+                  <Input
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && saveRename()}
+                    className="h-9 w-56"
+                    autoFocus
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    title={t('common.save', 'Save')}
+                    aria-label={t('common.save', 'Save')}
+                    onClick={saveRename}
+                    disabled={busy || !newName.trim()}
+                  >
                     <Check className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" title={t('common.cancel', 'Cancel')} onClick={() => setRenaming(false)} disabled={busy}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    title={t('common.cancel', 'Cancel')}
+                    aria-label={t('common.cancel', 'Cancel')}
+                    onClick={() => setRenaming(false)}
+                    disabled={busy}
+                  >
                     <X className="h-4 w-4" />
                   </Button>
                 </>
@@ -137,7 +174,8 @@ export function MaterialDetail({
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    title={t('common.edit', 'Edit')}
+                    title={t('common.rename', 'Rename')}
+                    aria-label={t('common.rename', 'Rename')}
                     onClick={() => {
                       setNewName(material.name)
                       setRenaming(true)
@@ -165,7 +203,14 @@ export function MaterialDetail({
             <Plus className="h-4 w-4" />
             {t('material.addSell', 'Add sell')}
           </Button>
-          <Button variant="outline" size="sm" onClick={toggleArchive} disabled={busy}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleArchive}
+            disabled={busy}
+            title={material.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
+            aria-label={material.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
+          >
             {material.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
           </Button>
           <Button
@@ -248,6 +293,7 @@ export function MaterialDetail({
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-destructive"
                   title={t('common.delete', 'Delete')}
+                  aria-label={t('common.delete', 'Delete')}
                   onClick={() => setDeleteLine(l)}
                 >
                   <Trash2 className="h-4 w-4" />

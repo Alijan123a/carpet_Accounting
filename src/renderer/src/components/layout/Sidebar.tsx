@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import { NAV_ITEMS, type Route } from '@renderer/config/nav'
@@ -9,6 +10,14 @@ interface SidebarProps {
 
 export function Sidebar({ current, onNavigate }: SidebarProps): JSX.Element {
   const { t } = useTranslation()
+  const [version, setVersion] = useState('')
+
+  useEffect(() => {
+    window.api
+      .getVersion()
+      .then(setVersion)
+      .catch(() => undefined)
+  }, [])
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-e border-border/60 bg-sidebar">
@@ -38,6 +47,7 @@ export function Sidebar({ current, onNavigate }: SidebarProps): JSX.Element {
             <button
               key={item.key}
               onClick={() => onNavigate(item.key)}
+              aria-current={active ? 'page' : undefined}
               className={cn(
                 'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
                 active
@@ -60,7 +70,8 @@ export function Sidebar({ current, onNavigate }: SidebarProps): JSX.Element {
       </nav>
 
       <div className="px-5 py-4 text-[11px] text-muted-foreground/70">
-        {t('app.name', 'Carpet Accounting')} · v0.1
+        {t('app.name', 'Carpet Accounting')}
+        {version ? ` · v${version}` : ''}
       </div>
     </aside>
   )

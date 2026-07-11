@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, Hash, User, CalendarDays } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
+import { toast } from '@renderer/components/ui/toast'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatDate } from '@renderer/lib/date'
@@ -48,10 +49,16 @@ export function OrderDetail({
   const persist = useCallback(
     async (next: OrderItem[]): Promise<void> => {
       setItems(next)
-      await window.api.orders.updateItems(orderId, next)
-      onChanged()
+      try {
+        await window.api.orders.updateItems(orderId, next)
+        toast.success(t('common.saved', 'Saved.'))
+        onChanged()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : t('common.error', 'An error occurred.'))
+        void load() // re-sync the optimistic list with the stored state
+      }
     },
-    [orderId, onChanged]
+    [orderId, onChanged, t, load]
   )
 
   function saveAssignments(index: number, assignments: OrderAssignment[]): void {
@@ -80,7 +87,13 @@ export function OrderDetail({
     <div className="flex h-full flex-col">
       {/* Professional header card */}
       <div className="mb-4 flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onBack} title={t('common.back', 'Back')}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onBack}
+          title={t('common.back', 'Back')}
+          aria-label={t('common.back', 'Back')}
+        >
           <ArrowRight className="h-4 w-4 rtl:rotate-180" />
         </Button>
         <div className="flex flex-1 flex-wrap items-center gap-x-8 gap-y-3 rounded-2xl border border-border/70 bg-card px-5 py-3.5 shadow-card">

@@ -17,6 +17,8 @@ interface ConfirmDialogProps {
   confirmLabel?: string
   destructive?: boolean
   busy?: boolean
+  /** Server-side rejection message shown in destructive styling. */
+  error?: string | null
   onConfirm: () => void
 }
 
@@ -29,6 +31,7 @@ export function ConfirmDialog({
   confirmLabel,
   destructive,
   busy,
+  error,
   onConfirm
 }: ConfirmDialogProps): JSX.Element {
   const { t } = useTranslation()
@@ -39,11 +42,16 @@ export function ConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
           {body && <DialogDescription>{body}</DialogDescription>}
         </DialogHeader>
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button variant={destructive ? 'destructive' : 'default'} onClick={onConfirm} disabled={busy}>
+          <Button variant={destructive ? 'destructive' : 'default'} onClick={onConfirm} busy={busy}>
             {confirmLabel ?? t('common.confirm', 'Confirm')}
           </Button>
         </DialogFooter>

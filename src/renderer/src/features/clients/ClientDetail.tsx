@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { ArrowRight, Pencil, Archive, ArchiveRestore, Undo2, Wallet, Trash2, ClipboardList } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
@@ -139,6 +140,7 @@ export function ClientDetail({
         setActionError(t('clients.archiveDisabledReason', 'A client can only be archived when both balances are zero.'))
       } else {
         setArchiveOpen(false)
+        toast.success(t('common.archivedToast', 'Archived.'))
         refreshAll()
       }
     } finally {
@@ -150,6 +152,7 @@ export function ClientDetail({
     setBusy(true)
     try {
       await window.api.clients.restore(clientId)
+      toast.success(t('common.restoredToast', 'Restored.'))
       refreshAll()
     } finally {
       setBusy(false)
@@ -168,6 +171,7 @@ export function ClientDetail({
         return
       }
       setDeleteOpen(false)
+      toast.success(t('common.deleted', 'Deleted.'))
       onChanged()
       onBack()
     } finally {
@@ -181,6 +185,7 @@ export function ClientDetail({
     try {
       await window.api.transactions.reverse(reverseTarget.id)
       setReverseTarget(null)
+      toast.success(t('common.reversedToast', 'Transaction reversed.'))
       refreshAll()
     } finally {
       setBusy(false)
@@ -242,7 +247,11 @@ export function ClientDetail({
               size="sm"
               disabled={!canArchive || busy}
               onClick={() => setArchiveOpen(true)}
-              title={!canArchive ? t('clients.archiveDisabledReason', 'Balances must be zero.') : undefined}
+              title={
+                !canArchive
+                  ? t('clients.archiveDisabledReason', 'A client can only be archived when both balances are zero.')
+                  : undefined
+              }
             >
               <Archive className="h-4 w-4" />
               {t('clients.archive', 'Archive')}
@@ -283,7 +292,11 @@ export function ClientDetail({
           {t('clients.archiveDisabledReason', 'A client can only be archived when both balances are zero.')}
         </p>
       )}
-      {actionError && <p className="mb-3 text-sm text-destructive">{actionError}</p>}
+      {actionError && (
+        <p role="alert" className="mb-3 text-sm text-destructive">
+          {actionError}
+        </p>
+      )}
 
       {/* Statement filters */}
       <div className="mb-3 flex flex-wrap items-end gap-3">

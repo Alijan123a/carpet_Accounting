@@ -9,6 +9,8 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { RequiredMark } from '@renderer/components/ui/required-mark'
+import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
 import { startOfDayEpoch } from '@renderer/lib/date'
 import { parseMoneyToCents, centsToInput, ENABLED_CURRENCIES } from '@shared/accounting'
@@ -48,7 +50,7 @@ export function ExpenseFormDialog({
     setDate(expense ? toDateInput(expense.expenseDate) : todayStr())
     setNote(expense?.note ?? '')
     setError(null)
-  }, [open, expense])
+  }, [open, expense, defaultCurrency])
 
   async function submit(): Promise<void> {
     if (!category.trim()) return setError(t('expenses.categoryRequired', 'Category is required.'))
@@ -66,6 +68,7 @@ export function ExpenseFormDialog({
       }
       if (expense) await window.api.expenses.update(expense.id, payload)
       else await window.api.expenses.create(payload)
+      toast.success(t('common.saved', 'Saved.'))
       onSaved()
       onOpenChange(false)
     } catch (e) {
@@ -83,13 +86,31 @@ export function ExpenseFormDialog({
         </DialogHeader>
         <div className="space-y-3">
           <label className="block space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">{t('expenses.category', 'Category')}</span>
-            <Input value={category} onChange={(e) => setCategory(e.target.value)} autoFocus />
+            <span className="text-xs font-medium text-muted-foreground">
+              {t('expenses.category', 'Category')}
+              <RequiredMark />
+            </span>
+            <Input
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && submit()}
+            />
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">{t('expenses.amount', 'Amount')}</span>
-              <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <span className="text-xs font-medium text-muted-foreground">
+                {t('expenses.amount', 'Amount')}
+                <RequiredMark />
+              </span>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && submit()}
+              />
             </label>
             <label className="space-y-1">
               <span className="text-xs font-medium text-muted-foreground">{t('expenses.currency', 'Currency')}</span>
@@ -112,17 +133,28 @@ export function ExpenseFormDialog({
               <DateInput value={date} onChange={setDate} />
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">{t('expenses.note', 'Note')}</span>
-              <Input value={note} onChange={(e) => setNote(e.target.value)} />
+              <span className="text-xs font-medium text-muted-foreground">
+                {t('expenses.note', 'Note')}{' '}
+                <span className="text-[10px]">({t('common.optional', 'optional')})</span>
+              </span>
+              <Input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && submit()}
+              />
             </label>
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button onClick={submit} disabled={busy}>
+          <Button onClick={submit} busy={busy}>
             {t('common.save', 'Save')}
           </Button>
         </DialogFooter>

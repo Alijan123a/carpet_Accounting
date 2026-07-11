@@ -76,7 +76,9 @@ function SectionTable({ section }: { section: RenderedSection }): JSX.Element {
       </div>
 
       {rows.length === 0 ? (
-        <div className="px-3 py-4 text-center text-xs text-muted-foreground">—</div>
+        <div className="px-3 py-4 text-center text-xs text-muted-foreground">
+          {t('reports.noData', 'No data for the selected filters.')}
+        </div>
       ) : (
         <div ref={parentRef} className="max-h-[55vh] overflow-auto">
           <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>
@@ -91,6 +93,7 @@ function SectionTable({ section }: { section: RenderedSection }): JSX.Element {
                   {row.map((value, ci) => (
                     <span
                       key={ci}
+                      title={value}
                       className={cn(
                         'truncate px-3 py-2',
                         section.columns[ci].align === 'end' ? 'text-end font-mono tabular-nums' : 'text-start'

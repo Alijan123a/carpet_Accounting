@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
@@ -108,6 +109,7 @@ export function ExpensesModule(): JSX.Element {
     try {
       await window.api.expenses.remove(deleteTarget.id)
       setDeleteTarget(null)
+      toast.success(t('common.deleted', 'Deleted.'))
       refresh()
     } finally {
       setBusy(false)
@@ -132,14 +134,19 @@ export function ExpensesModule(): JSX.Element {
         </Button>
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center gap-3">
+      <div className="mb-3 flex flex-wrap items-end gap-3">
         <Input
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder={t('expenses.searchPlaceholder', 'Search category or note…')}
           className="h-9 max-w-xs"
         />
-        <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm">
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          aria-label={t('expenses.category', 'Category')}
+          className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
+        >
           <option value="all">{t('expenses.allCategories', 'All categories')}</option>
           {categories.map((c) => (
             <option key={c} value={c}>
@@ -147,7 +154,12 @@ export function ExpensesModule(): JSX.Element {
             </option>
           ))}
         </select>
-        <select value={currency} onChange={(e) => setCurrency(e.target.value as Currency | 'all')} className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm">
+        <select
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value as Currency | 'all')}
+          aria-label={t('expenses.currency', 'Currency')}
+          className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
+        >
           <option value="all">{t('expenses.allCurrencies', 'All currencies')}</option>
           {ENABLED_CURRENCIES.map((c) => (
             <option key={c} value={c}>
@@ -155,8 +167,14 @@ export function ExpensesModule(): JSX.Element {
             </option>
           ))}
         </select>
-        <DateInput value={from} onChange={setFrom} className="h-9 w-56" />
-        <DateInput value={to} onChange={setTo} className="h-9 w-56" />
+        <label className="space-y-1 text-xs text-muted-foreground">
+          <span className="block">{t('statement.from', 'From')}</span>
+          <DateInput value={from} onChange={setFrom} className="h-9 w-56" />
+        </label>
+        <label className="space-y-1 text-xs text-muted-foreground">
+          <span className="block">{t('statement.to', 'To')}</span>
+          <DateInput value={to} onChange={setTo} className="h-9 w-56" />
+        </label>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
@@ -200,6 +218,7 @@ export function ExpensesModule(): JSX.Element {
                       size="icon"
                       className="h-8 w-8"
                       title={t('common.edit', 'Edit')}
+                      aria-label={t('common.edit', 'Edit')}
                       onClick={() => {
                         setEditExpense(ex)
                         setFormOpen(true)
@@ -207,7 +226,14 @@ export function ExpensesModule(): JSX.Element {
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" title={t('common.delete', 'Delete')} onClick={() => setDeleteTarget(ex)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      title={t('common.delete', 'Delete')}
+                      aria-label={t('common.delete', 'Delete')}
+                      onClick={() => setDeleteTarget(ex)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </span>

@@ -74,19 +74,24 @@ export function DeleteConfirmDialog({
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             placeholder={expectedText}
+            aria-label={expectedText}
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter' && match && !busy) onConfirm()
             }}
           />
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={!match || busy}>
+          <Button variant="destructive" onClick={onConfirm} disabled={!match} busy={busy}>
             {t('common.delete', 'Delete')}
           </Button>
         </DialogFooter>

@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { toast } from '@renderer/components/ui/toast'
 import { useSettings, type Theme, type Calendar } from '@renderer/store/settings'
 import type { Language } from '@renderer/i18n'
 import { ENABLED_CURRENCIES } from '@shared/accounting'
@@ -42,14 +43,15 @@ export function Settings(): JSX.Element {
   const [config, setConfig] = useState<AppConfig | null>(null)
   const [statusesOpen, setStatusesOpen] = useState(false)
   const [restoreOpen, setRestoreOpen] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
+  // Which long-running action is in flight — drives per-button spinners.
+  const [busyAction, setBusyAction] = useState<'backup' | 'restore' | 'folder' | 'password' | null>(null)
+  const busy = busyAction !== null
 
   // change-password fields
   const [curPw, setCurPw] = useState('')
   const [newPw, setNewPw] = useState('')
   const [confirmPw, setConfirmPw] = useState('')
-  const [pwMsg, setPwMsg] = useState<string | null>(null)
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   // device fingerprint (for support / license transfer)
   const [fingerprint, setFingerprint] = useState('')
@@ -90,32 +92,31 @@ export function Settings(): JSX.Element {
   ]
 
   async function backupNow(): Promise<void> {
-    setBusy(true)
-    setMsg(null)
+    setBusyAction('backup')
     try {
       const res = await window.api.backup.now()
       if (res.canceled) return
-      setMsg(res.ok ? t('settings.backupDone', 'Backup saved.') : `${t('settings.backupFailed', 'Backup failed')}: ${res.reason ?? ''}`)
+      if (res.ok) toast.success(t('settings.backupDone', 'Backup saved.'))
+      else toast.error(`${t('settings.backupFailed', 'Backup failed')}: ${res.reason ?? ''}`)
     } finally {
-      setBusy(false)
+      setBusyAction(null)
     }
   }
 
   async function chooseFolder(): Promise<void> {
-    setBusy(true)
-    setMsg(null)
+    setBusyAction('folder')
     try {
       const res = await window.api.backup.chooseFolder()
       if (res.ok) setConfig(await window.api.config.get())
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : String(e))
+      toast.error(e instanceof Error ? e.message : String(e))
     } finally {
-      setBusy(false)
+      setBusyAction(null)
     }
   }
 
   async function doRestore(): Promise<void> {
-    setBusy(true)
+    setBusyAction('restore')
     try {
       const res = await window.api.backup.restore()
       setRestoreOpen(false)
@@ -124,33 +125,39 @@ export function Settings(): JSX.Element {
         // Reload so every view reflects the restored database.
         window.location.reload()
       } else {
-        setMsg(`${t('settings.backupFailed', 'Restore failed')}: ${res.reason ?? ''}`)
+        toast.error(`${t('settings.backupFailed', 'Restore failed')}: ${res.reason ?? ''}`)
       }
     } catch (e) {
       setRestoreOpen(false)
-      setMsg(`${t('settings.backupFailed', 'Restore failed')}: ${e instanceof Error ? e.message : String(e)}`)
+      toast.error(`${t('settings.backupFailed', 'Restore failed')}: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
-      setBusy(false)
+      setBusyAction(null)
     }
   }
 
   async function changePassword(): Promise<void> {
     setPwMsg(null)
-    if (newPw.length < 4) return setPwMsg(t('auth.tooShort', 'Password must be at least 4 characters.'))
-    if (newPw !== confirmPw) return setPwMsg(t('auth.mismatch', 'Passwords do not match.'))
-    setBusy(true)
+    if (newPw.length < 4) return setPwMsg({ ok: false, text: t('auth.tooShort', 'Password must be at least 4 characters.') })
+    if (newPw !== confirmPw) return setPwMsg({ ok: false, text: t('auth.mismatch', 'Passwords do not match.') })
+    setBusyAction('password')
     try {
       const res = await window.api.auth.change(curPw, newPw)
       if (res.ok) {
-        setPwMsg(t('settings.passwordChanged', 'Password changed.'))
+        setPwMsg({ ok: true, text: t('settings.passwordChanged', 'Password changed.') })
         setCurPw('')
         setNewPw('')
         setConfirmPw('')
       } else {
-        setPwMsg(res.reason === 'wrong_old' ? t('settings.wrongCurrent', 'Current password is incorrect.') : (res.reason ?? 'error'))
+        setPwMsg({
+          ok: false,
+          text:
+            res.reason === 'wrong_old'
+              ? t('settings.wrongCurrent', 'Current password is incorrect.')
+              : (res.reason ?? t('common.error', 'An error occurred.'))
+        })
       }
     } finally {
-      setBusy(false)
+      setBusyAction(null)
     }
   }
 
@@ -197,7 +204,7 @@ export function Settings(): JSX.Element {
       {config && (
         <>
           <Field title={t('settings.backupFolder', 'Backup folder')} description={config.backupFolder}>
-            <Button variant="outline" size="sm" onClick={chooseFolder}>
+            <Button variant="outline" size="sm" onClick={chooseFolder} busy={busyAction === 'folder'} disabled={busy}>
               {t('settings.chooseFolder', 'Choose…')}
             </Button>
           </Field>
@@ -205,6 +212,7 @@ export function Settings(): JSX.Element {
             <select
               value={config.backupFrequency}
               onChange={(e) => patchConfig({ backupFrequency: e.target.value as BackupFrequency })}
+              aria-label={t('settings.backupFrequency', 'Automatic backup')}
               className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
             >
               <option value="off">{t('settings.freqOff', 'Off')}</option>
@@ -225,14 +233,13 @@ export function Settings(): JSX.Element {
             title={t('settings.backupActions', 'Manual backup')}
             description={config.lastAutoBackup ? `${t('settings.lastBackup', 'Last auto backup')}: ${formatDateTime(config.lastAutoBackup, calendar)}` : undefined}
           >
-            <Button size="sm" onClick={backupNow} disabled={busy}>
+            <Button size="sm" onClick={backupNow} busy={busyAction === 'backup'} disabled={busy}>
               {t('settings.backupNow', 'Backup now')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setRestoreOpen(true)} disabled={busy}>
               {t('settings.restore', 'Restore…')}
             </Button>
           </Field>
-          {msg && <p className="px-1 text-sm text-muted-foreground">{msg}</p>}
         </>
       )}
 
@@ -240,11 +247,37 @@ export function Settings(): JSX.Element {
       <SectionTitle>{t('settings.security', 'Security')}</SectionTitle>
       <div className="space-y-3 rounded-2xl border border-border/70 bg-card p-4 shadow-card">
         <div className="text-sm font-medium">{t('settings.changePassword', 'Change password')}</div>
-        <Input type="password" value={curPw} onChange={(e) => setCurPw(e.target.value)} placeholder={t('settings.currentPassword', 'Current password')} />
-        <Input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder={t('settings.newPassword', 'New password')} />
-        <Input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} placeholder={t('settings.confirmPassword', 'Confirm new password')} />
-        {pwMsg && <p className="text-sm text-muted-foreground">{pwMsg}</p>}
-        <Button size="sm" onClick={changePassword} disabled={busy}>
+        <Input
+          type="password"
+          value={curPw}
+          onChange={(e) => setCurPw(e.target.value)}
+          placeholder={t('settings.currentPassword', 'Current password')}
+          aria-label={t('settings.currentPassword', 'Current password')}
+        />
+        <Input
+          type="password"
+          value={newPw}
+          onChange={(e) => setNewPw(e.target.value)}
+          placeholder={t('settings.newPassword', 'New password')}
+          aria-label={t('settings.newPassword', 'New password')}
+        />
+        <Input
+          type="password"
+          value={confirmPw}
+          onChange={(e) => setConfirmPw(e.target.value)}
+          placeholder={t('settings.confirmPassword', 'Confirm new password')}
+          aria-label={t('settings.confirmPassword', 'Confirm new password')}
+          onKeyDown={(e) => e.key === 'Enter' && changePassword()}
+        />
+        {pwMsg && (
+          <p
+            role={pwMsg.ok ? 'status' : 'alert'}
+            className={pwMsg.ok ? 'text-sm text-green-600 dark:text-green-400' : 'text-sm text-destructive'}
+          >
+            {pwMsg.text}
+          </p>
+        )}
+        <Button size="sm" onClick={changePassword} busy={busyAction === 'password'} disabled={busy}>
           {t('settings.changePassword', 'Change password')}
         </Button>
       </div>
@@ -289,7 +322,7 @@ export function Settings(): JSX.Element {
         body={t('settings.restoreWarnBody', 'This REPLACES your current database with the selected backup. Current data not in the backup will be lost. Make a backup first if unsure.')}
         confirmLabel={t('settings.restore', 'Restore')}
         destructive
-        busy={busy}
+        busy={busyAction === 'restore'}
         onConfirm={doRestore}
       />
     </div>

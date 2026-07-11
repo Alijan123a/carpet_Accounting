@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Input } from '@renderer/components/ui/input'
 import { cn } from '@renderer/lib/utils'
 
@@ -42,6 +43,7 @@ export function Typeahead<T extends TypeaheadItem>({
   limit = 50,
   autoFocus
 }: TypeaheadProps<T>): JSX.Element {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [highlight, setHighlight] = useState(0)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -119,12 +121,20 @@ export function Typeahead<T extends TypeaheadItem>({
         disabled={disabled}
         autoFocus={autoFocus}
         autoComplete="off"
+        role="combobox"
+        aria-expanded={open}
+        aria-autocomplete="list"
       />
       {open && matches.length > 0 && (
-        <ul className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-border bg-card py-1 text-sm shadow-card">
+        <ul
+          role="listbox"
+          className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-border bg-card py-1 text-sm shadow-card"
+        >
           {matches.map((item, i) => (
             <li
               key={item.id}
+              role="option"
+              aria-selected={i === highlight}
               // onMouseDown (not onClick) so selection wins the race with the input's blur.
               onMouseDown={(e) => {
                 e.preventDefault()
@@ -143,6 +153,11 @@ export function Typeahead<T extends TypeaheadItem>({
             </li>
           ))}
         </ul>
+      )}
+      {open && value.trim() !== '' && matches.length === 0 && (
+        <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-center text-xs text-muted-foreground shadow-card">
+          {t('common.noResults', 'No results found.')}
+        </div>
       )}
     </div>
   )

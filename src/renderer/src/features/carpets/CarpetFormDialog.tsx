@@ -9,6 +9,8 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { RequiredMark } from '@renderer/components/ui/required-mark'
+import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
 import { useSettings } from '@renderer/store/settings'
 import { startOfDayEpoch } from '@renderer/lib/date'
@@ -138,6 +140,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
         })
         if (!res.ok) return fail(res.reason)
       }
+      toast.success(t('common.saved', 'Saved.'))
       onSaved()
       onOpenChange(false)
     } catch (e) {
@@ -150,7 +153,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
       setError(
         reason === 'label_taken'
           ? t('carpets.labelTaken', 'That label number is already used.')
-          : (reason ?? 'error')
+          : (reason ?? t('common.error', 'An error occurred.'))
       )
     }
   }
@@ -169,7 +172,7 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
         )}
 
         <div className="grid grid-cols-2 gap-3">
-          <Labeled label={t('carpets.label', 'Label #')}>
+          <Labeled label={t('carpets.label', 'Label #')} required>
             <Input value={label} onChange={(e) => setLabel(e.target.value)} autoFocus />
           </Labeled>
           <Labeled label={t('carpets.sortGrade', 'Sort grade')}>
@@ -189,11 +192,25 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
           <Labeled label={t('carpets.quality', 'Quality')}>
             <Input value={quality} onChange={(e) => setQuality(e.target.value)} />
           </Labeled>
-          <Labeled label={`${t('carpets.length', 'Length')} (m)`}>
-            <Input type="number" step="0.01" value={length} onChange={(e) => setLength(e.target.value)} disabled={locked} />
+          <Labeled label={`${t('carpets.length', 'Length')} (m)`} required>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={length}
+              onChange={(e) => setLength(e.target.value)}
+              disabled={locked}
+            />
           </Labeled>
-          <Labeled label={`${t('carpets.width', 'Width')} (m)`}>
-            <Input type="number" step="0.01" value={width} onChange={(e) => setWidth(e.target.value)} disabled={locked} />
+          <Labeled label={`${t('carpets.width', 'Width')} (m)`} required>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={width}
+              onChange={(e) => setWidth(e.target.value)}
+              disabled={locked}
+            />
           </Labeled>
           <Labeled label={t('carpets.currency', 'Currency')}>
             <select
@@ -226,12 +243,20 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
             </Labeled>
           )}
           <Labeled label={`${t('carpets.pricePerMeter', 'Price / meter')} (${currency})`}>
-            <Input type="number" step="0.01" value={ppm} onChange={(e) => setPpm(e.target.value)} disabled={locked} />
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={ppm}
+              onChange={(e) => setPpm(e.target.value)}
+              disabled={locked}
+            />
           </Labeled>
           <Labeled label={`${t('carpets.deduction', 'Sort deduction')} (${currency})`}>
             <Input
               type="number"
               step="0.01"
+              min="0"
               value={deduction}
               onChange={(e) => setDeduction(e.target.value)}
               disabled={locked}
@@ -279,13 +304,17 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
           </p>
         )}
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button onClick={submit} disabled={busy}>
+          <Button onClick={submit} busy={busy}>
             {t('common.save', 'Save')}
           </Button>
         </DialogFooter>
@@ -294,10 +323,21 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
   )
 }
 
-function Labeled({ label, children }: { label: string; children: ReactNode }): JSX.Element {
+function Labeled({
+  label,
+  required,
+  children
+}: {
+  label: string
+  required?: boolean
+  children: ReactNode
+}): JSX.Element {
   return (
     <label className="block space-y-1">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span className="text-xs font-medium text-muted-foreground">
+        {label}
+        {required && <RequiredMark />}
+      </span>
       {children}
     </label>
   )

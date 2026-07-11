@@ -9,6 +9,8 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { RequiredMark } from '@renderer/components/ui/required-mark'
+import { toast } from '@renderer/components/ui/toast'
 import { ENABLED_CURRENCIES, type Currency } from '@shared/accounting'
 import { useSettings } from '@renderer/store/settings'
 
@@ -35,13 +37,14 @@ export function MaterialFormDialog({
       setCurrency(defaultCurrency)
       setError(null)
     }
-  }, [open])
+  }, [open, defaultCurrency])
 
   async function submit(): Promise<void> {
     if (!name.trim()) return setError(t('material.nameRequired', 'Name is required.'))
     setBusy(true)
     try {
       const id = await window.api.materials.create({ name: name.trim(), currency })
+      toast.success(t('common.saved', 'Saved.'))
       onSaved(id)
       onOpenChange(false)
     } catch (e) {
@@ -59,8 +62,16 @@ export function MaterialFormDialog({
         </DialogHeader>
         <div className="space-y-3">
           <label className="block space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">{t('material.name', 'Name')}</span>
-            <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+            <span className="text-xs font-medium text-muted-foreground">
+              {t('material.name', 'Name')}
+              <RequiredMark />
+            </span>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && submit()}
+            />
           </label>
           <label className="block space-y-1">
             <span className="text-xs font-medium text-muted-foreground">{t('material.currency', 'Currency')}</span>
@@ -76,13 +87,17 @@ export function MaterialFormDialog({
               ))}
             </select>
           </label>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button onClick={submit} disabled={busy}>
+          <Button onClick={submit} busy={busy}>
             {t('common.create', 'Create')}
           </Button>
         </DialogFooter>

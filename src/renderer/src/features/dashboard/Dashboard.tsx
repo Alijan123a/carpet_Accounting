@@ -124,6 +124,7 @@ export function Dashboard(): JSX.Element {
               <button
                 key={p.key}
                 onClick={() => setPreset(p.key)}
+                aria-pressed={preset === p.key}
                 className={cn(
                   'rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors',
                   preset === p.key ? 'bg-card text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'
@@ -136,7 +137,10 @@ export function Dashboard(): JSX.Element {
           {preset === 'custom' && (
             <div className="flex items-center gap-1.5">
               <DateInput value={customFrom} onChange={setCustomFrom} className="h-9 w-56" />
-              <span className="text-xs text-muted-foreground">→</span>
+              {/* Arrow points "from → to" in the reading direction; flip it in RTL. */}
+              <span aria-hidden className="inline-block text-xs text-muted-foreground rtl:rotate-180">
+                →
+              </span>
               <DateInput value={customTo} onChange={setCustomTo} className="h-9 w-56" />
             </div>
           )}
@@ -236,6 +240,7 @@ export function Dashboard(): JSX.Element {
                 <button
                   key={cur}
                   onClick={() => setDonutCur(cur)}
+                  aria-pressed={donutCur === cur}
                   className={cn(
                     'rounded px-2 py-1 text-xs font-medium transition-colors',
                     donutCur === cur ? 'bg-card text-foreground shadow-soft' : 'text-muted-foreground'

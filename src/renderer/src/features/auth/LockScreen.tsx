@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Lock } from 'lucide-react'
+import { Lock, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 
@@ -18,6 +18,7 @@ export function LockScreen({
   const { t } = useTranslation()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [show, setShow] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -36,7 +37,7 @@ export function LockScreen({
       if (mode === 'setup') {
         const res = await window.api.auth.setup(password)
         if (!res.ok) {
-          setError(res.reason ?? 'error')
+          setError(res.reason ?? t('common.error', 'An error occurred.'))
           return
         }
       } else {
@@ -75,25 +76,43 @@ export function LockScreen({
         )}
 
         <div className="space-y-3">
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={t('auth.password', 'Password')}
-            autoFocus
-            onKeyDown={(e) => e.key === 'Enter' && mode === 'unlock' && submit()}
-          />
+          <div className="relative">
+            <Input
+              type={show ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={t('auth.password', 'Password')}
+              aria-label={t('auth.password', 'Password')}
+              autoFocus
+              className="pe-10"
+              onKeyDown={(e) => e.key === 'Enter' && submit()}
+            />
+            <button
+              type="button"
+              onClick={() => setShow((s) => !s)}
+              tabIndex={-1}
+              aria-label={show ? t('auth.hidePassword', 'Hide password') : t('auth.showPassword', 'Show password')}
+              className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
           {mode === 'setup' && (
             <Input
-              type="password"
+              type={show ? 'text' : 'password'}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder={t('auth.confirm', 'Confirm password')}
+              aria-label={t('auth.confirm', 'Confirm password')}
               onKeyDown={(e) => e.key === 'Enter' && submit()}
             />
           )}
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button variant="brand" className="w-full" onClick={submit} disabled={busy}>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+          <Button variant="brand" className="w-full" onClick={submit} busy={busy}>
             {mode === 'setup' ? t('auth.set', 'Set password') : t('auth.unlock', 'Unlock')}
           </Button>
         </div>

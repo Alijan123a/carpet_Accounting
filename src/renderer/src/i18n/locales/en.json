@@ -47,7 +47,17 @@
     "rename": "Rename",
     "manage": "Manage",
     "deleteTypeToConfirm": "To confirm, type <b>{{name}}</b> below:",
-    "clear": "Clear"
+    "clear": "Clear",
+    "saving": "Saving…",
+    "saved": "Saved.",
+    "deleted": "Deleted.",
+    "archivedToast": "Archived.",
+    "restoredToast": "Restored.",
+    "reversedToast": "Transaction reversed.",
+    "error": "An error occurred.",
+    "requiredField": "required",
+    "select": "Select…",
+    "noResults": "No results found."
   },
   "settings": {
     "title": "Settings",
@@ -109,7 +119,9 @@
     "unlock": "Unlock",
     "wrong": "Incorrect password.",
     "mismatch": "Passwords do not match.",
-    "tooShort": "Password must be at least 4 characters."
+    "tooShort": "Password must be at least 4 characters.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "archive": {
     "subtitle": "Archived items are hidden from active views but never deleted, and still appear in date-ranged reports.",
@@ -284,6 +296,7 @@
     "date": "Date",
     "avgBuyPerKg": "Avg buy / kg",
     "nameRequired": "Name is required.",
+    "clientRequired": "Choose a client.",
     "kgRequired": "Kilograms must be greater than 0.",
     "noLines": "No lines yet.",
     "deleteConfirmTitle": "Delete this material?",

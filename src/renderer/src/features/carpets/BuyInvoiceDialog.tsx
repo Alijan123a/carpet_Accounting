@@ -10,6 +10,7 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
 import { Typeahead } from '@renderer/components/ui/typeahead'
 import { useSettings } from '@renderer/store/settings'
@@ -203,6 +204,7 @@ export function BuyInvoiceDialog({
         setError(batchError(res.reason, res.label))
         return
       }
+      toast.success(t('common.saved', 'Saved.'))
       onSaved()
       onOpenChange(false)
     } catch (e) {
@@ -221,7 +223,7 @@ export function BuyInvoiceDialog({
       case 'no_lines':
         return t('buyInvoice.noLines', 'Add at least one carpet (label required).')
       default:
-        return reason ?? 'error'
+        return reason ?? t('common.error', 'An error occurred.')
     }
   }
 
@@ -257,7 +259,10 @@ export function BuyInvoiceDialog({
             />
             {seller?.phone && <span className="text-xs text-muted-foreground">{seller.phone}</span>}
           </label>
-          <label className="block space-y-1">
+          <label
+            className="block space-y-1"
+            title={!seller ? t('buyInvoice.noSellerHint', 'No seller selected — carpets are added to the warehouse without posting a purchase to any account.') : undefined}
+          >
             <span className="text-xs font-medium text-muted-foreground">{t('carpets.buyDate', 'Purchase date')}</span>
             <DateInput value={date} onChange={setDate} disabled={!seller} />
           </label>
@@ -373,6 +378,7 @@ export function BuyInvoiceDialog({
                       size="icon"
                       className="h-8 w-8"
                       title={t('invoice.removeLine', 'Remove line')}
+                      aria-label={t('invoice.removeLine', 'Remove line')}
                       onClick={() => removeLine(l.key)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -402,13 +408,17 @@ export function BuyInvoiceDialog({
             {t('buyInvoice.noSellerHint', 'No seller selected — carpets are added to the warehouse without posting a purchase to any account.')}
           </p>
         )}
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button onClick={submit} disabled={busy}>
+          <Button onClick={submit} busy={busy}>
             {t('buyInvoice.save', 'Save carpets')}
           </Button>
         </DialogFooter>

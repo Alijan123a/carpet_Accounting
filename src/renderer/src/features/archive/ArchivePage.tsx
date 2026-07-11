@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArchiveRestore } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
+import { toast } from '@renderer/components/ui/toast'
 import { formatCents } from '@shared/accounting'
 import type { ArchiveLists } from '@shared/contracts'
 
@@ -26,6 +27,7 @@ export function ArchivePage(): JSX.Element {
       if (kind === 'client') await window.api.clients.restore(id)
       else if (kind === 'carpet') await window.api.carpets.restore(id)
       else await window.api.materials.restore(id)
+      toast.success(t('common.restoredToast', 'Restored.'))
       await load()
     } finally {
       setBusy(false)

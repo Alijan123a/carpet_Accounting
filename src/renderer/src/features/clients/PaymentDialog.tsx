@@ -9,6 +9,8 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { RequiredMark } from '@renderer/components/ui/required-mark'
+import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
 import { startOfDayEpoch } from '@renderer/lib/date'
 import { parseMoneyToCents, ENABLED_CURRENCIES } from '@shared/accounting'
@@ -48,7 +50,7 @@ export function PaymentDialog({
       setNote('')
       setError(null)
     }
-  }, [open])
+  }, [open, defaultCurrency])
 
   async function submit(): Promise<void> {
     const cents = parseMoneyToCents(amount)
@@ -67,6 +69,7 @@ export function PaymentDialog({
         transactionDate: startOfDayEpoch(date),
         note: note.trim() || null
       })
+      toast.success(t('common.saved', 'Saved.'))
       onSaved()
       onOpenChange(false)
     } catch (e) {
@@ -86,8 +89,19 @@ export function PaymentDialog({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">{t('payment.amount', 'Amount')}</span>
-              <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
+              <span className="text-xs font-medium text-muted-foreground">
+                {t('payment.amount', 'Amount')}
+                <RequiredMark />
+              </span>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                autoFocus
+                onKeyDown={(e) => e.key === 'Enter' && submit()}
+              />
             </label>
             <label className="space-y-1">
               <span className="text-xs font-medium text-muted-foreground">{t('payment.currency', 'Currency')}</span>
@@ -123,19 +137,30 @@ export function PaymentDialog({
               <DateInput value={date} onChange={setDate} />
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">{t('payment.note', 'Note')}</span>
-              <Input value={note} onChange={(e) => setNote(e.target.value)} />
+              <span className="text-xs font-medium text-muted-foreground">
+                {t('payment.note', 'Note')}{' '}
+                <span className="text-[10px]">({t('common.optional', 'optional')})</span>
+              </span>
+              <Input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && submit()}
+              />
             </label>
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button onClick={submit} disabled={busy}>
+          <Button onClick={submit} busy={busy}>
             {t('payment.add', 'Add payment')}
           </Button>
         </DialogFooter>

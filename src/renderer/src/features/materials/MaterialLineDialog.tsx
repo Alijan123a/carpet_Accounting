@@ -9,6 +9,8 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { RequiredMark } from '@renderer/components/ui/required-mark'
+import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
 import { startOfDayEpoch } from '@renderer/lib/date'
 import { parseMoneyToCents, formatCents, materialLineTotalCents, materialLineProfitCents } from '@shared/accounting'
@@ -64,7 +66,7 @@ export function MaterialLineDialog({
   }, [kg, ppk, currency, avgBuyPerKgCents])
 
   async function submit(): Promise<void> {
-    if (!clientId) return setError(t('material.client', 'Choose a client.'))
+    if (!clientId) return setError(t('material.clientRequired', 'Choose a client.'))
     if (calc.kilograms <= 0) return setError(t('material.kgRequired', 'Kilograms must be greater than 0.'))
     setBusy(true)
     setError(null)
@@ -77,6 +79,7 @@ export function MaterialLineDialog({
         pricePerKgCents: calc.ppkCents,
         transactionDate: startOfDayEpoch(date)
       })
+      toast.success(t('common.saved', 'Saved.'))
       onSaved()
       onOpenChange(false)
     } catch (e) {
@@ -95,13 +98,17 @@ export function MaterialLineDialog({
         </DialogHeader>
         <div className="space-y-3">
           <label className="block space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">{t('material.client', 'Client')}</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              {t('material.client', 'Client')}
+              <RequiredMark />
+            </span>
             <select
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
+              autoFocus
               className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm"
             >
-              <option value="">—</option>
+              <option value="">{t('common.select', 'Select…')}</option>
               {clients.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -111,14 +118,31 @@ export function MaterialLineDialog({
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">{t('material.kilograms', 'Kilograms')}</span>
-              <Input type="number" step="0.001" value={kg} onChange={(e) => setKg(e.target.value)} />
+              <span className="text-xs font-medium text-muted-foreground">
+                {t('material.kilograms', 'Kilograms')}
+                <RequiredMark />
+              </span>
+              <Input
+                type="number"
+                step="0.001"
+                min="0"
+                value={kg}
+                onChange={(e) => setKg(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && submit()}
+              />
             </label>
             <label className="space-y-1">
               <span className="text-xs font-medium text-muted-foreground">
                 {t('material.pricePerKg', 'Price / kg')} ({currency})
               </span>
-              <Input type="number" step="0.01" value={ppk} onChange={(e) => setPpk(e.target.value)} />
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={ppk}
+                onChange={(e) => setPpk(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && submit()}
+              />
             </label>
           </div>
           <label className="block space-y-1">
@@ -145,13 +169,17 @@ export function MaterialLineDialog({
             )}
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button onClick={submit} disabled={busy}>
+          <Button onClick={submit} busy={busy}>
             {t('common.save', 'Save')}
           </Button>
         </DialogFooter>

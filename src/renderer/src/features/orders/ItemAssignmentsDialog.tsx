@@ -218,6 +218,7 @@ export function ItemAssignmentsDialog({
                   size="icon"
                   className="h-7 w-7 text-muted-foreground hover:text-destructive"
                   title={t('common.delete', 'Delete')}
+                  aria-label={t('common.delete', 'Delete')}
                   onClick={() => remove(a.id)}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -257,6 +258,7 @@ export function ItemAssignmentsDialog({
                   max={String(remaining)}
                   value={qty}
                   onChange={(e) => setQty(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addAssignment()}
                   className="h-9 text-end"
                 />
               </label>
@@ -272,7 +274,11 @@ export function ItemAssignmentsDialog({
           </div>
         )}
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

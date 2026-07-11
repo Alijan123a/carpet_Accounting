@@ -9,6 +9,7 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
 import { startOfDayEpoch } from '@renderer/lib/date'
 import {
@@ -199,6 +200,7 @@ export function CompleteAssignmentDialog({
         setError(batchError(res.reason, res.label))
         return
       }
+      toast.success(t('common.saved', 'Saved.'))
       onCompleted(filled.length)
       onOpenChange(false)
     } catch (e) {
@@ -217,7 +219,7 @@ export function CompleteAssignmentDialog({
       case 'no_lines':
         return t('complete.noLines', 'Add at least one carpet (label required).')
       default:
-        return reason ?? 'error'
+        return reason ?? t('common.error', 'An error occurred.')
     }
   }
 
@@ -382,13 +384,17 @@ export function CompleteAssignmentDialog({
           )}
         </p>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button onClick={submit} disabled={busy}>
+          <Button onClick={submit} busy={busy}>
             {t('complete.save', 'Complete & add to warehouse')}
           </Button>
         </DialogFooter>

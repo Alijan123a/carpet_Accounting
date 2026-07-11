@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { Undo2, CheckCircle2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { toast } from '@renderer/components/ui/toast'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { ConfirmDialog } from '@renderer/components/ConfirmDialog'
 import { cn } from '@renderer/lib/utils'
@@ -125,6 +126,7 @@ export function SystemChangesPage(): JSX.Element {
         return
       }
       setUndoTarget(null)
+      toast.success(t('common.saved', 'Saved.'))
       void fetchPage(true)
     } catch (e) {
       setUndoError(e instanceof Error ? e.message : String(e))
@@ -155,6 +157,7 @@ export function SystemChangesPage(): JSX.Element {
         <select
           value={entity}
           onChange={(e) => setEntity(e.target.value as ChangeEntity | 'all')}
+          aria-label={t('changes.entityCol', 'Section')}
           className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
         >
           {ENTITIES.map((e) => (
@@ -163,7 +166,7 @@ export function SystemChangesPage(): JSX.Element {
             </option>
           ))}
         </select>
-        <span className="text-xs text-muted-foreground">
+        <span aria-live="polite" className="text-xs text-muted-foreground">
           {t('changes.total', { total, defaultValue: '{{total}} changes' })}
         </span>
       </div>
@@ -241,11 +244,11 @@ export function SystemChangesPage(): JSX.Element {
         }}
         title={t('changes.undoConfirmTitle', 'Undo this change?')}
         body={
-          undoError ??
-          (undoTarget
+          undoTarget
             ? `${entityLabel(undoTarget.entity)} · ${actionLabel(undoTarget.action)} — ${undoTarget.summary}`
-            : undefined)
+            : undefined
         }
+        error={undoError}
         confirmLabel={t('changes.undo', 'Undo')}
         destructive
         busy={busy}

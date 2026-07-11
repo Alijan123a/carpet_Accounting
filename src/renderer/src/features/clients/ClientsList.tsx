@@ -159,7 +159,11 @@ export function ClientsList({
 
         {/* Virtualized rows */}
         <div ref={parentRef} onScroll={onScroll} className="h-[calc(100vh-300px)] overflow-auto">
-          {error && <div className="p-4 text-sm text-destructive">{error}</div>}
+          {error && (
+            <div role="alert" className="p-4 text-sm text-destructive">
+              {error}
+            </div>
+          )}
           {!error && rows.length === 0 && !loading && (
             <div className="p-8 text-center text-sm text-muted-foreground">{t('clients.empty', 'No clients found.')}</div>
           )}

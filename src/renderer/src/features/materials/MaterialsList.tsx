@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { Plus, Archive, ArchiveRestore, Trash2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { toast } from '@renderer/components/ui/toast'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { formatCents } from '@shared/accounting'
@@ -88,8 +89,13 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
   }
 
   async function toggleArchive(m: MaterialListItem): Promise<void> {
-    if (m.archived) await window.api.materials.restore(m.id)
-    else await window.api.materials.archive(m.id)
+    if (m.archived) {
+      await window.api.materials.restore(m.id)
+      toast.success(t('common.restoredToast', 'Restored.'))
+    } else {
+      await window.api.materials.archive(m.id)
+      toast.success(t('common.archivedToast', 'Archived.'))
+    }
     refresh()
   }
 
@@ -106,6 +112,7 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
         return
       }
       setDeleteTarget(null)
+      toast.success(t('common.deleted', 'Deleted.'))
       refresh()
     } finally {
       setDeleteBusy(false)
@@ -200,6 +207,7 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
                       size="icon"
                       className="h-8 w-8"
                       title={m.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
+                      aria-label={m.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
                       onClick={(e) => {
                         e.stopPropagation()
                         void toggleArchive(m)
@@ -212,6 +220,7 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       title={t('common.delete', 'Delete')}
+                      aria-label={t('common.delete', 'Delete')}
                       onClick={(e) => {
                         e.stopPropagation()
                         setDeleteError(null)

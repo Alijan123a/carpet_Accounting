@@ -10,6 +10,8 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { RequiredMark } from '@renderer/components/ui/required-mark'
+import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
 import { Typeahead } from '@renderer/components/ui/typeahead'
 import { useSettings } from '@renderer/store/settings'
@@ -229,6 +231,7 @@ export function OrderFormDialog({
       }
       if (order) await window.api.orders.update(order.id, payload)
       else await window.api.orders.create(payload)
+      toast.success(t('common.saved', 'Saved.'))
       onSaved()
       onOpenChange(false)
     } catch (e) {
@@ -248,7 +251,10 @@ export function OrderFormDialog({
         {/* Header: buyer + order number + date (same shape as the sell invoice) */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label className="block space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">{t('orders.buyer', 'Buyer')}</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              {t('orders.buyer', 'Buyer')}
+              <RequiredMark />
+            </span>
             <Typeahead
               value={buyerQuery}
               onValueChange={(v) => {
@@ -356,6 +362,7 @@ export function OrderFormDialog({
                   size="icon"
                   className="h-8 w-8"
                   title={t('invoice.removeLine', 'Remove line')}
+                  aria-label={t('invoice.removeLine', 'Remove line')}
                   onClick={() => removeRow(r.key)}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -382,13 +389,17 @@ export function OrderFormDialog({
           </div>
         </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button onClick={submit} disabled={busy}>
+          <Button onClick={submit} busy={busy}>
             {t('common.save', 'Save')}
           </Button>
         </DialogFooter>

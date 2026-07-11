@@ -10,6 +10,8 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { RequiredMark } from '@renderer/components/ui/required-mark'
+import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
 import { Typeahead } from '@renderer/components/ui/typeahead'
 import { useSettings } from '@renderer/store/settings'
@@ -262,6 +264,7 @@ export function SellInvoiceDialog({
       const bytes = await generateInvoicePdf(doc)
       await window.api.pdf.save(`invoice-${doc.number}.pdf`, bytes)
 
+      toast.success(t('common.saved', 'Saved.'))
       onSaved()
       onOpenChange(false)
     } catch (e) {
@@ -284,7 +287,7 @@ export function SellInvoiceDialog({
       case 'buyer_required':
         return t('invoice.buyerRequired', 'Choose a buyer.')
       default:
-        return reason ?? 'error'
+        return reason ?? t('common.error', 'An error occurred.')
     }
   }
 
@@ -312,7 +315,10 @@ export function SellInvoiceDialog({
         {/* Header: buyer + number + date */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label className="block space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">{t('invoice.buyer', 'Buyer')}</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              {t('invoice.buyer', 'Buyer')}
+              <RequiredMark />
+            </span>
             <Typeahead
               value={buyerQuery}
               onValueChange={(v) => {
@@ -426,6 +432,7 @@ export function SellInvoiceDialog({
                     size="icon"
                     className="h-8 w-8"
                     title={t('invoice.removeLine', 'Remove line')}
+                    aria-label={t('invoice.removeLine', 'Remove line')}
                     onClick={() => removeLine(l.key)}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -457,13 +464,17 @@ export function SellInvoiceDialog({
             )}
           </p>
         )}
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button onClick={submit} disabled={busy}>
+          <Button onClick={submit} busy={busy}>
             {t('invoice.savePrint', 'Save & Print')}
           </Button>
         </DialogFooter>

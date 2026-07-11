@@ -9,6 +9,8 @@ import {
 } from '@renderer/components/ui/dialog'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
+import { RequiredMark } from '@renderer/components/ui/required-mark'
+import { toast } from '@renderer/components/ui/toast'
 import type { ClientListItem } from '@shared/contracts'
 
 interface Props {
@@ -60,6 +62,7 @@ export function ClientFormDialog({ open, onOpenChange, client, defaultKind, onSa
         // New clients take the screen's role (buyer/seller); fall back to 'both'.
         await window.api.clients.create({ ...base, kind: defaultKind ?? 'both' })
       }
+      toast.success(t('common.saved', 'Saved.'))
       onSaved()
       onOpenChange(false)
     } catch (e) {
@@ -78,7 +81,10 @@ export function ClientFormDialog({ open, onOpenChange, client, defaultKind, onSa
 
         <div className="space-y-3">
           <label className="block space-y-1">
-            <span className="text-sm font-medium">{t('clients.name', 'Name')}</span>
+            <span className="text-sm font-medium">
+              {t('clients.name', 'Name')}
+              <RequiredMark />
+            </span>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -105,14 +111,18 @@ export function ClientFormDialog({ open, onOpenChange, client, defaultKind, onSa
               className="flex w-full rounded-lg border border-input bg-card shadow-soft px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </label>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button onClick={submit} disabled={busy}>
+          <Button onClick={submit} busy={busy}>
             {t('common.save', 'Save')}
           </Button>
         </DialogFooter>

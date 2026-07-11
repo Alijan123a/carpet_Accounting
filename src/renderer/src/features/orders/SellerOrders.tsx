@@ -52,7 +52,13 @@ export function SellerOrders({
   return (
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onBack} title={t('common.back', 'Back')}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onBack}
+          title={t('common.back', 'Back')}
+          aria-label={t('common.back', 'Back')}
+        >
           <ArrowRight className="h-4 w-4 rtl:rotate-180" />
         </Button>
         <div>

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
+import { Loader2 } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
 
 const buttonVariants = cva(
@@ -38,17 +39,28 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
+  /**
+   * When true the button is disabled and shows a spinner before its label —
+   * use on submit buttons while a mutation is in flight so the user can tell
+   * "processing" apart from a plain disabled state (and can't double-submit).
+   */
+  busy?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, busy = false, disabled, children, ...props }, ref) => {
     const Comp = asChild ? Slot : 'button'
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
+        disabled={busy || disabled}
+        aria-busy={busy || undefined}
         {...props}
-      />
+      >
+        {busy && !asChild && <Loader2 className="animate-spin" aria-hidden />}
+        {children}
+      </Comp>
     )
   }
 )

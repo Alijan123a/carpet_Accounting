@@ -112,6 +112,7 @@ export function ActivationScreen({
               onClick={copyFingerprint}
               disabled={!fingerprint}
               title={t('license.copy', 'Copy')}
+              aria-label={t('license.copy', 'Copy')}
             >
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             </Button>
@@ -134,8 +135,12 @@ export function ActivationScreen({
             autoComplete="off"
             onKeyDown={(e) => e.key === 'Enter' && submit()}
           />
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button variant="brand" className="w-full" onClick={submit} disabled={busy}>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+          <Button variant="brand" className="w-full" onClick={submit} busy={busy}>
             {t('license.activate', 'Activate')}
           </Button>
         </div>
