@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS carpets (
   area                       REAL NOT NULL,
   sort_grade                 TEXT,
   quality                    TEXT,
+  origin                     TEXT DEFAULT 'bought',
   price_per_meter_cents      INTEGER NOT NULL,
   sort_deduction_cents       INTEGER NOT NULL DEFAULT 0,
   currency                   TEXT NOT NULL,
@@ -137,6 +138,13 @@ CREATE TABLE IF NOT EXISTS expenses (
 CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
 CREATE INDEX IF NOT EXISTS idx_expenses_currency ON expenses(currency);
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(expense_date);
+
+-- User-managed expense categories («انواع مصارف»). expenses.category still holds
+-- the chosen name; this table curates the suggestion list + rename/delete.
+CREATE TABLE IF NOT EXISTS expense_types (
+  id   INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE
+);
 
 CREATE TABLE IF NOT EXISTS invoices (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -279,6 +287,21 @@ function runColumnUpgrades(sqlite: Database.Database): void {
     sqlite.exec(`ALTER TABLE orders ADD COLUMN items_json TEXT;`)
   }
   sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_orders_no ON orders(order_no);`)
+
+  // carpets.origin — 'ordered' | 'bought' provenance. On an older DB the ALTER
+  // fills existing rows with the DEFAULT ('bought'), which is the correct
+  // display for pre-existing stock. Index created here, after the column exists.
+  if (!hasColumn(sqlite, 'carpets', 'origin')) {
+    sqlite.exec(`ALTER TABLE carpets ADD COLUMN origin TEXT DEFAULT 'bought';`)
+  }
+  sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_carpets_origin ON carpets(origin);`)
+
+  // Seed expense_types from any category already used, so existing free-text
+  // categories show up as suggestions. INSERT OR IGNORE keeps it idempotent.
+  sqlite.exec(
+    `INSERT OR IGNORE INTO expense_types (name)
+     SELECT DISTINCT category FROM expenses WHERE category IS NOT NULL AND TRIM(category) != '';`
+  )
 }
 
 /** Create all tables/indexes/triggers and seed reference data. */

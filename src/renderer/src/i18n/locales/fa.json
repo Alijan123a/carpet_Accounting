@@ -237,6 +237,9 @@
     "totalPrice": "قیمت کل",
     "status": "حالت",
     "profit": "سود",
+    "type": "نوعیت",
+    "originOrdered": "سفارشی",
+    "originBought": "خریداری",
     "seller": "خریداری‌شده از (فروشنده)",
     "noSeller": "— هیچ‌کدام (بدون ثبت خرید) —",
     "buyDate": "تاریخ خرید",
@@ -497,6 +500,8 @@
     "empty": "مصرفی یافت نشد.",
     "total": "مجموع: {{total}}",
     "category": "دسته",
+    "categoryPlaceholder": "دسته را تایپ یا انتخاب کنید…",
+    "openHint": "برای ویرایش کلیک کنید",
     "amount": "مبلغ",
     "currency": "اسعار",
     "date": "تاریخ",
@@ -507,6 +512,17 @@
     "amountRequired": "مبلغی بزرگ‌تر از صفر وارد کنید.",
     "deleteConfirmTitle": "این مصرف حذف شود؟",
     "deleteConfirmBody": "این مصرف برای همیشه حذف می‌شود."
+  },
+  "expenseTypes": {
+    "title": "انواع مصارف",
+    "manage": "مدیریت انواع",
+    "name": "نام",
+    "empty": "هنوز نوعی وجود ندارد.",
+    "nameRequired": "نام الزامی است.",
+    "duplicate": "نوعی با این نام از قبل وجود دارد.",
+    "inUse": "این نوع توسط یک یا چند مصرف استفاده می‌شود.",
+    "deleteConfirmTitle": "این نوع حذف شود؟",
+    "deleteConfirmBody": "انواعی که در یک مصرف استفاده شده‌اند قابل حذف نیستند."
   },
   "reports": {
     "title": "گزارش‌ها",

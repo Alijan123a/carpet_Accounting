@@ -194,6 +194,8 @@ export function CompleteAssignmentDialog({
         currency,
         boughtFromClientId: assignment.sellerClientId,
         transactionDate: startOfDayEpoch(date),
+        // These carpets were made to fulfil an order (not bought for stock).
+        origin: 'ordered',
         lines: payloadLines
       })
       if (!res.ok) {

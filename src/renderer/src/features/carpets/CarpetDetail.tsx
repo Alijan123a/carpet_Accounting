@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowRight, Pencil, Archive, ArchiveRestore, Tag } from 'lucide-react'
+import { ArrowRight, Pencil, Archive, ArchiveRestore, Tag, Trash2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { toast } from '@renderer/components/ui/toast'
+import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatCents } from '@shared/accounting'
@@ -27,6 +28,8 @@ export function CarpetDetail({
   const [statuses, setStatuses] = useState<CarpetStatus[]>([])
   const [editOpen, setEditOpen] = useState(false)
   const [sellOpen, setSellOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async (): Promise<void> => {
@@ -58,6 +61,30 @@ export function CarpetDetail({
           refresh() // archive button is only shown for sold carpets
         }
       }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function doDelete(): Promise<void> {
+    if (!carpet) return
+    setBusy(true)
+    setDeleteError(null)
+    try {
+      const res = await window.api.carpets.remove(carpet.id)
+      if (!res.ok) {
+        setDeleteError(
+          t(
+            'carpets.deleteHasTransactions',
+            'This carpet has ledger transactions and cannot be deleted. Reverse them or archive it instead.'
+          )
+        )
+        return
+      }
+      setDeleteOpen(false)
+      toast.success(t('common.deleted', 'Deleted.'))
+      onChanged()
+      onBack()
     } finally {
       setBusy(false)
     }
@@ -115,6 +142,18 @@ export function CarpetDetail({
               {carpet.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            onClick={() => {
+              setDeleteError(null)
+              setDeleteOpen(true)
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+            {t('common.delete', 'Delete')}
+          </Button>
         </div>
       </div>
 
@@ -126,6 +165,14 @@ export function CarpetDetail({
           <Row label={t('carpets.area', 'Area')} value={`${carpet.area.toFixed(2)} m²`} />
           <Row label={t('carpets.sortGrade', 'Sort grade')} value={carpet.sortGrade || t('common.none', '—')} />
           <Row label={t('carpets.currency', 'Currency')} value={cur} />
+          <Row
+            label={t('carpets.type', 'Type')}
+            value={
+              carpet.origin === 'ordered'
+                ? t('carpets.originOrdered', 'Ordered')
+                : t('carpets.originBought', 'Bought')
+            }
+          />
         </Card>
 
         {/* Buy info */}
@@ -179,6 +226,16 @@ export function CarpetDetail({
 
       <CarpetFormDialog open={editOpen} onOpenChange={setEditOpen} carpet={carpet} onSaved={refresh} />
       <SellCarpetDialog open={sellOpen} onOpenChange={setSellOpen} carpet={carpet} onSold={refresh} />
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={t('carpets.deleteConfirmTitle', 'Delete this carpet?')}
+        body={t('carpets.deleteConfirmBody', 'Only carpets without ledger transactions can be deleted.')}
+        expectedText={carpet.labelNumber}
+        busy={busy}
+        error={deleteError}
+        onConfirm={doDelete}
+      />
     </div>
   )
 }

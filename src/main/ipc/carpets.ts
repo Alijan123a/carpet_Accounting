@@ -76,6 +76,8 @@ function toListItem(row: schema.CarpetRow): CarpetListItem {
     status: row.status,
     archived: row.archived,
     sold,
+    // Legacy rows may be null; treat missing provenance as stock ('bought').
+    origin: row.origin === 'ordered' ? 'ordered' : 'bought',
     profitCents
   }
 }
@@ -284,6 +286,8 @@ export function createCarpetsBatch(db: DB, input: CarpetsBatchInput): CarpetsBat
             totalPriceCents: totalCents,
             // New carpets are always «در انبار» (see CarpetBatchLineInput).
             status: 'in_warehouse',
+            // Order-completion batches pass 'ordered'; buy/manual default to 'bought'.
+            origin: input.origin ?? 'bought',
             boughtFromClientId: seller,
             createdAt: now
           })

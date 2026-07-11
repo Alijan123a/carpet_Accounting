@@ -1,28 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Pencil, Plus, Archive, ArchiveRestore, SlidersHorizontal, Tag, FileText, PackagePlus, Trash2 } from 'lucide-react'
+import { Plus, SlidersHorizontal, FileText, PackagePlus } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
-import { toast } from '@renderer/components/ui/toast'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatCents } from '@shared/accounting'
-import type { CarpetListItem, CarpetStatus, CarpetDetailView } from '@shared/contracts'
+import type { CarpetListItem, CarpetStatus } from '@shared/contracts'
 import { statusLabel, statusLabelByKey } from './statusLabel'
 import { CarpetFormDialog } from './CarpetFormDialog'
 import { StatusesDialog } from './StatusesDialog'
-import { SellCarpetDialog } from './SellCarpetDialog'
 import { SellInvoiceDialog } from './SellInvoiceDialog'
 import { BuyInvoiceDialog } from './BuyInvoiceDialog'
-import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
+// label | L | W | area | grade | cur | price/m | ded | total | status | type | profit
 const GRID =
-  'grid grid-cols-[120px_64px_64px_72px_80px_56px_110px_100px_120px_120px_100px_130px] items-center gap-0 px-3 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
-const MIN_W = 'min-w-[1120px]'
+  'grid grid-cols-[120px_64px_64px_72px_80px_56px_110px_100px_120px_120px_90px_100px] items-center gap-0 px-3 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
+const MIN_W = 'min-w-[1100px]'
 
 function Profit({ cents }: { cents: number | null }): JSX.Element {
   if (cents == null) return <span className="text-muted-foreground">—</span>
@@ -50,14 +48,9 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
   const [grades, setGrades] = useState<string[]>([])
 
   const [formOpen, setFormOpen] = useState(false)
-  const [editCarpet, setEditCarpet] = useState<CarpetDetailView | null>(null)
   const [statusesOpen, setStatusesOpen] = useState(false)
   const [invoiceOpen, setInvoiceOpen] = useState(false)
   const [buyInvoiceOpen, setBuyInvoiceOpen] = useState(false)
-  const [sellTarget, setSellTarget] = useState<CarpetListItem | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<CarpetListItem | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [deleteBusy, setDeleteBusy] = useState(false)
 
   const rowsRef = useRef<CarpetListItem[]>([])
   const loadingRef = useRef(false)
@@ -130,46 +123,6 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
     void loadMeta()
   }
 
-  async function openEdit(id: number): Promise<void> {
-    const detail = await window.api.carpets.get(id)
-    setEditCarpet(detail)
-    setFormOpen(true)
-  }
-
-  async function doDelete(): Promise<void> {
-    if (!deleteTarget) return
-    setDeleteBusy(true)
-    setDeleteError(null)
-    try {
-      const res = await window.api.carpets.remove(deleteTarget.id)
-      if (!res.ok) {
-        setDeleteError(
-          t('carpets.deleteHasTransactions', 'This carpet has ledger transactions and cannot be deleted. Reverse them or archive it instead.')
-        )
-        return
-      }
-      setDeleteTarget(null)
-      toast.success(t('common.deleted', 'Deleted.'))
-      refresh()
-    } finally {
-      setDeleteBusy(false)
-    }
-  }
-
-  async function toggleArchive(c: CarpetListItem): Promise<void> {
-    if (c.archived) {
-      await window.api.carpets.restore(c.id)
-      toast.success(t('common.restoredToast', 'Restored.'))
-      refresh()
-      return
-    }
-    const res = await window.api.carpets.archive(c.id)
-    if (res.ok) {
-      toast.success(t('common.archivedToast', 'Archived.'))
-      refresh() // archive is only offered for sold carpets, so this should succeed
-    }
-  }
-
   return (
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -190,12 +143,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
             <PackagePlus className="h-4 w-4" />
             {t('buyInvoice.button', 'Add carpets')}
           </Button>
-          <Button
-            onClick={() => {
-              setEditCarpet(null)
-              setFormOpen(true)
-            }}
-          >
+          <Button onClick={() => setFormOpen(true)}>
             <Plus className="h-4 w-4" />
             {t('carpets.addOne', 'Add one')}
           </Button>
@@ -278,8 +226,8 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
               <SortHeader col="status" sort={sort} onSort={setSort}>
                 {t('carpets.status', 'Status')}
               </SortHeader>
+              <span>{t('carpets.type', 'Type')}</span>
               <span className="text-end">{t('carpets.profit', 'Profit')}</span>
-              <span />
             </div>
           <div ref={parentRef} onScroll={onScroll} className="flex-1 overflow-y-auto">
             {error && (
@@ -319,67 +267,22 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
                     <span className="text-end font-mono tabular-nums">{formatCents(c.sortDeductionCents)}</span>
                     <span className="text-end font-mono tabular-nums">{formatCents(c.totalPriceCents)}</span>
                     <span className="truncate">{statusLabelByKey(statuses, c.status, language)}</span>
+                    <span>
+                      <span
+                        className={cn(
+                          'rounded-md px-2 py-0.5 text-xs font-medium',
+                          c.origin === 'ordered'
+                            ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400'
+                            : 'bg-muted text-muted-foreground'
+                        )}
+                      >
+                        {c.origin === 'ordered'
+                          ? t('carpets.originOrdered', 'Ordered')
+                          : t('carpets.originBought', 'Bought')}
+                      </span>
+                    </span>
                     <span className="text-end">
                       <Profit cents={c.profitCents} />
-                    </span>
-                    <span className="flex justify-end gap-1">
-                      {!c.sold && !c.archived && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          title={t('sale.sellAction', 'Sell')}
-                          aria-label={t('sale.sellAction', 'Sell')}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSellTarget(c)
-                          }}
-                        >
-                          <Tag className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        title={t('common.edit', 'Edit')}
-                        aria-label={t('common.edit', 'Edit')}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          void openEdit(c.id)
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      {(c.archived || c.sold) && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          title={c.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
-                          aria-label={c.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            void toggleArchive(c)
-                          }}
-                        >
-                          {c.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        title={t('common.delete', 'Delete')}
-                        aria-label={t('common.delete', 'Delete')}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeleteError(null)
-                          setDeleteTarget(c)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </span>
                   </div>
                 )
@@ -390,29 +293,10 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
         </div>
       </div>
 
-      <CarpetFormDialog open={formOpen} onOpenChange={setFormOpen} carpet={editCarpet} onSaved={refresh} />
+      <CarpetFormDialog open={formOpen} onOpenChange={setFormOpen} carpet={null} onSaved={refresh} />
       <StatusesDialog open={statusesOpen} onOpenChange={setStatusesOpen} onChanged={loadMeta} />
       <SellInvoiceDialog open={invoiceOpen} onOpenChange={setInvoiceOpen} onSaved={refresh} />
       <BuyInvoiceDialog open={buyInvoiceOpen} onOpenChange={setBuyInvoiceOpen} onSaved={refresh} />
-      <DeleteConfirmDialog
-        open={deleteTarget !== null}
-        onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title={t('carpets.deleteConfirmTitle', 'Delete this carpet?')}
-        body={t('carpets.deleteConfirmBody', 'Only carpets without ledger transactions can be deleted.')}
-        expectedText={deleteTarget?.labelNumber ?? ''}
-        busy={deleteBusy}
-        error={deleteError}
-        onConfirm={doDelete}
-      />
-      <SellCarpetDialog
-        open={sellTarget !== null}
-        onOpenChange={(o) => !o && setSellTarget(null)}
-        carpet={sellTarget}
-        onSold={() => {
-          setSellTarget(null)
-          refresh()
-        }}
-      />
     </div>
   )
 }

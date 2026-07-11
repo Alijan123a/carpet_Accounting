@@ -107,6 +107,12 @@ export const carpets = sqliteTable(
     area: real('area').notNull(),
     sortGrade: text('sort_grade'),
     quality: text('quality'),
+    /**
+     * Where the carpet came from: 'ordered' (made to fulfil a سفارش, added via
+     * order completion) or 'bought' (acquired for stock via buy/manual add).
+     * Legacy rows are backfilled to 'bought' by the migration.
+     */
+    origin: text('origin').$type<'ordered' | 'bought'>().default('bought'),
     // Buy (acquisition) side.
     pricePerMeterCents: integer('price_per_meter_cents').notNull(),
     sortDeductionCents: integer('sort_deduction_cents').notNull().default(0),
@@ -217,6 +223,17 @@ export const expenses = sqliteTable(
 )
 
 /**
+ * User-managed list of expense categories («انواع مصارف»). The expense.category
+ * text still stores the chosen name (so old free-text data keeps working); this
+ * table just curates the suggestions and enables rename/delete. A type in use by
+ * any expense cannot be deleted.
+ */
+export const expenseTypes = sqliteTable('expense_types', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull().unique()
+})
+
+/**
  * Orders («سفارشات»): a buyer commissions a carpet to be made. Purely
  * operational tracking — NOT part of the money ledger. Each order moves through
  * user-visible states (pending → on_work → finished → delivered / cancelled).
@@ -291,6 +308,7 @@ export type MaterialRow = typeof materials.$inferSelect
 export type MaterialLineRow = typeof materialLines.$inferSelect
 export type TransactionRow = typeof transactions.$inferSelect
 export type ExpenseRow = typeof expenses.$inferSelect
+export type ExpenseTypeRow = typeof expenseTypes.$inferSelect
 export type InvoiceRow = typeof invoices.$inferSelect
 export type OrderRow = typeof orders.$inferSelect
 export type SystemChangeRow = typeof systemChanges.$inferSelect

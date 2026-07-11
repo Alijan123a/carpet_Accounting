@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowRight, Hash, User, CalendarDays } from 'lucide-react'
+import { ArrowRight, Hash, User, CalendarDays, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { toast } from '@renderer/components/ui/toast'
+import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatDate } from '@renderer/lib/date'
@@ -17,6 +18,7 @@ import {
   statusCounts
 } from './orderStatus'
 import { ItemAssignmentsDialog } from './ItemAssignmentsDialog'
+import { OrderFormDialog } from './OrderFormDialog'
 
 // # | carpet type | W×L | SQM | Qty | one column per item status (piece count)
 const GRID =
@@ -36,6 +38,9 @@ export function OrderDetail({
   const [order, setOrder] = useState<OrderView | null>(null)
   const [items, setItems] = useState<OrderItem[]>([])
   const [editIndex, setEditIndex] = useState<number | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
 
   const load = useCallback(async (): Promise<void> => {
     const o = await window.api.orders.get(orderId)
@@ -65,6 +70,18 @@ export function OrderDetail({
   function saveAssignments(index: number, assignments: OrderAssignment[]): void {
     setEditIndex(null)
     void persist(items.map((it, i) => (i === index ? { ...it, assignments } : it)))
+  }
+
+  async function doDelete(): Promise<void> {
+    setBusy(true)
+    try {
+      await window.api.orders.remove(orderId)
+      toast.success(t('common.deleted', 'Deleted.'))
+      onChanged()
+      onBack()
+    } finally {
+      setBusy(false)
+    }
   }
 
   const stats = useMemo(() => {
@@ -116,6 +133,19 @@ export function OrderDetail({
             {orderStatusLabel(t, order.status)}
           </span>
         </div>
+        <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+          <Pencil className="h-4 w-4" />
+          {t('common.edit', 'Edit')}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-destructive hover:text-destructive"
+          onClick={() => setDeleteOpen(true)}
+        >
+          <Trash2 className="h-4 w-4" />
+          {t('common.delete', 'Delete')}
+        </Button>
       </div>
 
       {/* Statistics (piece counts) */}
@@ -204,6 +234,24 @@ export function OrderDetail({
             void persist(items.map((it, i) => (i === editIndex ? { ...it, assignments } : it)))
           }
         }}
+      />
+      <OrderFormDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        order={order}
+        onSaved={() => {
+          void load()
+          onChanged()
+        }}
+      />
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={t('orders.deleteConfirmTitle', 'Delete this order?')}
+        body={t('orders.deleteConfirmBody', 'This permanently removes the order.')}
+        expectedText={order.title}
+        busy={busy}
+        onConfirm={doDelete}
       />
     </div>
   )

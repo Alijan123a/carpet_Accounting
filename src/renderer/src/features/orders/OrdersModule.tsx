@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
-import { toast } from '@renderer/components/ui/toast'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
@@ -14,14 +13,13 @@ import type { OrderStatus, OrderItemStatus, OrderView } from '@shared/contracts'
 import { OrderFormDialog } from './OrderFormDialog'
 import { OrderDetail } from './OrderDetail'
 import { orderStatusLabel, orderItemStatusLabel, orderItemStatusText, statusCounts } from './orderStatus'
-import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 52
-// date | order# | buyer | ordered carpet | qty | sqm | 4×status counts | actions
+// date | order# | buyer | ordered carpet | qty | sqm | 4×status counts
 const GRID =
-  'grid grid-cols-[100px_80px_minmax(130px,1.1fr)_minmax(150px,1.4fr)_60px_84px_repeat(4,minmax(54px,0.7fr))_88px] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:text-center [&>*]:justify-center'
-const MIN_W = 'min-w-[1040px]'
+  'grid grid-cols-[100px_80px_minmax(130px,1.1fr)_minmax(150px,1.4fr)_60px_84px_repeat(4,minmax(54px,0.7fr))] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:text-center [&>*]:justify-center'
+const MIN_W = 'min-w-[940px]'
 
 /** Total متراژ of an order: sum of item rows, falling back to legacy W×L. */
 function orderTotalSqm(o: OrderView): number | null {
@@ -63,10 +61,7 @@ export function OrdersModule(): JSX.Element {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
-  const [editOrder, setEditOrder] = useState<OrderView | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<OrderView | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [busy, setBusy] = useState(false)
 
   const rowsRef = useRef<OrderView[]>([])
   const loadingRef = useRef(false)
@@ -122,19 +117,6 @@ export function OrdersModule(): JSX.Element {
     void fetchPage(true)
   }
 
-  async function doDelete(): Promise<void> {
-    if (!deleteTarget) return
-    setBusy(true)
-    try {
-      await window.api.orders.remove(deleteTarget.id)
-      setDeleteTarget(null)
-      toast.success(t('common.deleted', 'Deleted.'))
-      refresh()
-    } finally {
-      setBusy(false)
-    }
-  }
-
   if (selectedId !== null) {
     return (
       <OrderDetail
@@ -155,12 +137,7 @@ export function OrdersModule(): JSX.Element {
           <h2 className="text-2xl font-bold tracking-tight">{t('orders.title', 'Orders')}</h2>
           <p className="text-xs text-muted-foreground">{t('orders.total', { total, defaultValue: '{{total}} total' })}</p>
         </div>
-        <Button
-          onClick={() => {
-            setEditOrder(null)
-            setFormOpen(true)
-          }}
-        >
+        <Button onClick={() => setFormOpen(true)}>
           <Plus className="h-4 w-4" />
           {t('orders.add', 'New order')}
         </Button>
@@ -221,7 +198,6 @@ export function OrdersModule(): JSX.Element {
                 {orderItemStatusLabel(t, s)}
               </span>
             ))}
-            <span />
           </div>
           <div ref={parentRef} onScroll={onScroll} className="flex-1 overflow-y-auto">
             {rows.length === 0 && !loading && (
@@ -264,31 +240,6 @@ export function OrdersModule(): JSX.Element {
                         {counts[s]}
                       </span>
                     ))}
-                    <span className="flex gap-1" onDoubleClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        title={t('common.edit', 'Edit')}
-                        aria-label={t('common.edit', 'Edit')}
-                        onClick={() => {
-                          setEditOrder(o)
-                          setFormOpen(true)
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        title={t('common.delete', 'Delete')}
-                        aria-label={t('common.delete', 'Delete')}
-                        onClick={() => setDeleteTarget(o)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </span>
                   </div>
                 )
               })}
@@ -298,16 +249,7 @@ export function OrdersModule(): JSX.Element {
         </div>
       </div>
 
-      <OrderFormDialog open={formOpen} onOpenChange={setFormOpen} order={editOrder} onSaved={refresh} />
-      <DeleteConfirmDialog
-        open={deleteTarget !== null}
-        onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title={t('orders.deleteConfirmTitle', 'Delete this order?')}
-        body={t('orders.deleteConfirmBody', 'This permanently removes the order.')}
-        expectedText={deleteTarget?.title ?? ''}
-        busy={busy}
-        onConfirm={doDelete}
-      />
+      <OrderFormDialog open={formOpen} onOpenChange={setFormOpen} order={null} onSaved={refresh} />
     </div>
   )
 }

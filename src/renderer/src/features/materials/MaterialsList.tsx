@@ -1,21 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Plus, Archive, ArchiveRestore, Trash2 } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
-import { toast } from '@renderer/components/ui/toast'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { formatCents } from '@shared/accounting'
 import type { MaterialListItem } from '@shared/contracts'
 import { MaterialFormDialog } from './MaterialFormDialog'
-import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
 const GRID =
-  'grid grid-cols-[1fr_64px_110px_110px_110px_120px_92px] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
+  'grid grid-cols-[1fr_64px_110px_110px_110px_120px] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
 
 const kg = (n: number): string => n.toLocaleString('en-US', { maximumFractionDigits: 3 })
 
@@ -29,9 +27,6 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<MaterialListItem | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [deleteBusy, setDeleteBusy] = useState(false)
 
   const rowsRef = useRef<MaterialListItem[]>([])
   const loadingRef = useRef(false)
@@ -89,37 +84,6 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
     void fetchPage(true)
   }
 
-  async function toggleArchive(m: MaterialListItem): Promise<void> {
-    if (m.archived) {
-      await window.api.materials.restore(m.id)
-      toast.success(t('common.restoredToast', 'Restored.'))
-    } else {
-      await window.api.materials.archive(m.id)
-      toast.success(t('common.archivedToast', 'Archived.'))
-    }
-    refresh()
-  }
-
-  async function doDelete(): Promise<void> {
-    if (!deleteTarget) return
-    setDeleteBusy(true)
-    setDeleteError(null)
-    try {
-      const res = await window.api.materials.remove(deleteTarget.id)
-      if (!res.ok) {
-        setDeleteError(
-          t('material.deleteHasLines', 'This material has buy/sell lines and cannot be deleted. Archive it instead.')
-        )
-        return
-      }
-      setDeleteTarget(null)
-      toast.success(t('common.deleted', 'Deleted.'))
-      refresh()
-    } finally {
-      setDeleteBusy(false)
-    }
-  }
-
   return (
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -165,7 +129,6 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
             {t('material.stock', 'Stock')}
           </SortHeader>
           <span className="text-end">{t('material.profit', 'Profit')}</span>
-          <span />
         </div>
         <div ref={parentRef} onScroll={onScroll} className="flex-1 overflow-auto">
           {rows.length === 0 && !loading && (
@@ -202,35 +165,6 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
                   >
                     {formatCents(m.profitCents)}
                   </span>
-                  <span className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title={m.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
-                      aria-label={m.archived ? t('common.restore', 'Restore') : t('common.archive', 'Archive')}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        void toggleArchive(m)
-                      }}
-                    >
-                      {m.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      title={t('common.delete', 'Delete')}
-                      aria-label={t('common.delete', 'Delete')}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setDeleteError(null)
-                        setDeleteTarget(m)
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </span>
                 </div>
               )
             })}
@@ -246,16 +180,6 @@ export function MaterialsList({ onSelect }: { onSelect: (id: number) => void }):
           refresh()
           onSelect(id)
         }}
-      />
-      <DeleteConfirmDialog
-        open={deleteTarget !== null}
-        onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title={t('material.deleteConfirmTitle', 'Delete this material?')}
-        body={t('material.deleteConfirmBody', 'Only materials without any buy/sell lines can be deleted.')}
-        expectedText={deleteTarget?.name ?? ''}
-        busy={deleteBusy}
-        error={deleteError}
-        onConfirm={doDelete}
       />
     </div>
   )

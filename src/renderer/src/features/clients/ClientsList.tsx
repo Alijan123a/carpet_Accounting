@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Pencil, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
@@ -13,7 +13,7 @@ import { ClientFormDialog } from './ClientFormDialog'
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 52
 const GRID =
-  'grid grid-cols-[1fr_130px_110px_110px_56px] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
+  'grid grid-cols-[1fr_130px_110px_110px] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
 
 export function ClientsList({
   kind,
@@ -155,7 +155,6 @@ export function ClientsList({
           <SortHeader col="balanceAFN" sort={sort} onSort={setSort} align="end">
             AFN
           </SortHeader>
-          <span />
         </div>
 
         {/* Virtualized rows */}
@@ -197,21 +196,6 @@ export function ClientsList({
                   </span>
                   <span className="text-end">
                     <BalanceAmount cents={c.balances.AFN} />
-                  </span>
-                  <span className="flex justify-end">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setEditClient(c)
-                        setFormOpen(true)
-                      }}
-                      title={t('common.edit', 'Edit')}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
                   </span>
                 </div>
               )

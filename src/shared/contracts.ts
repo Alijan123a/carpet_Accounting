@@ -165,6 +165,8 @@ export interface CarpetsBatchInput {
   boughtFromClientId?: number | null
   /** Business date for the purchase transactions (epoch ms). */
   transactionDate?: number | null
+  /** Provenance of these carpets; defaults to 'bought' when unset. */
+  origin?: 'ordered' | 'bought'
   lines: CarpetBatchLineInput[]
 }
 
@@ -207,6 +209,8 @@ export interface CarpetListItem {
   status: string
   archived: boolean
   sold: boolean
+  /** Where it came from: 'ordered' (made for a سفارش) or 'bought' (stock). */
+  origin: 'ordered' | 'bought'
   /** Profit in cents for sold carpets; null otherwise (Phase 1 carpetProfit). */
   profitCents: number | null
 }
@@ -457,6 +461,24 @@ export interface ExpensesApi {
   update: (id: number, input: ExpenseInput) => Promise<void>
   remove: (id: number) => Promise<void>
   categories: () => Promise<string[]>
+}
+
+/** A user-managed expense category. */
+export interface ExpenseType {
+  id: number
+  name: string
+}
+
+export interface ExpenseTypeInput {
+  name: string
+}
+
+export interface ExpenseTypesApi {
+  list: () => Promise<ExpenseType[]>
+  create: (input: ExpenseTypeInput) => Promise<{ ok: boolean; reason?: string }>
+  rename: (id: number, input: ExpenseTypeInput) => Promise<{ ok: boolean; reason?: string }>
+  /** Refused ('in_use') when any expense still uses the type's name. */
+  remove: (id: number) => Promise<{ ok: boolean; reason?: string }>
 }
 
 // --- Orders («سفارشات») -----------------------------------------------------

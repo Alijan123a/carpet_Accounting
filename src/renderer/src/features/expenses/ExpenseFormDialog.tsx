@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -12,10 +13,11 @@ import { Input } from '@renderer/components/ui/input'
 import { RequiredMark } from '@renderer/components/ui/required-mark'
 import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
+import { Typeahead } from '@renderer/components/ui/typeahead'
 import { startOfDayEpoch } from '@renderer/lib/date'
 import { parseMoneyToCents, centsToInput, ENABLED_CURRENCIES } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
-import type { ExpenseView } from '@shared/contracts'
+import type { ExpenseView, ExpenseType } from '@shared/contracts'
 import { useSettings } from '@renderer/store/settings'
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10)
@@ -25,12 +27,15 @@ export function ExpenseFormDialog({
   open,
   onOpenChange,
   expense,
-  onSaved
+  onSaved,
+  onDelete
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   expense?: ExpenseView | null
   onSaved: () => void
+  /** Shown only when editing — lets the caller run its delete-confirm flow. */
+  onDelete?: () => void
 }): JSX.Element {
   const { t } = useTranslation()
   const defaultCurrency = useSettings((s) => s.defaultCurrency)
@@ -39,6 +44,7 @@ export function ExpenseFormDialog({
   const [currency, setCurrency] = useState<Currency>(defaultCurrency)
   const [date, setDate] = useState(todayStr())
   const [note, setNote] = useState('')
+  const [types, setTypes] = useState<ExpenseType[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -50,7 +56,10 @@ export function ExpenseFormDialog({
     setDate(expense ? toDateInput(expense.expenseDate) : todayStr())
     setNote(expense?.note ?? '')
     setError(null)
+    void window.api.expenseTypes.list().then(setTypes)
   }, [open, expense, defaultCurrency])
+
+  const typeItems = useMemo(() => types.map((ty) => ({ id: ty.name, label: ty.name })), [types])
 
   async function submit(): Promise<void> {
     if (!category.trim()) return setError(t('expenses.categoryRequired', 'Category is required.'))
@@ -90,11 +99,13 @@ export function ExpenseFormDialog({
               {t('expenses.category', 'Category')}
               <RequiredMark />
             </span>
-            <Input
+            <Typeahead
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onValueChange={setCategory}
+              items={typeItems}
+              onSelect={(it) => setCategory(String(it.label))}
+              placeholder={t('expenses.categoryPlaceholder', 'Type or pick a category…')}
               autoFocus
-              onKeyDown={(e) => e.key === 'Enter' && submit()}
             />
           </label>
           <div className="grid grid-cols-2 gap-3">
@@ -127,36 +138,51 @@ export function ExpenseFormDialog({
               </select>
             </label>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">{t('expenses.date', 'Date')}</span>
-              <DateInput value={date} onChange={setDate} />
-            </label>
-            <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">
-                {t('expenses.note', 'Note')}{' '}
-                <span className="text-[10px]">({t('common.optional', 'optional')})</span>
-              </span>
-              <Input
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && submit()}
-              />
-            </label>
-          </div>
+          {/* Date on its own full-width row so the Shamsi day/month/year
+              segments always have room (the month collapsed in a half column). */}
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">{t('expenses.date', 'Date')}</span>
+            <DateInput value={date} onChange={setDate} />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              {t('expenses.note', 'Note')}{' '}
+              <span className="text-[10px]">({t('common.optional', 'optional')})</span>
+            </span>
+            <Input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && submit()}
+            />
+          </label>
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}
             </p>
           )}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
-            {t('common.cancel', 'Cancel')}
-          </Button>
-          <Button onClick={submit} busy={busy}>
-            {t('common.save', 'Save')}
-          </Button>
+        <DialogFooter className="sm:justify-between">
+          {expense && onDelete ? (
+            <Button
+              variant="outline"
+              className="text-destructive hover:text-destructive"
+              onClick={onDelete}
+              disabled={busy}
+            >
+              <Trash2 className="h-4 w-4" />
+              {t('common.delete', 'Delete')}
+            </Button>
+          ) : (
+            <span className="hidden sm:block" />
+          )}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
+              {t('common.cancel', 'Cancel')}
+            </Button>
+            <Button onClick={submit} busy={busy}>
+              {t('common.save', 'Save')}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

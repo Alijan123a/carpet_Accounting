@@ -5,6 +5,7 @@ import type {
   CarpetStatusesApi,
   MaterialsApi,
   ExpensesApi,
+  ExpenseTypesApi,
   OrdersApi,
   DashboardApi,
   ReportsApi,
@@ -25,6 +26,7 @@ export interface Api {
   carpetStatuses: CarpetStatusesApi
   materials: MaterialsApi
   expenses: ExpensesApi
+  expenseTypes: ExpenseTypesApi
   orders: OrdersApi
   dashboard: DashboardApi
   reports: ReportsApi

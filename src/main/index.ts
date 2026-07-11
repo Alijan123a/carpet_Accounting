@@ -4,7 +4,7 @@ import { initDatabase, closeDatabase, getDatabase } from './db'
 import { registerClientsIpc } from './ipc/clients'
 import { registerCarpetsIpc } from './ipc/carpets'
 import { registerMaterialsIpc } from './ipc/materials'
-import { registerExpensesIpc } from './ipc/expenses'
+import { registerExpensesIpc, registerExpenseTypesIpc } from './ipc/expenses'
 import { registerOrdersIpc } from './ipc/orders'
 import { registerSystemChangesIpc } from './ipc/systemChanges'
 import { registerDashboardIpc } from './ipc/dashboard'
@@ -70,6 +70,7 @@ app.whenReady().then(() => {
 
   // Expenses, dashboard, reports, PDF export (Phase 5).
   registerExpensesIpc(getDatabase)
+  registerExpenseTypesIpc(getDatabase)
   registerOrdersIpc(getDatabase)
   // System changes audit log + undo.
   registerSystemChangesIpc(getDatabase)

@@ -237,6 +237,9 @@
     "totalPrice": "Total price",
     "status": "Status",
     "profit": "Profit",
+    "type": "Type",
+    "originOrdered": "Ordered",
+    "originBought": "Bought",
     "seller": "Bought from (seller)",
     "noSeller": "— none (no purchase recorded) —",
     "buyDate": "Purchase date",
@@ -497,6 +500,8 @@
     "empty": "No expenses found.",
     "total": "{{total}} total",
     "category": "Category",
+    "categoryPlaceholder": "Type or pick a category…",
+    "openHint": "Click to edit",
     "amount": "Amount",
     "currency": "Currency",
     "date": "Date",
@@ -507,6 +512,17 @@
     "amountRequired": "Enter an amount greater than 0.",
     "deleteConfirmTitle": "Delete this expense?",
     "deleteConfirmBody": "This permanently removes the expense."
+  },
+  "expenseTypes": {
+    "title": "Expense types",
+    "manage": "Manage types",
+    "name": "Name",
+    "empty": "No types yet.",
+    "nameRequired": "Name is required.",
+    "duplicate": "A type with this name already exists.",
+    "inUse": "This type is in use by one or more expenses.",
+    "deleteConfirmTitle": "Delete this type?",
+    "deleteConfirmBody": "Types in use by an expense cannot be deleted."
   },
   "reports": {
     "title": "Reports",

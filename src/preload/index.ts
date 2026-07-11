@@ -65,6 +65,14 @@ const api = {
     categories: () => ipcRenderer.invoke('expenses:categories')
   },
 
+  // User-managed expense categories.
+  expenseTypes: {
+    list: () => ipcRenderer.invoke('expenseTypes:list'),
+    create: (input: unknown) => ipcRenderer.invoke('expenseTypes:create', input),
+    rename: (id: number, input: unknown) => ipcRenderer.invoke('expenseTypes:rename', id, input),
+    remove: (id: number) => ipcRenderer.invoke('expenseTypes:remove', id)
+  },
+
   // Orders («سفارشات»).
   orders: {
     list: (params: unknown) => ipcRenderer.invoke('orders:list', params),

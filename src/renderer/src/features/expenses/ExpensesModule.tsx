@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, SlidersHorizontal } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { toast } from '@renderer/components/ui/toast'
@@ -14,12 +14,13 @@ import type { Currency } from '@shared/accounting'
 import { formatDate, startOfDayEpoch, endOfDayEpoch } from '@renderer/lib/date'
 import type { ExpenseView } from '@shared/contracts'
 import { ExpenseFormDialog } from './ExpenseFormDialog'
+import { ExpenseTypesDialog } from './ExpenseTypesDialog'
 import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
 const GRID =
-  'grid grid-cols-[110px_minmax(120px,1fr)_64px_120px_minmax(120px,1fr)_92px] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
+  'grid grid-cols-[110px_minmax(120px,1fr)_64px_120px_minmax(120px,1fr)] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
 
 export function ExpensesModule(): JSX.Element {
   const { t } = useTranslation()
@@ -36,6 +37,7 @@ export function ExpensesModule(): JSX.Element {
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState<string[]>([])
   const [formOpen, setFormOpen] = useState(false)
+  const [typesOpen, setTypesOpen] = useState(false)
   const [editExpense, setEditExpense] = useState<ExpenseView | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<ExpenseView | null>(null)
   const [busy, setBusy] = useState(false)
@@ -124,15 +126,21 @@ export function ExpensesModule(): JSX.Element {
           <h2 className="text-2xl font-bold tracking-tight">{t('expenses.title', 'Expenses')}</h2>
           <p className="text-xs text-muted-foreground">{t('expenses.total', { total, defaultValue: '{{total}} total' })}</p>
         </div>
-        <Button
-          onClick={() => {
-            setEditExpense(null)
-            setFormOpen(true)
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          {t('expenses.add', 'Add expense')}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setTypesOpen(true)}>
+            <SlidersHorizontal className="h-4 w-4" />
+            {t('expenseTypes.manage', 'Manage types')}
+          </Button>
+          <Button
+            onClick={() => {
+              setEditExpense(null)
+              setFormOpen(true)
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            {t('expenses.add', 'Add expense')}
+          </Button>
+        </div>
       </div>
 
       <div className="mb-3 flex flex-wrap items-end gap-3">
@@ -193,7 +201,6 @@ export function ExpensesModule(): JSX.Element {
             {t('expenses.amount', 'Amount')}
           </SortHeader>
           <span>{t('expenses.note', 'Note')}</span>
-          <span />
         </div>
         <div ref={parentRef} onScroll={onScroll} className="flex-1 overflow-auto">
           {rows.length === 0 && !loading && (
@@ -205,7 +212,16 @@ export function ExpensesModule(): JSX.Element {
               return (
                 <div
                   key={ex.id}
-                  className={cn(GRID, 'absolute start-0 top-0 w-full border-b border-border text-sm')}
+                  role="button"
+                  title={t('expenses.openHint', 'Click to edit')}
+                  onClick={() => {
+                    setEditExpense(ex)
+                    setFormOpen(true)
+                  }}
+                  className={cn(
+                    GRID,
+                    'absolute start-0 top-0 w-full cursor-pointer border-b border-border text-sm hover:bg-accent/50'
+                  )}
                   style={{ height: `${ROW_HEIGHT}px`, transform: `translateY(${vi.start}px)` }}
                 >
                   <span className="text-muted-foreground">{formatDate(ex.expenseDate, calendar)}</span>
@@ -213,31 +229,6 @@ export function ExpensesModule(): JSX.Element {
                   <span className="text-muted-foreground">{ex.currency}</span>
                   <span className="text-end font-mono tabular-nums">{formatCents(ex.amountCents)}</span>
                   <span className="truncate text-muted-foreground">{ex.note || t('common.none', '—')}</span>
-                  <span className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title={t('common.edit', 'Edit')}
-                      aria-label={t('common.edit', 'Edit')}
-                      onClick={() => {
-                        setEditExpense(ex)
-                        setFormOpen(true)
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title={t('common.delete', 'Delete')}
-                      aria-label={t('common.delete', 'Delete')}
-                      onClick={() => setDeleteTarget(ex)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </span>
                 </div>
               )
             })}
@@ -246,7 +237,21 @@ export function ExpensesModule(): JSX.Element {
         </div>
       </div>
 
-      <ExpenseFormDialog open={formOpen} onOpenChange={setFormOpen} expense={editExpense} onSaved={refresh} />
+      <ExpenseFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        expense={editExpense}
+        onSaved={refresh}
+        onDelete={
+          editExpense
+            ? () => {
+                setFormOpen(false)
+                setDeleteTarget(editExpense)
+              }
+            : undefined
+        }
+      />
+      <ExpenseTypesDialog open={typesOpen} onOpenChange={setTypesOpen} onChanged={loadCategories} />
       <DeleteConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
