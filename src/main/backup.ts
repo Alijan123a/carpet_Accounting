@@ -2,7 +2,7 @@ import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { join, basename } from 'path'
 import { existsSync, mkdirSync, copyFileSync, readdirSync, statSync, unlinkSync, rmSync } from 'fs'
 import Database from 'better-sqlite3'
-import { getRawDatabase, getDatabasePath, closeDatabase, initDatabase } from './db'
+import { getRawDatabase, getDatabasePath, closeDatabase, initDatabase, reapplyMigrations } from './db'
 import { getConfig, setConfig } from './config'
 import { isPasswordSet, verifyPassword } from './auth'
 
@@ -187,35 +187,58 @@ export function registerBackupIpc(): void {
   // validated safety backup is written to the backup folder first — even an
   // "erase everything" keeps one escape hatch. The pre-reset file does NOT use
   // the auto-backup PREFIX, so retention pruning never deletes it.
+  //
+  // The wipe happens IN-PLACE through the open connection (delete all rows,
+  // reset autoincrement counters, re-run migrations, VACUUM) — never by
+  // deleting the .db file, which fails with "access is denied" on Windows
+  // whenever any handle is still open on it.
   ipcMain.handle(
     'backup:resetDb',
     async (_e, password: string): Promise<{ ok: boolean; reason?: string; backup?: string }> => {
       if (isPasswordSet() && !verifyPassword(String(password ?? '')).ok) {
         return { ok: false, reason: 'wrong_password' }
       }
-      const dbPath = getDatabasePath()
       const cfg = getConfig()
       try {
         ensureFolder(cfg.backupFolder)
         const safety = join(cfg.backupFolder, timestampedName().replace(PREFIX, 'carpet-accounting-pre-reset-'))
-        await getRawDatabase().backup(safety)
+        const raw = getRawDatabase()
+        await raw.backup(safety)
         const v = validateSqlite(safety)
         if (!v.ok) return { ok: false, reason: `backup_failed: ${v.reason ?? ''}` }
 
-        closeDatabase()
-        for (const ext of ['', '-wal', '-shm']) {
-          const p = dbPath + ext
-          if (existsSync(p)) rmSync(p)
+        // Children before parents (belt and braces — FKs are also off while
+        // wiping). The immutability triggers must go first or transactions
+        // would refuse their own deletion; migrations recreate them below.
+        const tables = [
+          'transactions',
+          'material_lines',
+          'invoices',
+          'carpets',
+          'materials',
+          'orders',
+          'expenses',
+          'expense_types',
+          'system_changes',
+          'carpet_statuses',
+          'clients'
+        ]
+        raw.pragma('foreign_keys = OFF')
+        try {
+          raw.transaction(() => {
+            raw.exec('DROP TRIGGER IF EXISTS trg_tx_no_update;')
+            raw.exec('DROP TRIGGER IF EXISTS trg_tx_no_delete;')
+            for (const t of tables) raw.exec(`DELETE FROM ${t};`)
+            // Reset AUTOINCREMENT counters so ids/bill numbers start at 1 again.
+            raw.exec(`DELETE FROM sqlite_sequence;`)
+          })()
+        } finally {
+          raw.pragma('foreign_keys = ON')
         }
-        initDatabase() // fresh empty DB: migrations + seed statuses
+        reapplyMigrations() // recreate triggers + reseed carpet statuses
+        raw.exec('VACUUM') // reclaim disk space (must run outside a transaction)
         return { ok: true, backup: safety }
       } catch (e) {
-        // Reopen whatever is on disk so the app stays usable.
-        try {
-          initDatabase()
-        } catch {
-          /* ignore */
-        }
         return { ok: false, reason: e instanceof Error ? e.message : String(e) }
       }
     }
