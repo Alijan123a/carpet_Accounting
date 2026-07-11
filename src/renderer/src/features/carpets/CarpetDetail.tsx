@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowRight, Pencil, Archive, ArchiveRestore, Tag, Trash2 } from 'lucide-react'
+import { ArrowRight, Pencil, Archive, ArchiveRestore, Trash2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { toast } from '@renderer/components/ui/toast'
 import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
@@ -11,7 +11,6 @@ import { formatDate } from '@renderer/lib/date'
 import type { CarpetDetailView, CarpetStatus } from '@shared/contracts'
 import { statusLabelByKey } from './statusLabel'
 import { CarpetFormDialog } from './CarpetFormDialog'
-import { SellCarpetDialog } from './SellCarpetDialog'
 
 export function CarpetDetail({
   carpetId,
@@ -27,7 +26,6 @@ export function CarpetDetail({
   const [carpet, setCarpet] = useState<CarpetDetailView | null>(null)
   const [statuses, setStatuses] = useState<CarpetStatus[]>([])
   const [editOpen, setEditOpen] = useState(false)
-  const [sellOpen, setSellOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -126,12 +124,6 @@ export function CarpetDetail({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {!carpet.sold && !carpet.archived && (
-            <Button size="sm" onClick={() => setSellOpen(true)}>
-              <Tag className="h-4 w-4" />
-              {t('sale.sellAction', 'Sell')}
-            </Button>
-          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil className="h-4 w-4" />
             {t('common.edit', 'Edit')}
@@ -225,7 +217,6 @@ export function CarpetDetail({
       </div>
 
       <CarpetFormDialog open={editOpen} onOpenChange={setEditOpen} carpet={carpet} onSaved={refresh} />
-      <SellCarpetDialog open={sellOpen} onOpenChange={setSellOpen} carpet={carpet} onSold={refresh} />
       <DeleteConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}

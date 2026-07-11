@@ -273,7 +273,8 @@ export function OrderFormDialog({
           </label>
           <label className="block space-y-1">
             <span className="text-xs font-medium text-muted-foreground">{t('orders.orderNo', 'Order #')}</span>
-            <Input value={orderNo} onChange={(e) => setOrderNo(e.target.value)} />
+            {/* Order # is auto-assigned and immutable — read-only so it can't be edited. */}
+            <Input value={orderNo} readOnly disabled className="bg-muted/50 cursor-not-allowed" />
           </label>
           <label className="block space-y-1">
             <span className="text-xs font-medium text-muted-foreground">{t('orders.orderDate', 'Order date')}</span>
