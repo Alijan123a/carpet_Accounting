@@ -13,13 +13,14 @@ import {
   orderStatusBadge,
   orderItemStatusLabel,
   orderItemStatusBadge,
-  statusCounts,
-  assignedQuantity
+  orderItemStatusText,
+  statusCounts
 } from './orderStatus'
 import { ItemAssignmentsDialog } from './ItemAssignmentsDialog'
 
+// # | carpet type | W×L | SQM | Qty | one column per item status (piece count)
 const GRID =
-  'grid grid-cols-[40px_minmax(150px,1.4fr)_96px_72px_52px_minmax(230px,2fr)] items-center gap-0 px-3 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
+  'grid grid-cols-[40px_minmax(150px,1.4fr)_96px_72px_52px_repeat(4,minmax(56px,0.8fr))] items-center gap-0 px-3 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
 
 export function OrderDetail({
   orderId,
@@ -135,12 +136,17 @@ export function OrderDetail({
       {/* Items */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
         <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
-          <span className="text-center">{t('orders.rowNo', '#')}</span>
+          <span>{t('orders.rowNo', '#')}</span>
           <span>{t('orders.carpetType', 'Carpet type')}</span>
-          <span className="text-end">{t('orders.dims', 'W×L')}</span>
-          <span className="text-end">{t('orders.sqm', 'SQM')}</span>
-          <span className="text-end">{t('orders.quantity', 'Qty')}</span>
-          <span>{t('orders.statusBreakdown', 'Status (by piece)')}</span>
+          <span>{t('orders.dims', 'W×L')}</span>
+          <span>{t('orders.sqm', 'SQM')}</span>
+          <span>{t('orders.quantity', 'Qty')}</span>
+          {/* One column per carpet status showing that item's piece count. */}
+          {ORDER_ITEM_STATUSES.map((s) => (
+            <span key={s} className="truncate" title={orderItemStatusLabel(t, s)}>
+              {orderItemStatusLabel(t, s)}
+            </span>
+          ))}
         </div>
 
         <div className="flex-1 overflow-auto">
@@ -149,7 +155,6 @@ export function OrderDetail({
           )}
           {items.map((it, i) => {
             const counts = statusCounts(it)
-            const assigned = assignedQuantity(it)
             return (
               <div
                 key={i}
@@ -157,7 +162,7 @@ export function OrderDetail({
                 title={t('orders.itemOpenHint', 'Double-click to manage بافنده assignments')}
                 className={cn(GRID, 'cursor-pointer border-b border-border py-2 text-sm hover:bg-accent/40')}
               >
-                <span className="text-center text-muted-foreground">{i + 1}</span>
+                <span className="text-muted-foreground">{i + 1}</span>
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{it.carpetType || t('common.none', '—')}</span>
                   {(it.graph || it.textColor || it.borderColor) && (
@@ -166,25 +171,22 @@ export function OrderDetail({
                     </span>
                   )}
                 </span>
-                <span className="text-end font-mono tabular-nums text-muted-foreground">
-                  {it.width != null && it.length != null ? `${it.width}×${it.length}` : '—'}
+                <span className="font-mono tabular-nums text-muted-foreground">
+                  {it.width != null && it.length != null ? `${it.width}×${it.length}` : t('common.none', '—')}
                 </span>
-                <span className="text-end font-mono tabular-nums">{it.sqm != null ? it.sqm.toFixed(2) : '—'}</span>
-                <span className="text-end font-mono tabular-nums text-muted-foreground">{it.quantity}</span>
-                <span className="flex flex-wrap items-center gap-1">
-                  {ORDER_ITEM_STATUSES.filter((s) => counts[s] > 0).map((s) => (
-                    <span
-                      key={s}
-                      className={cn('rounded-md px-1.5 py-0.5 text-xs font-medium', orderItemStatusBadge(s))}
-                      title={orderItemStatusLabel(t, s)}
-                    >
-                      <span className="font-mono tabular-nums">{counts[s]}</span> {orderItemStatusLabel(t, s)}
-                    </span>
-                  ))}
-                  {assigned === 0 && (
-                    <span className="text-xs text-muted-foreground">· {t('orders.tapToAssign', 'double-click to assign')}</span>
-                  )}
-                </span>
+                <span className="font-mono tabular-nums">{it.sqm != null ? it.sqm.toFixed(2) : t('common.none', '—')}</span>
+                <span className="font-mono tabular-nums text-muted-foreground">{it.quantity}</span>
+                {ORDER_ITEM_STATUSES.map((s) => (
+                  <span
+                    key={s}
+                    className={cn(
+                      'font-mono tabular-nums',
+                      counts[s] > 0 ? cn('font-semibold', orderItemStatusText(s)) : 'text-muted-foreground/40'
+                    )}
+                  >
+                    {counts[s]}
+                  </span>
+                ))}
               </div>
             )
           })}

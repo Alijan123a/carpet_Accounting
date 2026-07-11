@@ -13,7 +13,7 @@ import { ORDER_STATUSES, ORDER_ITEM_STATUSES } from '@shared/contracts'
 import type { OrderStatus, OrderItemStatus, OrderView } from '@shared/contracts'
 import { OrderFormDialog } from './OrderFormDialog'
 import { OrderDetail } from './OrderDetail'
-import { orderStatusLabel, orderItemStatusLabel, statusCounts } from './orderStatus'
+import { orderStatusLabel, orderItemStatusLabel, orderItemStatusText, statusCounts } from './orderStatus'
 import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const PAGE_SIZE = 100
@@ -22,14 +22,6 @@ const ROW_HEIGHT = 52
 const GRID =
   'grid grid-cols-[100px_80px_minmax(130px,1.1fr)_minmax(150px,1.4fr)_60px_84px_repeat(4,minmax(54px,0.7fr))_88px] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:text-center [&>*]:justify-center'
 const MIN_W = 'min-w-[1040px]'
-
-/** Text colour per item status — used to tint the per-status count columns. */
-const STATUS_TEXT: Record<OrderItemStatus, string> = {
-  pending: 'text-amber-600 dark:text-amber-400',
-  on_work: 'text-sky-600 dark:text-sky-400',
-  complete: 'text-indigo-600 dark:text-indigo-400',
-  delivered: 'text-emerald-600 dark:text-emerald-400'
-}
 
 /** Total متراژ of an order: sum of item rows, falling back to legacy W×L. */
 function orderTotalSqm(o: OrderView): number | null {
@@ -266,7 +258,7 @@ export function OrdersModule(): JSX.Element {
                         key={s}
                         className={cn(
                           'font-mono tabular-nums',
-                          counts[s] > 0 ? cn('font-semibold', STATUS_TEXT[s]) : 'text-muted-foreground/40'
+                          counts[s] > 0 ? cn('font-semibold', orderItemStatusText(s)) : 'text-muted-foreground/40'
                         )}
                       >
                         {counts[s]}

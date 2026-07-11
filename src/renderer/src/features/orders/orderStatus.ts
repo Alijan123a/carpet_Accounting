@@ -42,6 +42,22 @@ export function orderItemStatusLabel(t: TFunction, status: OrderItemStatus): str
   return t(`orders.itemStatus.${status}`, fallback[status])
 }
 
+/** Text-only colour per item status — for tinting numeric count columns. */
+export function orderItemStatusText(status: OrderItemStatus): string {
+  switch (status) {
+    case 'pending':
+      return 'text-amber-600 dark:text-amber-400'
+    case 'on_work':
+      return 'text-sky-600 dark:text-sky-400'
+    case 'complete':
+      return 'text-indigo-600 dark:text-indigo-400'
+    case 'delivered':
+      return 'text-emerald-600 dark:text-emerald-400'
+    default:
+      return 'text-muted-foreground'
+  }
+}
+
 /** Tailwind classes for a per-carpet status badge (background + text). */
 export function orderItemStatusBadge(status: OrderItemStatus): string {
   switch (status) {
