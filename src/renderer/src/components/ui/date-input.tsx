@@ -89,8 +89,10 @@ export function DateInput({ value, onChange, className, disabled }: DateInputPro
     onChange(fromJalaliParts({ ...base, [part]: parseInt(raw, 10) }))
   }
 
-  const selectCls =
-    'h-full rounded-lg border border-input bg-card shadow-soft px-1 text-sm min-w-0 disabled:opacity-50'
+  // Each dropdown is a borderless, transparent SEGMENT — the bordered look
+  // comes from the shared wrapper below, so the whole thing reads as one field.
+  const segCls =
+    'h-full min-w-0 cursor-pointer bg-transparent px-1 text-sm text-foreground focus:outline-none disabled:cursor-not-allowed'
 
   return (
     <div className={cn('flex h-10 items-stretch gap-1', className)}>
@@ -103,12 +105,21 @@ export function DateInput({ value, onChange, className, disabled }: DateInputPro
           className="h-full min-w-0 flex-1"
         />
       ) : (
-        <div className="flex h-full min-w-0 flex-1 items-stretch gap-1">
+        // Styled to match the Gregorian <input type="date"> box: a single
+        // bordered, rounded field with day/month/year as inline segments
+        // (same border, height, background, shadow and focus ring as Input).
+        <div
+          className={cn(
+            'flex h-full min-w-0 flex-1 items-stretch rounded-lg border border-input bg-card px-1 shadow-soft ring-offset-background transition-colors',
+            'focus-within:border-ring focus-within:outline-none focus-within:ring-2 focus-within:ring-ring/40 focus-within:ring-offset-1',
+            disabled && 'opacity-50'
+          )}
+        >
           <select
             value={jParts?.jd ?? ''}
             onChange={(e) => setPart('jd', e.target.value)}
             disabled={disabled}
-            className={cn(selectCls, 'w-[52px]')}
+            className={cn(segCls, 'w-[44px]')}
             aria-label={t('date.day', 'Day')}
           >
             <option value="" disabled>
@@ -124,7 +135,7 @@ export function DateInput({ value, onChange, className, disabled }: DateInputPro
             value={jParts?.jm ?? ''}
             onChange={(e) => setPart('jm', e.target.value)}
             disabled={disabled}
-            className={cn(selectCls, 'flex-1')}
+            className={cn(segCls, 'flex-1')}
             aria-label={t('date.month', 'Month')}
           >
             <option value="" disabled>
@@ -140,7 +151,7 @@ export function DateInput({ value, onChange, className, disabled }: DateInputPro
             value={jParts?.jy ?? ''}
             onChange={(e) => setPart('jy', e.target.value)}
             disabled={disabled}
-            className={cn(selectCls, 'w-[74px]')}
+            className={cn(segCls, 'w-[64px]')}
             aria-label={t('date.year', 'Year')}
           >
             <option value="" disabled>
@@ -156,7 +167,7 @@ export function DateInput({ value, onChange, className, disabled }: DateInputPro
             <button
               type="button"
               onClick={() => onChange('')}
-              className="flex shrink-0 items-center text-muted-foreground hover:text-foreground"
+              className="flex shrink-0 items-center px-0.5 text-muted-foreground hover:text-foreground"
               title={t('date.clear', 'Clear')}
             >
               <X className="h-3.5 w-3.5" />
