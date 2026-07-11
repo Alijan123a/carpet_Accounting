@@ -14,7 +14,8 @@ import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
-const GRID = 'grid grid-cols-[1fr_64px_110px_110px_110px_120px_92px] items-center gap-3 px-4'
+const GRID =
+  'grid grid-cols-[1fr_64px_110px_110px_110px_120px_92px] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
 
 const kg = (n: number): string => n.toLocaleString('en-US', { maximumFractionDigits: 3 })
 

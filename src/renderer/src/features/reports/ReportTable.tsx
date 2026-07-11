@@ -60,16 +60,12 @@ function SectionTable({ section }: { section: RenderedSection }): JSX.Element {
           />
         </div>
       </div>
-      <div className="grid border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground" style={{ gridTemplateColumns: template }}>
+      <div
+        className="grid border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:!justify-center"
+        style={{ gridTemplateColumns: template }}
+      >
         {section.columns.map((c, i) => (
-          <SortHeader
-            key={i}
-            col={String(i)}
-            sort={sort}
-            onSort={setSort}
-            align={c.align === 'end' ? 'end' : 'start'}
-            className="px-3 py-2"
-          >
+          <SortHeader key={i} col={String(i)} sort={sort} onSort={setSort} className="px-3 py-2">
             {c.label}
           </SortHeader>
         ))}
@@ -87,7 +83,7 @@ function SectionTable({ section }: { section: RenderedSection }): JSX.Element {
               return (
                 <div
                   key={vi.index}
-                  className="absolute start-0 top-0 grid w-full border-b border-border text-sm"
+                  className="absolute start-0 top-0 grid w-full border-b border-border text-sm [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0"
                   style={{ height: `${ROW_HEIGHT}px`, transform: `translateY(${vi.start}px)`, gridTemplateColumns: template }}
                 >
                   {row.map((value, ci) => (
@@ -95,8 +91,8 @@ function SectionTable({ section }: { section: RenderedSection }): JSX.Element {
                       key={ci}
                       title={value}
                       className={cn(
-                        'truncate px-3 py-2',
-                        section.columns[ci].align === 'end' ? 'text-end font-mono tabular-nums' : 'text-start'
+                        'truncate px-3 py-2 text-center',
+                        section.columns[ci].align === 'end' && 'font-mono tabular-nums'
                       )}
                     >
                       {value}
@@ -110,13 +106,16 @@ function SectionTable({ section }: { section: RenderedSection }): JSX.Element {
       )}
 
       {section.footer && (
-        <div className="grid border-t-2 border-border bg-muted/40 text-sm font-semibold" style={{ gridTemplateColumns: template }}>
+        <div
+          className="grid border-t-2 border-border bg-muted/40 text-sm font-semibold [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0"
+          style={{ gridTemplateColumns: template }}
+        >
           {section.footer.map((value, ci) => (
             <span
               key={ci}
               className={cn(
-                'truncate px-3 py-2',
-                section.columns[ci].align === 'end' ? 'text-end font-mono tabular-nums' : 'text-start'
+                'truncate px-3 py-2 text-center',
+                section.columns[ci].align === 'end' && 'font-mono tabular-nums'
               )}
             >
               {value}

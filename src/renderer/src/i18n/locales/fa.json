@@ -327,6 +327,8 @@
     "buyerRequired": "خریدار را انتخاب کنید.",
     "number": "نمبر بل",
     "date": "تاریخ",
+    "currency": "اسعار",
+    "currencyLocked": "اسعار از قالین‌های انتخاب‌شده پیروی می‌کند و قابل تغییر نیست.",
     "goodsType": "نوع جنس",
     "carpetNo": "نمبر قالین",
     "carpetPlaceholder": "نمبر…",

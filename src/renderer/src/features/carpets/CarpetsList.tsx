@@ -21,7 +21,7 @@ import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
 const GRID =
-  'grid grid-cols-[120px_64px_64px_72px_80px_56px_110px_100px_120px_120px_100px_130px] items-center gap-2 px-3'
+  'grid grid-cols-[120px_64px_64px_72px_80px_56px_110px_100px_120px_120px_100px_130px] items-center gap-0 px-3 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
 const MIN_W = 'min-w-[1120px]'
 
 function Profit({ cents }: { cents: number | null }): JSX.Element {

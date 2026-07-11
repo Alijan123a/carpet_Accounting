@@ -13,7 +13,8 @@ import { MaterialLineDialog } from './MaterialLineDialog'
 import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const kg = (n: number): string => n.toLocaleString('en-US', { maximumFractionDigits: 3 })
-const LINE_GRID = 'grid grid-cols-[100px_70px_minmax(120px,1fr)_90px_110px_120px_110px_44px] items-center gap-3 px-3'
+const LINE_GRID =
+  'grid grid-cols-[100px_70px_minmax(120px,1fr)_90px_110px_120px_110px_44px] items-center gap-0 px-3 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
 
 export function MaterialDetail({
   materialId,

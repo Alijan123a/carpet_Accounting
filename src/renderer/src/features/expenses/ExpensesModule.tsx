@@ -18,7 +18,8 @@ import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
-const GRID = 'grid grid-cols-[110px_minmax(120px,1fr)_64px_120px_minmax(120px,1fr)_92px] items-center gap-3 px-4'
+const GRID =
+  'grid grid-cols-[110px_minmax(120px,1fr)_64px_120px_minmax(120px,1fr)_92px] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
 
 export function ExpensesModule(): JSX.Element {
   const { t } = useTranslation()

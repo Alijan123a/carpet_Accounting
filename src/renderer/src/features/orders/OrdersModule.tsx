@@ -9,17 +9,27 @@ import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatDate } from '@renderer/lib/date'
-import { ORDER_STATUSES } from '@shared/contracts'
-import type { OrderStatus, OrderView } from '@shared/contracts'
+import { ORDER_STATUSES, ORDER_ITEM_STATUSES } from '@shared/contracts'
+import type { OrderStatus, OrderItemStatus, OrderView } from '@shared/contracts'
 import { OrderFormDialog } from './OrderFormDialog'
 import { OrderDetail } from './OrderDetail'
-import { orderStatusLabel, orderStatusBadge } from './orderStatus'
+import { orderStatusLabel, orderItemStatusLabel, statusCounts } from './orderStatus'
 import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 52
+// date | order# | buyer | ordered carpet | qty | sqm | 4×status counts | actions
 const GRID =
-  'grid grid-cols-[100px_80px_minmax(140px,1.2fr)_minmax(160px,1.6fr)_64px_90px_140px_92px] items-center gap-3 px-4'
+  'grid grid-cols-[100px_80px_minmax(130px,1.1fr)_minmax(150px,1.4fr)_60px_84px_repeat(4,minmax(54px,0.7fr))_88px] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:text-center [&>*]:justify-center'
+const MIN_W = 'min-w-[1040px]'
+
+/** Text colour per item status — used to tint the per-status count columns. */
+const STATUS_TEXT: Record<OrderItemStatus, string> = {
+  pending: 'text-amber-600 dark:text-amber-400',
+  on_work: 'text-sky-600 dark:text-sky-400',
+  complete: 'text-indigo-600 dark:text-indigo-400',
+  delivered: 'text-emerald-600 dark:text-emerald-400'
+}
 
 /** Total متراژ of an order: sum of item rows, falling back to legacy W×L. */
 function orderTotalSqm(o: OrderView): number | null {
@@ -28,6 +38,23 @@ function orderTotalSqm(o: OrderView): number | null {
     return s > 0 ? s : null
   }
   return o.length && o.width ? o.length * o.width : null
+}
+
+/**
+ * Piece counts per item-status for a whole order (sum across its carpet items).
+ * Legacy orders without an items snapshot count their whole quantity as pending.
+ */
+function orderStatusCounts(o: OrderView): Record<OrderItemStatus, number> {
+  const counts: Record<OrderItemStatus, number> = { pending: 0, on_work: 0, complete: 0, delivered: 0 }
+  if (o.items.length) {
+    for (const it of o.items) {
+      const c = statusCounts(it)
+      for (const s of ORDER_ITEM_STATUSES) counts[s] += c[s]
+    }
+  } else {
+    counts.pending += o.quantity > 0 ? o.quantity : 0
+  }
+  return counts
 }
 
 export function OrdersModule(): JSX.Element {
@@ -101,17 +128,6 @@ export function OrdersModule(): JSX.Element {
   }
   function refresh(): void {
     void fetchPage(true)
-  }
-
-  async function changeStatus(o: OrderView, status: OrderStatus): Promise<void> {
-    try {
-      await window.api.orders.setStatus(o.id, status)
-      // Patch in place so the row updates without a full reload.
-      setRows((prev) => prev.map((r) => (r.id === o.id ? { ...r, status } : r)))
-      toast.success(t('common.saved', 'Saved.'))
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : t('common.error', 'An error occurred.'))
-    }
   }
 
   async function doDelete(): Promise<void> {
@@ -188,108 +204,105 @@ export function OrdersModule(): JSX.Element {
         </label>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
-        <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
-          <SortHeader col="orderDate" sort={sort} onSort={setSort}>
-            {t('orders.orderDate', 'Order date')}
-          </SortHeader>
-          <SortHeader col="orderNo" sort={sort} onSort={setSort}>
-            {t('orders.orderNo', 'Order #')}
-          </SortHeader>
-          <SortHeader col="buyerName" sort={sort} onSort={setSort}>
-            {t('orders.buyer', 'Buyer')}
-          </SortHeader>
-          <SortHeader col="title" sort={sort} onSort={setSort}>
-            {t('orders.titleField', 'Ordered carpet')}
-          </SortHeader>
-          <SortHeader col="quantity" sort={sort} onSort={setSort} align="end">
-            {t('orders.quantity', 'Qty')}
-          </SortHeader>
-          <span className="text-end">{t('orders.sqm', 'SQM')}</span>
-          <SortHeader col="status" sort={sort} onSort={setSort}>
-            {t('orders.status.label', 'Status')}
-          </SortHeader>
-          <span />
-        </div>
-        <div ref={parentRef} onScroll={onScroll} className="flex-1 overflow-auto">
-          {rows.length === 0 && !loading && (
-            <div className="p-8 text-center text-sm text-muted-foreground">{t('orders.empty', 'No orders yet.')}</div>
-          )}
-          <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>
-            {virtualizer.getVirtualItems().map((vi) => {
-              const o = rows[vi.index]
-              return (
-                <div
-                  key={o.id}
-                  onDoubleClick={() => setSelectedId(o.id)}
-                  title={t('orders.openHint', 'Double-click to open carpets')}
-                  className={cn(
-                    GRID,
-                    'absolute start-0 top-0 w-full cursor-pointer border-b border-border text-sm hover:bg-accent/40'
-                  )}
-                  style={{ height: `${ROW_HEIGHT}px`, transform: `translateY(${vi.start}px)` }}
-                >
-                  <span className="text-muted-foreground">{formatDate(o.orderDate, calendar)}</span>
-                  <span className="truncate font-mono tabular-nums">{o.orderNo || t('common.none', '—')}</span>
-                  <span className="truncate font-medium">{o.buyerName || t('common.none', '—')}</span>
-                  <span className="truncate">
-                    {o.title}
-                    {!o.items.length && o.length && o.width ? (
-                      <span className="text-muted-foreground"> · {o.length}×{o.width}m</span>
-                    ) : null}
-                  </span>
-                  <span className="text-end text-muted-foreground">{o.quantity}</span>
-                  <span className="text-end font-mono tabular-nums">
-                    {orderTotalSqm(o)?.toFixed(2) ?? '—'}
-                  </span>
-                  <span onDoubleClick={(e) => e.stopPropagation()}>
-                    {/* Inline status change — the badge colour reflects the value. */}
-                    <select
-                      value={o.status}
-                      aria-label={t('orders.status.label', 'Status')}
-                      onChange={(e) => void changeStatus(o, e.target.value as OrderStatus)}
-                      className={cn(
-                        'h-7 w-full rounded-md border-0 px-2 text-xs font-medium focus:ring-1 focus:ring-ring',
-                        orderStatusBadge(o.status)
-                      )}
-                    >
-                      {ORDER_STATUSES.map((s) => (
-                        <option key={s} value={s} className="bg-card text-foreground">
-                          {orderStatusLabel(t, s)}
-                        </option>
-                      ))}
-                    </select>
-                  </span>
-                  <span className="flex justify-end gap-1" onDoubleClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title={t('common.edit', 'Edit')}
-                      aria-label={t('common.edit', 'Edit')}
-                      onClick={() => {
-                        setEditOrder(o)
-                        setFormOpen(true)
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title={t('common.delete', 'Delete')}
-                      aria-label={t('common.delete', 'Delete')}
-                      onClick={() => setDeleteTarget(o)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </span>
-                </div>
-              )
-            })}
+      <div className="flex min-h-0 flex-1 overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-card">
+        <div className={cn(MIN_W, 'flex flex-1 flex-col')}>
+          <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
+            <SortHeader col="orderDate" sort={sort} onSort={setSort}>
+              {t('orders.orderDate', 'Order date')}
+            </SortHeader>
+            <SortHeader col="orderNo" sort={sort} onSort={setSort}>
+              {t('orders.orderNo', 'Order #')}
+            </SortHeader>
+            <SortHeader col="buyerName" sort={sort} onSort={setSort}>
+              {t('orders.buyer', 'Buyer')}
+            </SortHeader>
+            <SortHeader col="title" sort={sort} onSort={setSort}>
+              {t('orders.titleField', 'Ordered carpet')}
+            </SortHeader>
+            <SortHeader col="quantity" sort={sort} onSort={setSort}>
+              {t('orders.quantity', 'Qty')}
+            </SortHeader>
+            <span>{t('orders.sqm', 'SQM')}</span>
+            {/* One column per carpet status showing the piece count. */}
+            {ORDER_ITEM_STATUSES.map((s) => (
+              <span key={s} className="truncate" title={orderItemStatusLabel(t, s)}>
+                {orderItemStatusLabel(t, s)}
+              </span>
+            ))}
+            <span />
           </div>
-          {loading && <div className="p-3 text-center text-xs text-muted-foreground">{t('common.loading', 'Loading…')}</div>}
+          <div ref={parentRef} onScroll={onScroll} className="flex-1 overflow-y-auto">
+            {rows.length === 0 && !loading && (
+              <div className="p-8 text-center text-sm text-muted-foreground">{t('orders.empty', 'No orders yet.')}</div>
+            )}
+            <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>
+              {virtualizer.getVirtualItems().map((vi) => {
+                const o = rows[vi.index]
+                const counts = orderStatusCounts(o)
+                return (
+                  <div
+                    key={o.id}
+                    onDoubleClick={() => setSelectedId(o.id)}
+                    title={t('orders.openHint', 'Double-click to open carpets')}
+                    className={cn(
+                      GRID,
+                      'absolute start-0 top-0 w-full cursor-pointer border-b border-border text-sm hover:bg-accent/40'
+                    )}
+                    style={{ height: `${ROW_HEIGHT}px`, transform: `translateY(${vi.start}px)` }}
+                  >
+                    <span className="text-muted-foreground">{formatDate(o.orderDate, calendar)}</span>
+                    <span className="truncate font-mono tabular-nums">{o.orderNo || t('common.none', '—')}</span>
+                    <span className="truncate font-medium">{o.buyerName || t('common.none', '—')}</span>
+                    <span className="truncate">
+                      {o.title}
+                      {!o.items.length && o.length && o.width ? (
+                        <span className="text-muted-foreground"> · {o.length}×{o.width}m</span>
+                      ) : null}
+                    </span>
+                    <span className="text-muted-foreground">{o.quantity}</span>
+                    <span className="font-mono tabular-nums">{orderTotalSqm(o)?.toFixed(2) ?? t('common.none', '—')}</span>
+                    {ORDER_ITEM_STATUSES.map((s) => (
+                      <span
+                        key={s}
+                        className={cn(
+                          'font-mono tabular-nums',
+                          counts[s] > 0 ? cn('font-semibold', STATUS_TEXT[s]) : 'text-muted-foreground/40'
+                        )}
+                      >
+                        {counts[s]}
+                      </span>
+                    ))}
+                    <span className="flex gap-1" onDoubleClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title={t('common.edit', 'Edit')}
+                        aria-label={t('common.edit', 'Edit')}
+                        onClick={() => {
+                          setEditOrder(o)
+                          setFormOpen(true)
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title={t('common.delete', 'Delete')}
+                        aria-label={t('common.delete', 'Delete')}
+                        onClick={() => setDeleteTarget(o)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+            {loading && <div className="p-3 text-center text-xs text-muted-foreground">{t('common.loading', 'Loading…')}</div>}
+          </div>
         </div>
       </div>
 

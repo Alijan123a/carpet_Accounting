@@ -12,7 +12,8 @@ import { ClientFormDialog } from './ClientFormDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 52
-const GRID = 'grid grid-cols-[1fr_130px_110px_110px_56px] items-center gap-3 px-4'
+const GRID =
+  'grid grid-cols-[1fr_130px_110px_110px_56px] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
 
 export function ClientsList({
   kind,

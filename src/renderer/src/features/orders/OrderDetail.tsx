@@ -19,7 +19,7 @@ import {
 import { ItemAssignmentsDialog } from './ItemAssignmentsDialog'
 
 const GRID =
-  'grid grid-cols-[40px_minmax(150px,1.4fr)_96px_72px_52px_minmax(230px,2fr)] items-center gap-3 px-3'
+  'grid grid-cols-[40px_minmax(150px,1.4fr)_96px_72px_52px_minmax(230px,2fr)] items-center gap-0 px-3 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
 
 export function OrderDetail({
   orderId,

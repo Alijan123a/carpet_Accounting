@@ -327,6 +327,8 @@
     "buyerRequired": "Choose a buyer.",
     "number": "Invoice #",
     "date": "Date",
+    "currency": "Currency",
+    "currencyLocked": "Currency follows the selected carpets and cannot be changed.",
     "goodsType": "Goods",
     "carpetNo": "Carpet #",
     "carpetPlaceholder": "Label…",

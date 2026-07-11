@@ -22,7 +22,8 @@ import { SellerOrders } from '@renderer/features/orders/SellerOrders'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
-const GRID = 'grid grid-cols-[44px_110px_90px_110px_150px_minmax(140px,1fr)_72px] items-center gap-3 px-4'
+const GRID =
+  'grid grid-cols-[44px_110px_90px_110px_150px_minmax(140px,1fr)_72px] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
 const TX_TYPES: TransactionType[] = ['purchase', 'sale', 'payment', 'reversal', 'adjustment']
 
 export function ClientDetail({

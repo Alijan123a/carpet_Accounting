@@ -9,7 +9,7 @@ import type { OrderItemStatus, SellerAssignmentView } from '@shared/contracts'
 import { orderItemStatusLabel, orderItemStatusBadge } from './orderStatus'
 
 const GRID =
-  'grid grid-cols-[64px_minmax(100px,1.1fr)_minmax(120px,1.4fr)_92px_66px_46px_116px_120px] items-center gap-3 px-3'
+  'grid grid-cols-[64px_minmax(100px,1.1fr)_minmax(120px,1.4fr)_92px_66px_46px_116px_120px] items-center gap-0 px-3 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
 
 /** Carpets a single بافنده has been handed, flattened across every order. */
 export function SellerOrders({

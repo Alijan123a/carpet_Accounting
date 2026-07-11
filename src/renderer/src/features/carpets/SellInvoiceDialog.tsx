@@ -21,7 +21,8 @@ import {
   centsToInput,
   formatCents,
   invoiceLineTotalCents,
-  invoiceGrandTotalCents
+  invoiceGrandTotalCents,
+  ENABLED_CURRENCIES
 } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { CarpetListItem, ClientListItem, SellInvoiceLineInput } from '@shared/contracts'
@@ -147,6 +148,9 @@ export function SellInvoiceDialog({
   }, [open])
 
   const displayCurrency: Currency = currency ?? defaultCurrency
+  // Once a carpet line exists the invoice currency is dictated by the carpet(s),
+  // so the manual selector is locked (a mixed-currency invoice is not allowed).
+  const hasCarpetLine = lines.some((l) => l.carpetId != null)
 
   const grandTotalCents = useMemo(
     () => invoiceGrandTotalCents(lines.map((l) => lineCalc(l).totalCents)),
@@ -312,8 +316,8 @@ export function SellInvoiceDialog({
           <DialogTitle>{t('invoice.title', 'Sell invoice')}</DialogTitle>
         </DialogHeader>
 
-        {/* Header: buyer + number + date */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {/* Header: buyer + number + date + currency */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block space-y-1">
             <span className="text-xs font-medium text-muted-foreground">
               {t('invoice.buyer', 'Buyer')}
@@ -342,6 +346,26 @@ export function SellInvoiceDialog({
           <label className="block space-y-1">
             <span className="text-xs font-medium text-muted-foreground">{t('invoice.date', 'Date')}</span>
             <DateInput value={date} onChange={setDate} />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">{t('invoice.currency', 'Currency')}</span>
+            <select
+              value={displayCurrency}
+              onChange={(e) => setCurrency(e.target.value as Currency)}
+              disabled={hasCarpetLine}
+              title={
+                hasCarpetLine
+                  ? t('invoice.currencyLocked', 'Currency follows the selected carpets and cannot be changed.')
+                  : undefined
+              }
+              className="h-10 w-full rounded-lg border border-input bg-card shadow-soft px-3 text-sm disabled:opacity-50"
+            >
+              {ENABLED_CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
 

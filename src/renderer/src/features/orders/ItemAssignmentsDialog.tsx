@@ -232,8 +232,10 @@ export function ItemAssignmentsDialog({
         {remaining > 0 && (
           <div className="space-y-2 rounded-xl border border-dashed border-border p-3">
             <div className="text-xs font-medium text-muted-foreground">{t('orders.addAssignment', 'Hand off to a بافنده')}</div>
-            <div className="grid grid-cols-[minmax(140px,1.5fr)_70px_minmax(190px,1fr)_auto] items-end gap-2">
-              <label className="space-y-1">
+            {/* flex-wrap so the multi-select Shamsi date picker keeps its full
+                width (day/month/year + toggle) instead of being squeezed. */}
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="min-w-[150px] flex-1 space-y-1">
                 <span className="text-xs text-muted-foreground">{t('orders.seller', 'بافنده')}</span>
                 <Typeahead
                   value={query}
@@ -250,7 +252,7 @@ export function ItemAssignmentsDialog({
                   placeholder={t('orders.sellerPlaceholder', 'Type a بافنده name…')}
                 />
               </label>
-              <label className="space-y-1">
+              <label className="w-16 space-y-1">
                 <span className="text-xs text-muted-foreground">{t('orders.quantity', 'Qty')}</span>
                 <Input
                   type="number"
@@ -262,7 +264,7 @@ export function ItemAssignmentsDialog({
                   className="h-9 text-end"
                 />
               </label>
-              <label className="space-y-1">
+              <label className="min-w-[240px] flex-1 space-y-1">
                 <span className="text-xs text-muted-foreground">{t('orders.assignedDate', 'Given on')}</span>
                 <DateInput value={date} onChange={setDate} className="h-9" />
               </label>
