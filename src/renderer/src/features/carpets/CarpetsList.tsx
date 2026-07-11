@@ -35,7 +35,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [gradeFilter, setGradeFilter] = useState<string>('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'ordered' | 'bought'>('all')
   const [includeArchived, setIncludeArchived] = useState(false)
   const [sort, setSort] = useState<SortState>({ by: 'createdAt', dir: 'desc' })
 
@@ -45,7 +45,6 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
   const [error, setError] = useState<string | null>(null)
 
   const [statuses, setStatuses] = useState<CarpetStatus[]>([])
-  const [grades, setGrades] = useState<string[]>([])
 
   const [formOpen, setFormOpen] = useState(false)
   const [statusesOpen, setStatusesOpen] = useState(false)
@@ -63,7 +62,6 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
 
   const loadMeta = useCallback(async (): Promise<void> => {
     setStatuses(await window.api.carpetStatuses.list())
-    setGrades(await window.api.carpets.sortGrades())
   }, [])
 
   useEffect(() => {
@@ -81,7 +79,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
         const res = await window.api.carpets.list({
           search,
           status: statusFilter,
-          sortGrade: gradeFilter,
+          origin: typeFilter,
           includeArchived,
           sortBy: sort.by,
           sortDir: sort.dir,
@@ -97,7 +95,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
         setLoading(false)
       }
     },
-    [search, statusFilter, gradeFilter, includeArchived, sort]
+    [search, statusFilter, typeFilter, includeArchived, sort]
   )
 
   useEffect(() => {
@@ -170,16 +168,14 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
           ))}
         </select>
         <select
-          value={gradeFilter}
-          onChange={(e) => setGradeFilter(e.target.value)}
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as 'all' | 'ordered' | 'bought')}
+          aria-label={t('carpets.type', 'Type')}
           className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
         >
-          <option value="all">{t('carpets.allGrades', 'All grades')}</option>
-          {grades.map((g) => (
-            <option key={g} value={g}>
-              {g}
-            </option>
-          ))}
+          <option value="all">{t('carpets.allTypes', 'All types')}</option>
+          <option value="ordered">{t('carpets.originOrdered', 'Ordered')}</option>
+          <option value="bought">{t('carpets.originBought', 'Bought')}</option>
         </select>
         <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
           <input
@@ -226,8 +222,12 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
               <SortHeader col="status" sort={sort} onSort={setSort}>
                 {t('carpets.status', 'Status')}
               </SortHeader>
-              <span>{t('carpets.type', 'Type')}</span>
-              <span className="text-end">{t('carpets.profit', 'Profit')}</span>
+              <SortHeader col="origin" sort={sort} onSort={setSort}>
+                {t('carpets.type', 'Type')}
+              </SortHeader>
+              <SortHeader col="profitCents" sort={sort} onSort={setSort} align="end">
+                {t('carpets.profit', 'Profit')}
+              </SortHeader>
             </div>
           <div ref={parentRef} onScroll={onScroll} className="flex-1 overflow-y-auto">
             {error && (

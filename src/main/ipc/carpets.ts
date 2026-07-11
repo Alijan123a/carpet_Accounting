@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { and, or, eq, like, inArray, isNotNull, asc, desc, sql, type SQL, type AnyColumn } from 'drizzle-orm'
+import { and, or, eq, like, inArray, isNull, isNotNull, asc, desc, sql, type SQL, type AnyColumn } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/sqlite-core'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
@@ -94,6 +94,7 @@ const CARPET_SORTS: Record<string, AnyColumn> = {
   sortDeductionCents: schema.carpets.sortDeductionCents,
   totalPriceCents: schema.carpets.totalPriceCents,
   status: schema.carpets.status,
+  origin: schema.carpets.origin,
   createdAt: schema.carpets.createdAt
 }
 
@@ -102,6 +103,14 @@ export function listCarpets(db: DB, params: CarpetsListParams): CarpetsListResul
   if (!params.includeArchived) conds.push(eq(schema.carpets.archived, false))
   if (params.status && params.status !== 'all') conds.push(eq(schema.carpets.status, params.status))
   if (params.sortGrade && params.sortGrade !== 'all') conds.push(eq(schema.carpets.sortGrade, params.sortGrade))
+  if (params.origin && params.origin !== 'all') {
+    // Legacy rows have NULL origin — treat them as 'bought' for filtering too.
+    conds.push(
+      params.origin === 'ordered'
+        ? eq(schema.carpets.origin, 'ordered')
+        : or(eq(schema.carpets.origin, 'bought'), isNull(schema.carpets.origin))
+    )
+  }
   const search = params.search?.trim()
   if (search) {
     const pat = `%${search}%`
@@ -115,9 +124,17 @@ export function listCarpets(db: DB, params: CarpetsListParams): CarpetsListResul
   }
   const where = conds.length ? and(...conds) : undefined
 
-  const sortCol = CARPET_SORTS[params.sortBy ?? '']
   const dirFn = params.sortDir === 'asc' ? asc : desc
-  const orderCols = sortCol ? [dirFn(sortCol), asc(schema.carpets.id)] : [desc(schema.carpets.createdAt)]
+  let orderCols: SQL[]
+  if (params.sortBy === 'profitCents') {
+    // Profit isn't a stored column; sort by the same value the UI shows —
+    // (sell total − buy total). Unsold carpets have NULL sell total → NULL profit.
+    const profitExpr = sql`(${schema.carpets.sellTotalPriceCents} - ${schema.carpets.totalPriceCents})`
+    orderCols = [dirFn(profitExpr), asc(schema.carpets.id)]
+  } else {
+    const sortCol = CARPET_SORTS[params.sortBy ?? '']
+    orderCols = sortCol ? [dirFn(sortCol), asc(schema.carpets.id)] : [desc(schema.carpets.createdAt)]
+  }
 
   const rows = db
     .select()

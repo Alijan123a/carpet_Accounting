@@ -240,6 +240,7 @@
     "type": "Type",
     "originOrdered": "Ordered",
     "originBought": "Bought",
+    "allTypes": "All types",
     "seller": "Bought from (seller)",
     "noSeller": "— none (no purchase recorded) —",
     "buyDate": "Purchase date",

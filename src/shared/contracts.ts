@@ -234,6 +234,8 @@ export interface CarpetsListParams extends SortParams {
   search?: string
   status?: string | 'all'
   sortGrade?: string | 'all'
+  /** Filter by provenance: 'ordered' (made for a سفارش) / 'bought' (stock). */
+  origin?: 'ordered' | 'bought' | 'all'
   includeArchived?: boolean
   limit: number
   offset: number
