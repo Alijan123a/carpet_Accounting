@@ -177,10 +177,10 @@ export const materialLines = sqliteTable(
 /**
  * Sell invoices («بل فروش»). A printable multi-line document; each carpet line
  * that references a real carpet also posts a sale through the normal sell path
- * (see sellCarpet). The immutable ledger stays the source of truth for money —
- * `totalCents` and `linesJson` here are a snapshot of the PRINTED document of
- * record (which may differ from the posted total if the user overrode an area
- * or line total; see the note in sellInvoice).
+ * (see sellCarpet), using the line total AS PRINTED (an overridden «متراژ»/
+ * «جمله» carries into the posting — see sellInvoice). The immutable ledger
+ * stays the source of truth for money; `totalCents` and `linesJson` here are a
+ * snapshot of the printed document of record.
  */
 export const invoices = sqliteTable(
   'invoices',

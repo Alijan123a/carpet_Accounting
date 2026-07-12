@@ -2,13 +2,28 @@ import { describe, it, expect } from 'vitest'
 import {
   invoiceLineTotalCents,
   invoiceLineAreaFromDims,
-  invoiceGrandTotalCents
+  invoiceGrandTotalCents,
+  floorAreaTo2
 } from '../invoice'
 
 describe('invoiceLineAreaFromDims', () => {
   it('area = length × width', () => {
     expect(invoiceLineAreaFromDims(2.5, 3)).toBe(7.5)
     expect(invoiceLineAreaFromDims(0, 3)).toBe(0)
+  })
+})
+
+describe('floorAreaTo2', () => {
+  it('floors an area to 2 decimals (drops the excess, never rounds up)', () => {
+    expect(floorAreaTo2(8.096)).toBe(8.09)
+    expect(floorAreaTo2(8.099999)).toBe(8.09)
+    expect(floorAreaTo2(8)).toBe(8)
+    expect(floorAreaTo2(0)).toBe(0)
+  })
+
+  it('is immune to binary float noise from W×L products', () => {
+    expect(floorAreaTo2(3.2 * 2.5)).toBe(8) // 8.000000000000002 must not stay 8.00…2
+    expect(floorAreaTo2(2.3 * 1.3)).toBe(2.99) // 2.9899999999999998 must not drop to 2.98
   })
 })
 

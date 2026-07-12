@@ -57,7 +57,9 @@
     "error": "An error occurred.",
     "requiredField": "required",
     "select": "Select…",
-    "noResults": "No results found."
+    "noResults": "No results found.",
+    "calShamsi": "SH",
+    "calGregorian": "AD"
   },
   "settings": {
     "title": "Settings",
@@ -255,6 +257,7 @@
     "seller": "Bought from (seller)",
     "noSeller": "— none (no purchase recorded) —",
     "buyDate": "Purchase date",
+    "date": "Date",
     "labelRequired": "Label number is required.",
     "labelTaken": "That label number is already used.",
     "deductionExceeds": "Deduction exceeds price/meter — effective price is treated as 0.",
@@ -360,7 +363,6 @@
     "savePrint": "Save & Print",
     "noLines": "Add at least one line.",
     "currencyMismatch": "All carpet lines must share the same currency.",
-    "mismatchWarn": "A line’s area/total was overridden. The printed invoice is the record; the posted ledger sale uses the carpet’s stored area.",
     "errAlreadySold": "One of the carpets is already sold. Refresh and try again.",
     "errCarpetMissing": "A selected carpet no longer exists.",
     "description": "Description",

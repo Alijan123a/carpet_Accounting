@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { Input } from '@renderer/components/ui/input'
 import { cn } from '@renderer/lib/utils'
@@ -47,6 +48,11 @@ export function Typeahead<T extends TypeaheadItem>({
   const [open, setOpen] = useState(false)
   const [highlight, setHighlight] = useState(0)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  // Viewport-space anchor of the input; the dropdown is PORTALED to <body> in
+  // fixed position so it can never be clipped by a scrolling/overflow ancestor
+  // (e.g. the invoice line grids, which scroll both axes).
+  const [anchor, setAnchor] = useState<{ top: number; left: number; width: number } | null>(null)
 
   const matches = useMemo(() => {
     const q = value.trim().toLowerCase()
@@ -62,20 +68,49 @@ export function Typeahead<T extends TypeaheadItem>({
   // Reset the highlighted row whenever the visible matches change.
   useEffect(() => setHighlight(0), [value, open])
 
-  // Close the dropdown on an outside click.
+  // Close the dropdown on an outside click (outside the input AND the portal).
   useEffect(() => {
     if (!open) return
     function onDocMouseDown(e: MouseEvent): void {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      if (wrapRef.current?.contains(target) || listRef.current?.contains(target)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', onDocMouseDown)
     return () => document.removeEventListener('mousedown', onDocMouseDown)
+  }, [open])
+
+  // Track the input's viewport position while open (inner scrollers included —
+  // 'scroll' is listened to in the capture phase so nested containers count).
+  useLayoutEffect(() => {
+    if (!open) {
+      setAnchor(null)
+      return
+    }
+    function update(): void {
+      const el = wrapRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      setAnchor({ top: r.bottom, left: r.left, width: r.width })
+    }
+    update()
+    window.addEventListener('scroll', update, true)
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update, true)
+      window.removeEventListener('resize', update)
+    }
   }, [open])
 
   function choose(item: T): void {
     onSelect(item)
     setOpen(false)
   }
+
+  // Dropdown geometry: at least the input's width, widened to a readable
+  // minimum for narrow grid columns, and clamped inside the viewport.
+  const dropWidth = anchor ? Math.min(Math.max(anchor.width, 240), window.innerWidth - 16) : 0
+  const dropLeft = anchor ? Math.max(8, Math.min(anchor.left, window.innerWidth - dropWidth - 8)) : 0
 
   function onKeyDown(e: React.KeyboardEvent): void {
     // With no suggestions to navigate, leave ↑/↓ to the app-wide field
@@ -125,40 +160,60 @@ export function Typeahead<T extends TypeaheadItem>({
         aria-expanded={open}
         aria-autocomplete="list"
       />
-      {open && matches.length > 0 && (
-        <ul
-          role="listbox"
-          className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-border bg-card py-1 text-sm shadow-card"
-        >
-          {matches.map((item, i) => (
-            <li
-              key={item.id}
-              role="option"
-              aria-selected={i === highlight}
-              // onMouseDown (not onClick) so selection wins the race with the input's blur.
-              onMouseDown={(e) => {
-                e.preventDefault()
-                choose(item)
-              }}
-              onMouseEnter={() => setHighlight(i)}
-              className={cn(
-                'flex cursor-pointer items-center justify-between gap-2 px-3 py-1.5',
-                i === highlight ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
-              )}
-            >
-              <span className="truncate">{item.label}</span>
-              {item.sublabel && (
-                <span className="shrink-0 text-xs text-muted-foreground">{item.sublabel}</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      {open && value.trim() !== '' && matches.length === 0 && (
-        <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-center text-xs text-muted-foreground shadow-card">
-          {t('common.noResults', 'No results found.')}
-        </div>
-      )}
+      {open &&
+        anchor &&
+        (matches.length > 0 || value.trim() !== '') &&
+        createPortal(
+          <div
+            ref={listRef}
+            data-typeahead-portal
+            // pointerEvents: Radix's modal Dialog puts pointer-events:none on
+            // <body>; this portal lives in <body>, so re-enable it explicitly.
+            style={{
+              position: 'fixed',
+              top: anchor.top + 4,
+              left: dropLeft,
+              width: dropWidth,
+              zIndex: 60,
+              pointerEvents: 'auto'
+            }}
+          >
+            {matches.length > 0 ? (
+              <ul
+                role="listbox"
+                className="max-h-56 overflow-auto rounded-lg border border-border bg-card py-1 text-sm shadow-card"
+              >
+                {matches.map((item, i) => (
+                  <li
+                    key={item.id}
+                    role="option"
+                    aria-selected={i === highlight}
+                    // onMouseDown (not onClick) so selection wins the race with the input's blur.
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      choose(item)
+                    }}
+                    onMouseEnter={() => setHighlight(i)}
+                    className={cn(
+                      'flex cursor-pointer items-center justify-between gap-2 px-3 py-1.5',
+                      i === highlight ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
+                    )}
+                  >
+                    <span className="truncate">{item.label}</span>
+                    {item.sublabel && (
+                      <span className="shrink-0 text-xs text-muted-foreground">{item.sublabel}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="rounded-lg border border-border bg-card px-3 py-2 text-center text-xs text-muted-foreground shadow-card">
+                {t('common.noResults', 'No results found.')}
+              </div>
+            )}
+          </div>,
+          document.body
+        )}
     </div>
   )
 }

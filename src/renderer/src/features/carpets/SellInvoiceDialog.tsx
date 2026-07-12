@@ -26,6 +26,7 @@ import {
   effectivePricePerMeterCents,
   invoiceLineTotalCents,
   invoiceGrandTotalCents,
+  floorAreaTo2,
   ENABLED_CURRENCIES
 } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
@@ -34,9 +35,6 @@ import type { InvoiceDocData } from './SellInvoicePdf'
 import { InvoiceExportDialog } from './InvoiceExportDialog'
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10)
-
-/** Trim float noise on a computed area (m²) before showing it in the input. */
-const round4 = (n: number): number => Math.round(n * 10000) / 10000
 
 interface Line {
   key: number
@@ -89,7 +87,8 @@ function BuyHint({ children, className }: { children: ReactNode; className?: str
 function lineCalc(line: Line): { areaNum: number; ppmCents: number; totalCents: number } {
   const l = parseFloat(line.length) || 0
   const w = parseFloat(line.width) || 0
-  const areaNum = line.areaManual ? parseFloat(line.area) || 0 : l * w
+  // Auto متراژ is FLOORED to 2 decimals — the shown value is the computed value.
+  const areaNum = line.areaManual ? parseFloat(line.area) || 0 : floorAreaTo2(l * w)
   const ppmCents = parseMoneyToCents(line.ppm) ?? 0
   const totalCents = line.totalManual
     ? parseMoneyToCents(line.total) ?? 0
@@ -106,7 +105,7 @@ function normalize(line: Line): Line {
   const l = parseFloat(line.length) || 0
   const w = parseFloat(line.width) || 0
   const next = { ...line }
-  if (!next.areaManual) next.area = l > 0 && w > 0 ? String(round4(l * w)) : ''
+  if (!next.areaManual) next.area = l > 0 && w > 0 ? String(floorAreaTo2(l * w)) : ''
   if (!next.totalManual) {
     const { areaNum, ppmCents } = lineCalc(next)
     const tc = invoiceLineTotalCents(areaNum, ppmCents)
@@ -173,21 +172,8 @@ export function SellInvoiceDialog({
     () => invoiceGrandTotalCents(lines.map((l) => lineCalc(l).totalCents)),
     [lines]
   )
-
-  // Warn when an overridden area/total makes the printed line total differ from
-  // what the ledger will post (posted total = carpet stored area × unit price).
-  const mismatchLines = useMemo(
-    () =>
-      lines.filter((l) => {
-        if (l.carpetId == null) return false
-        const c = carpets.find((x) => x.id === l.carpetId)
-        if (!c) return false
-        const { ppmCents, totalCents } = lineCalc(l)
-        const postedTotal = invoiceLineTotalCents(c.area, ppmCents)
-        return postedTotal !== totalCents
-      }),
-    [lines, carpets]
-  )
+  // «مجموع متراژ» — sum of the (possibly overridden) line areas.
+  const totalSqm = useMemo(() => lines.reduce((s, l) => s + lineCalc(l).areaNum, 0), [lines])
 
   function patch(key: number, updater: (l: Line) => Line): void {
     setLines((prev) => prev.map((l) => (l.key === key ? normalize(updater(l)) : l)))
@@ -390,16 +376,15 @@ export function SellInvoiceDialog({
 
         {/* Line table */}
         <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-card">
-          <div className="min-w-[1020px]">
-            <div className="grid grid-cols-[minmax(90px,1fr)_minmax(100px,1.1fr)_minmax(110px,1.2fr)_96px_96px_104px_110px_120px_40px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
-              <span>{t('invoice.goodsType', 'Goods')}</span>
-              <span>{t('invoice.description', 'Description')}</span>
+          <div className="min-w-[960px]">
+            <div className="grid grid-cols-[minmax(130px,1.2fr)_90px_90px_104px_110px_120px_minmax(140px,1.5fr)_40px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
               <span>{t('invoice.carpetNo', 'Carpet #')}</span>
               <span className="text-end">{t('carpets.length', 'L')}</span>
               <span className="text-end">{t('carpets.width', 'W')}</span>
               <span className="text-end">{t('invoice.area', 'Area')}</span>
               <span className="text-end">{t('invoice.unitPrice', 'Price/m')}</span>
               <span className="text-end">{t('invoice.lineTotal', 'Total')}</span>
+              <span>{t('invoice.description', 'Description')}</span>
               <span />
             </div>
 
@@ -415,19 +400,8 @@ export function SellInvoiceDialog({
               return (
                 <div
                   key={l.key}
-                  className="grid grid-cols-[minmax(90px,1fr)_minmax(100px,1.1fr)_minmax(110px,1.2fr)_96px_96px_104px_110px_120px_40px] items-start gap-2 border-b border-border px-3 py-1.5"
+                  className="grid grid-cols-[minmax(130px,1.2fr)_90px_90px_104px_110px_120px_minmax(140px,1.5fr)_40px] items-start gap-2 border-b border-border px-3 py-1.5"
                 >
-                  <Input
-                    value={l.goodsType}
-                    onChange={(e) => patch(l.key, (x) => ({ ...x, goodsType: e.target.value }))}
-                    className="h-9"
-                  />
-                  <Input
-                    value={l.description}
-                    onChange={(e) => patch(l.key, (x) => ({ ...x, description: e.target.value }))}
-                    className="h-9"
-                    placeholder={t('invoice.descriptionPlaceholder', 'Description…')}
-                  />
                   <Typeahead
                     value={l.label}
                     onValueChange={(v) =>
@@ -524,6 +498,12 @@ export function SellInvoiceDialog({
                       </BuyHint>
                     )}
                   </div>
+                  <Input
+                    value={l.description}
+                    onChange={(e) => patch(l.key, (x) => ({ ...x, description: e.target.value }))}
+                    className="h-9"
+                    placeholder={t('invoice.descriptionPlaceholder', 'Description…')}
+                  />
                   <Button
                     variant="ghost"
                     size="icon"
@@ -544,24 +524,22 @@ export function SellInvoiceDialog({
                 <Plus className="h-4 w-4" />
                 {t('invoice.addLine', 'Add row')}
               </Button>
-              <div className="text-sm">
-                <span className="text-muted-foreground">{t('invoice.grandTotal', 'Grand total')}: </span>
-                <span className="font-mono text-base font-semibold tabular-nums">
-                  {formatCentsCompact(grandTotalCents)} {currencySymbol(displayCurrency)}
+              <div className="flex items-center gap-6 text-sm">
+                <span>
+                  <span className="text-muted-foreground">{t('orders.totalSqm', 'Total SQM')}: </span>
+                  <span className="font-mono text-base font-semibold tabular-nums">{totalSqm.toFixed(2)}</span>
+                </span>
+                <span>
+                  <span className="text-muted-foreground">{t('invoice.grandTotal', 'Grand total')}: </span>
+                  <span className="font-mono text-base font-semibold tabular-nums">
+                    {formatCentsCompact(grandTotalCents)} {currencySymbol(displayCurrency)}
+                  </span>
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {mismatchLines.length > 0 && (
-          <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-400">
-            {t(
-              'invoice.mismatchWarn',
-              'A line’s area/total was overridden. The printed invoice is the record; the posted ledger sale uses the carpet’s stored area.'
-            )}
-          </p>
-        )}
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}

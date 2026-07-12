@@ -7,6 +7,7 @@ import { Input } from '@renderer/components/ui/input'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
+import { formatDate } from '@renderer/lib/date'
 import { formatCents, currencySymbol } from '@shared/accounting'
 import type { CarpetListItem, CarpetStatus } from '@shared/contracts'
 import { statusLabel, statusLabelByKey } from './statusLabel'
@@ -16,12 +17,12 @@ import { BuyInvoiceDialog } from './BuyInvoiceDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
-// label | area | price/m | ded | total | status | type | profit
+// label | date | area | price/m | ded | total | status | type | profit
 // (L / W / grade / currency columns dropped for space — the currency symbol
 // now rides along with the price cells; details live on the carpet page.)
 const GRID =
-  'grid grid-cols-[130px_80px_140px_100px_150px_120px_90px_110px] items-center gap-0 px-3 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
-const MIN_W = 'min-w-[940px]'
+  'grid grid-cols-[130px_130px_80px_140px_100px_150px_120px_90px_110px] items-center gap-0 px-3 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
+const MIN_W = 'min-w-[1070px]'
 
 function Profit({ cents }: { cents: number | null }): JSX.Element {
   if (cents == null) return <span className="text-muted-foreground">—</span>
@@ -32,6 +33,7 @@ function Profit({ cents }: { cents: number | null }): JSX.Element {
 export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): JSX.Element {
   const { t } = useTranslation()
   const language = useSettings((s) => s.language)
+  const calendar = useSettings((s) => s.calendar)
 
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
@@ -191,6 +193,9 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
               <SortHeader col="labelNumber" sort={sort} onSort={setSort}>
                 {t('carpets.label', 'Label #')}
               </SortHeader>
+              <SortHeader col="dateEpoch" sort={sort} onSort={setSort}>
+                {t('carpets.date', 'Date')}
+              </SortHeader>
               <SortHeader col="area" sort={sort} onSort={setSort} align="end">
                 {t('carpets.area', 'Area')}
               </SortHeader>
@@ -241,6 +246,10 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
                           {t('clients.archivedBadge', 'Archived')}
                         </span>
                       )}
+                    </span>
+                    <span className="whitespace-nowrap font-mono text-xs tabular-nums text-muted-foreground">
+                      {formatDate(c.dateEpoch, calendar)}{' '}
+                      {calendar === 'shamsi' ? t('common.calShamsi', 'هـ.ش') : t('common.calGregorian', 'م')}
                     </span>
                     <span className="text-end text-muted-foreground">{c.area.toFixed(2)}</span>
                     <span className="text-end font-mono tabular-nums">

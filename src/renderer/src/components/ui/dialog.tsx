@@ -23,6 +23,11 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
+/** True when an "outside" interaction actually hit a typeahead dropdown portal. */
+function isTypeaheadPortalEvent(e: { target: EventTarget | null }): boolean {
+  return e.target instanceof Element && e.target.closest('[data-typeahead-portal]') != null
+}
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
@@ -31,6 +36,14 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      // The Typeahead dropdown is portaled to <body> (so scroll containers can't
+      // clip it); clicks inside it must not count as "outside" and close the dialog.
+      onPointerDownOutside={(e) => {
+        if (isTypeaheadPortalEvent(e)) e.preventDefault()
+      }}
+      onInteractOutside={(e) => {
+        if (isTypeaheadPortalEvent(e)) e.preventDefault()
+      }}
       className={cn(
         'fixed start-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border border-border/70 bg-card p-6 shadow-card-hover duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 rtl:translate-x-1/2',
         className

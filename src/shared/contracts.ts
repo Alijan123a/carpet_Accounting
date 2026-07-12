@@ -209,6 +209,8 @@ export interface CarpetListItem {
   status: string
   archived: boolean
   sold: boolean
+  /** Purchase date when a buy transaction exists, else when it was entered. */
+  dateEpoch: number
   /** Where it came from: 'ordered' (made for a سفارش) or 'bought' (stock). */
   origin: 'ordered' | 'bought'
   /** Profit in cents for sold carpets; null otherwise (Phase 1 carpetProfit). */
@@ -293,6 +295,12 @@ export interface CarpetSellInput {
   sellPricePerMeterCents: number
   sellSortDeductionCents: number
   transactionDate?: number | null
+  /**
+   * Explicit sale total in cents (an invoice line whose «متراژ»/«جمله» was
+   * manually overridden). When set, this IS the posted/stored sale amount
+   * instead of (price/m − deduction) × stored area.
+   */
+  sellTotalCentsOverride?: number | null
 }
 
 // --- Sell invoice («بل فروش») -----------------------------------------------

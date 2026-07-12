@@ -22,6 +22,7 @@ import {
   formatCentsCompact,
   carpetTotalPriceCents,
   invoiceGrandTotalCents,
+  floorAreaTo2,
   ENABLED_CURRENCIES,
   currencySymbol
 } from '@shared/accounting'
@@ -29,9 +30,6 @@ import type { Currency } from '@shared/accounting'
 import type { ClientListItem, CarpetBatchLineInput } from '@shared/contracts'
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10)
-
-/** Trim float noise on a computed area (m²) before showing it in the input. */
-const round4 = (n: number): number => Math.round(n * 10000) / 10000
 
 /** Sort grades are a fixed set (A, B, C) — same as the single-carpet form. */
 const SORT_GRADES: string[] = ['A', 'B', 'C']
@@ -90,7 +88,8 @@ function lineCalc(line: Line): {
 } {
   const l = parseFloat(line.length) || 0
   const w = parseFloat(line.width) || 0
-  const autoArea = l * w
+  // Auto متراژ is FLOORED to 2 decimals — the shown value is the computed value.
+  const autoArea = floorAreaTo2(l * w)
   const areaNum = line.areaManual ? parseFloat(line.area) || 0 : autoArea
   const ppmCents = parseMoneyToCents(line.ppm) ?? 0
   const dedCents = parseMoneyToCents(line.deduction) ?? 0
@@ -304,7 +303,7 @@ export function BuyInvoiceDialog({
             <div className="max-h-[48vh] overflow-y-auto">
               {lines.map((l) => {
                 const { autoArea, autoTotalCents } = lineCalc(l)
-                const areaValue = l.areaManual ? l.area : autoArea ? String(round4(autoArea)) : ''
+                const areaValue = l.areaManual ? l.area : autoArea ? String(autoArea) : ''
                 const totalValue = l.totalManual ? l.total : autoTotalCents ? centsToInput(autoTotalCents) : ''
                 return (
                   <div key={l.key} className={`${GRID} border-b border-border px-3 py-1.5`}>

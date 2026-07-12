@@ -20,6 +20,17 @@ export function invoiceLineAreaFromDims(length: number, width: number): number {
   return length * width
 }
 
+/**
+ * Floor an area (m²) to 2 decimal places (8.096 → 8.09) — «متراژ» is written
+ * with at most 2 decimals and the excess is dropped, never rounded up. The
+ * value is pre-rounded at 8 decimals so binary float noise (3.2 × 2.5 =
+ * 8.000000000000002, 2.3 × 1.3 = 2.9899999999999998) cannot tip the floor,
+ * while a genuinely smaller value like 8.099999 still floors to 8.09.
+ */
+export function floorAreaTo2(area: number): number {
+  return Math.floor(Math.round(area * 1e8) / 1e6) / 100
+}
+
 /** Grand total = sum of the (possibly overridden) line totals, in integer cents. */
 export function invoiceGrandTotalCents(lineTotalsCents: number[]): number {
   return lineTotalsCents.reduce((sum, c) => sum + c, 0)

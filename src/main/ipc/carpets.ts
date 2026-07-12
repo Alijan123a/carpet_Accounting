@@ -48,18 +48,24 @@ function isUniqueViolation(e: unknown): boolean {
 /** Derive sold flag + profit (null when unsold) from a carpet row. */
 function deriveProfit(row: schema.CarpetRow): { sold: boolean; profitCents: number | null } {
   const sold = row.sellPricePerMeterCents != null
-  const profitCents = carpetProfitCents({
-    area: row.area,
-    currency: row.currency,
-    buyPricePerMeterCents: row.pricePerMeterCents,
-    buyDeductionCents: row.sortDeductionCents,
-    sellPricePerMeterCents: row.sellPricePerMeterCents,
-    sellDeductionCents: row.sellSortDeductionCents
-  })
+  // Prefer the STORED totals — they equal the posted ledger amounts (including
+  // an invoice line's overridden «متراژ»/«جمله»). Recomputing from the area is
+  // only a fallback for legacy sold rows without a stored sell total.
+  const profitCents =
+    sold && row.sellTotalPriceCents != null
+      ? row.sellTotalPriceCents - row.totalPriceCents
+      : carpetProfitCents({
+          area: row.area,
+          currency: row.currency,
+          buyPricePerMeterCents: row.pricePerMeterCents,
+          buyDeductionCents: row.sortDeductionCents,
+          sellPricePerMeterCents: row.sellPricePerMeterCents,
+          sellDeductionCents: row.sellSortDeductionCents
+        })
   return { sold, profitCents }
 }
 
-function toListItem(row: schema.CarpetRow): CarpetListItem {
+function toListItem(row: schema.CarpetRow, dateEpoch?: number | null): CarpetListItem {
   const { sold, profitCents } = deriveProfit(row)
   return {
     id: row.id,
@@ -76,6 +82,8 @@ function toListItem(row: schema.CarpetRow): CarpetListItem {
     status: row.status,
     archived: row.archived,
     sold,
+    // Purchase date when the caller joined the buy transaction; else entry date.
+    dateEpoch: dateEpoch ?? row.createdAt,
     // Legacy rows may be null; treat missing provenance as stock ('bought').
     origin: row.origin === 'ordered' ? 'ordered' : 'bought',
     profitCents
@@ -124,6 +132,11 @@ export function listCarpets(db: DB, params: CarpetsListParams): CarpetsListResul
   }
   const where = conds.length ? and(...conds) : undefined
 
+  // Buy transaction joined for the display date (user-set purchase date when
+  // the carpet was bought on account; otherwise the entry date).
+  const buyTx = alias(schema.transactions, 'buy_tx')
+  const dateExpr = sql<number>`COALESCE(${buyTx.transactionDate}, ${schema.carpets.createdAt})`
+
   const dirFn = params.sortDir === 'asc' ? asc : desc
   let orderCols: SQL[]
   if (params.sortBy === 'profitCents') {
@@ -131,40 +144,49 @@ export function listCarpets(db: DB, params: CarpetsListParams): CarpetsListResul
     // (sell total − buy total). Unsold carpets have NULL sell total → NULL profit.
     const profitExpr = sql`(${schema.carpets.sellTotalPriceCents} - ${schema.carpets.totalPriceCents})`
     orderCols = [dirFn(profitExpr), asc(schema.carpets.id)]
+  } else if (params.sortBy === 'dateEpoch') {
+    orderCols = [dirFn(dateExpr), asc(schema.carpets.id)]
   } else {
     const sortCol = CARPET_SORTS[params.sortBy ?? '']
     orderCols = sortCol ? [dirFn(sortCol), asc(schema.carpets.id)] : [desc(schema.carpets.createdAt)]
   }
 
   const rows = db
-    .select()
+    .select({ carpet: schema.carpets, dateEpoch: dateExpr })
     .from(schema.carpets)
+    .leftJoin(buyTx, eq(schema.carpets.buyTransactionId, buyTx.id))
     .where(where)
     .orderBy(...orderCols)
     .limit(params.limit)
     .offset(params.offset)
     .all()
   const totalRow = db.select({ c: sql<number>`COUNT(*)` }).from(schema.carpets).where(where).get()
-  return { rows: rows.map(toListItem), total: Number(totalRow?.c ?? 0) }
+  return {
+    rows: rows.map((r) => toListItem(r.carpet, Number(r.dateEpoch))),
+    total: Number(totalRow?.c ?? 0)
+  }
 }
 
 export function getCarpet(db: DB, id: number): CarpetDetailView | null {
   const boughtClient = alias(schema.clients, 'bought_client')
   const soldClient = alias(schema.clients, 'sold_client')
+  const buyTx = alias(schema.transactions, 'buy_tx')
   const row = db
     .select({
       carpet: schema.carpets,
       boughtFromName: boughtClient.name,
-      soldToName: soldClient.name
+      soldToName: soldClient.name,
+      buyDate: buyTx.transactionDate
     })
     .from(schema.carpets)
     .leftJoin(boughtClient, eq(schema.carpets.boughtFromClientId, boughtClient.id))
     .leftJoin(soldClient, eq(schema.carpets.soldToClientId, soldClient.id))
+    .leftJoin(buyTx, eq(schema.carpets.buyTransactionId, buyTx.id))
     .where(eq(schema.carpets.id, id))
     .get()
   if (!row) return null
   const c = row.carpet
-  const base = toListItem(c)
+  const base = toListItem(c, row.buyDate)
   return {
     ...base,
     createdAt: c.createdAt,
@@ -398,7 +420,12 @@ function postCarpetSaleTx(
   now: number,
   opts?: { invoiceId?: number; description?: string | null }
 ): void {
-  const sellTotal = carpetTotalPriceCents(input.sellPricePerMeterCents, input.sellSortDeductionCents, carpet.area)
+  // An invoice line with an overridden «متراژ»/«جمله» posts exactly what the
+  // user saw and printed; otherwise the total derives from the stored area.
+  const sellTotal =
+    input.sellTotalCentsOverride != null && input.sellTotalCentsOverride > 0
+      ? input.sellTotalCentsOverride
+      : carpetTotalPriceCents(input.sellPricePerMeterCents, input.sellSortDeductionCents, carpet.area)
   const description = opts?.description?.trim()
   const txId = Number(
     tx
@@ -463,12 +490,10 @@ export function nextInvoiceNumber(db: DB): string {
  * loop plus the invoice-header insert run in ONE db transaction, so either the
  * entire invoice posts or nothing does.
  *
- * EDGE CASE (prompt Task B, option (a)): the ledger sale total is computed from
- * the carpet's STORED area (via the sell path). If the user overrode «متراژ» or
- * «جمله» on the invoice, the PRINTED total (snapshotted in `linesJson`/`totalCents`)
- * can differ from the posted ledger total. We deliberately keep the printed
- * invoice as the document of record here and let the UI warn on a mismatch,
- * rather than mutating the carpet's dimensions at sell time.
+ * Each carpet line posts its total AS PRINTED: the line total (which honours a
+ * manually overridden «متراژ»/«جمله») is passed to the sell path as an explicit
+ * override, so the invoice, the stored sell total, and the posted ledger sale
+ * are always the same number. The carpet's stored dimensions are never mutated.
  */
 export function sellInvoice(db: DB, input: SellInvoiceInput): SellInvoiceResult {
   if (!input.buyerClientId) return { ok: false, reason: 'buyer_required' }
@@ -529,7 +554,10 @@ export function sellInvoice(db: DB, input: SellInvoiceInput): SellInvoiceResult 
               // separate sell deduction on the invoice (see prompt Task B).
               sellPricePerMeterCents: line.unitPriceCents,
               sellSortDeductionCents: 0,
-              transactionDate: txDate
+              transactionDate: txDate,
+              // Post the line total AS SHOWN — an overridden «متراژ»/«جمله»
+              // applies to the ledger, so printed and posted always agree.
+              sellTotalCentsOverride: line.totalCents > 0 ? line.totalCents : null
             },
             now,
             { invoiceId: insertedId, description: line.description }
