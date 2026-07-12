@@ -19,6 +19,7 @@ import {
 } from './orderStatus'
 import { ItemAssignmentsDialog } from './ItemAssignmentsDialog'
 import { OrderFormDialog } from './OrderFormDialog'
+import { StatusPiecesDialog } from './StatusPiecesDialog'
 
 // # | carpet type | W×L | SQM | Qty | one column per item status (piece count)
 const GRID =
@@ -41,6 +42,8 @@ export function OrderDetail({
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  // Status whose pieces are being listed in a popup (null = closed).
+  const [statusView, setStatusView] = useState<OrderItemStatus | null>(null)
 
   const load = useCallback(async (): Promise<void> => {
     const o = await window.api.orders.get(orderId)
@@ -159,6 +162,7 @@ export function OrderDetail({
             label={orderItemStatusLabel(t, s)}
             value={String(stats.counts[s])}
             badgeClass={orderItemStatusBadge(s)}
+            onOpen={() => setStatusView(s)}
           />
         ))}
       </div>
@@ -253,6 +257,7 @@ export function OrderDetail({
         busy={busy}
         onConfirm={doDelete}
       />
+      <StatusPiecesDialog status={statusView} items={items} onClose={() => setStatusView(null)} />
     </div>
   )
 }
@@ -281,15 +286,26 @@ function Stat({
   label,
   value,
   strong,
-  badgeClass
+  badgeClass,
+  onOpen
 }: {
   label: string
   value: string
   strong?: boolean
   badgeClass?: string
+  /** Double-click drill-down (status cards open the pieces popup). */
+  onOpen?: () => void
 }): JSX.Element {
+  const { t } = useTranslation()
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-card">
+    <div
+      onDoubleClick={onOpen}
+      title={onOpen ? t('orders.statOpenHint', 'Double-click to see these pieces') : undefined}
+      className={cn(
+        'rounded-2xl border border-border/70 bg-card p-3 shadow-card',
+        onOpen && 'cursor-pointer select-none hover:bg-accent/40'
+      )}
+    >
       <div className="truncate text-xs text-muted-foreground">{label}</div>
       {badgeClass ? (
         <span className={cn('mt-0.5 inline-block rounded-md px-2 py-0.5 font-mono text-sm font-semibold tabular-nums', badgeClass)}>
