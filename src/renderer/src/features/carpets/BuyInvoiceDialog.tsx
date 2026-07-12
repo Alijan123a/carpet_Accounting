@@ -22,7 +22,7 @@ import {
   formatCentsCompact,
   carpetTotalPriceCents,
   invoiceGrandTotalCents,
-  floorAreaTo2,
+  areaFromDimsCm,
   ENABLED_CURRENCIES,
   currencySymbol
 } from '@shared/accounting'
@@ -88,8 +88,8 @@ function lineCalc(line: Line): {
 } {
   const l = parseFloat(line.length) || 0
   const w = parseFloat(line.width) || 0
-  // Auto متراژ is FLOORED to 2 decimals — the shown value is the computed value.
-  const autoArea = floorAreaTo2(l * w)
+  // Auto متراژ = L×W (cm) / 10000, floored to 2 decimals — shown = computed.
+  const autoArea = areaFromDimsCm(l, w)
   const areaNum = line.areaManual ? parseFloat(line.area) || 0 : autoArea
   const ppmCents = parseMoneyToCents(line.ppm) ?? 0
   const dedCents = parseMoneyToCents(line.deduction) ?? 0

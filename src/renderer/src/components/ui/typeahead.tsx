@@ -80,26 +80,32 @@ export function Typeahead<T extends TypeaheadItem>({
     return () => document.removeEventListener('mousedown', onDocMouseDown)
   }, [open])
 
-  // Track the input's viewport position while open (inner scrollers included —
-  // 'scroll' is listened to in the capture phase so nested containers count).
+  // Track the input's viewport position every frame while open. rAF (instead
+  // of scroll/resize listeners) also follows the dialog's open animation —
+  // the input is still moving during the zoom-in, and a one-shot measurement
+  // would leave the dropdown hanging where the input USED to be.
   useLayoutEffect(() => {
     if (!open) {
       setAnchor(null)
       return
     }
-    function update(): void {
+    let raf = 0
+    const track = (): void => {
       const el = wrapRef.current
-      if (!el) return
-      const r = el.getBoundingClientRect()
-      setAnchor({ top: r.bottom, left: r.left, width: r.width })
+      if (el) {
+        const r = el.getBoundingClientRect()
+        // Functional update returning the same reference when nothing moved,
+        // so the per-frame tracking does not re-render.
+        setAnchor((prev) =>
+          prev && prev.top === r.bottom && prev.left === r.left && prev.width === r.width
+            ? prev
+            : { top: r.bottom, left: r.left, width: r.width }
+        )
+      }
+      raf = requestAnimationFrame(track)
     }
-    update()
-    window.addEventListener('scroll', update, true)
-    window.addEventListener('resize', update)
-    return () => {
-      window.removeEventListener('scroll', update, true)
-      window.removeEventListener('resize', update)
-    }
+    track()
+    return () => cancelAnimationFrame(raf)
   }, [open])
 
   function choose(item: T): void {

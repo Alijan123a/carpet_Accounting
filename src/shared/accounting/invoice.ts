@@ -15,9 +15,13 @@ export function invoiceLineTotalCents(area: number, unitPriceCents: number): num
   return floorCentsToWholeUnits(roundCents(area * unitPriceCents))
 }
 
-/** Default area for a line = length × width (m²). Editable/sticky in the UI. */
-export function invoiceLineAreaFromDims(length: number, width: number): number {
-  return length * width
+/**
+ * «متراژ» (m²) from dimensions entered in CENTIMETERS:
+ * (length × width) / 10000, floored to 2 decimal places — e.g. 320 × 250 cm
+ * → 8 m². The single source for every W×L→SQM derivation in the app.
+ */
+export function areaFromDimsCm(lengthCm: number, widthCm: number): number {
+  return floorAreaTo2((lengthCm * widthCm) / 10000)
 }
 
 /**

@@ -1,15 +1,20 @@
 import { describe, it, expect } from 'vitest'
 import {
   invoiceLineTotalCents,
-  invoiceLineAreaFromDims,
+  areaFromDimsCm,
   invoiceGrandTotalCents,
   floorAreaTo2
 } from '../invoice'
 
-describe('invoiceLineAreaFromDims', () => {
-  it('area = length × width', () => {
-    expect(invoiceLineAreaFromDims(2.5, 3)).toBe(7.5)
-    expect(invoiceLineAreaFromDims(0, 3)).toBe(0)
+describe('areaFromDimsCm', () => {
+  it('area (m²) = length × width / 10000, dims in centimeters', () => {
+    expect(areaFromDimsCm(320, 250)).toBe(8)
+    expect(areaFromDimsCm(0, 300)).toBe(0)
+  })
+
+  it('floors the result to 2 decimals', () => {
+    // 317 × 255 cm = 80835 cm² = 8.0835 m² -> 8.08
+    expect(areaFromDimsCm(317, 255)).toBe(8.08)
   })
 })
 

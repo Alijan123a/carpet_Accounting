@@ -17,6 +17,7 @@ import { Typeahead } from '@renderer/components/ui/typeahead'
 import { useSettings } from '@renderer/store/settings'
 import { startOfDayEpoch } from '@renderer/lib/date'
 import { cn } from '@renderer/lib/utils'
+import { areaFromDimsCm } from '@shared/accounting'
 import type { ClientListItem, OrderAssignment, OrderItem, OrderView } from '@shared/contracts'
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10)
@@ -69,8 +70,10 @@ function itemToRow(it: OrderItem): Row {
     width: it.width != null ? String(it.width) : '',
     length: it.length != null ? String(it.length) : '',
     sqm: it.sqm != null ? String(it.sqm) : '',
-    // A stored SQM that differs from W×L was a manual override; keep it sticky.
-    sqmManual: it.sqm != null && (it.width == null || it.length == null || round4(it.width * it.length) !== it.sqm),
+    // A stored SQM that differs from the cm-derived value was a manual
+    // override; keep it sticky.
+    sqmManual:
+      it.sqm != null && (it.width == null || it.length == null || areaFromDimsCm(it.length, it.width) !== it.sqm),
     textColor: it.textColor,
     borderColor: it.borderColor,
     quantity: String(it.quantity),
@@ -84,7 +87,7 @@ function normalize(row: Row): Row {
   if (row.sqmManual) return row
   const w = parseFloat(row.width) || 0
   const l = parseFloat(row.length) || 0
-  return { ...row, sqm: w > 0 && l > 0 ? String(round4(w * l)) : '' }
+  return { ...row, sqm: w > 0 && l > 0 ? String(areaFromDimsCm(l, w)) : '' }
 }
 
 const rowSqm = (r: Row): number => parseFloat(r.sqm) || 0

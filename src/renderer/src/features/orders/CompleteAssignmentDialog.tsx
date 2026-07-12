@@ -18,7 +18,8 @@ import {
   formatCents,
   currencySymbol,
   carpetTotalPriceCents,
-  invoiceGrandTotalCents
+  invoiceGrandTotalCents,
+  areaFromDimsCm
 } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
 import type { CarpetBatchLineInput, OrderAssignment, OrderItem } from '@shared/contracts'
@@ -86,7 +87,7 @@ function lineCalc(line: Line): {
 } {
   const l = parseFloat(line.length) || 0
   const w = parseFloat(line.width) || 0
-  const autoArea = l * w
+  const autoArea = areaFromDimsCm(l, w)
   const areaNum = line.areaManual ? parseFloat(line.area) || 0 : autoArea
   const ppmCents = parseMoneyToCents(line.ppm) ?? 0
   const dedCents = parseMoneyToCents(line.deduction) ?? 0

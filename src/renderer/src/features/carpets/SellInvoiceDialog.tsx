@@ -26,7 +26,7 @@ import {
   effectivePricePerMeterCents,
   invoiceLineTotalCents,
   invoiceGrandTotalCents,
-  floorAreaTo2,
+  areaFromDimsCm,
   ENABLED_CURRENCIES
 } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
@@ -87,8 +87,8 @@ function BuyHint({ children, className }: { children: ReactNode; className?: str
 function lineCalc(line: Line): { areaNum: number; ppmCents: number; totalCents: number } {
   const l = parseFloat(line.length) || 0
   const w = parseFloat(line.width) || 0
-  // Auto متراژ is FLOORED to 2 decimals — the shown value is the computed value.
-  const areaNum = line.areaManual ? parseFloat(line.area) || 0 : floorAreaTo2(l * w)
+  // Auto متراژ = L×W (cm) / 10000, floored to 2 decimals — shown = computed.
+  const areaNum = line.areaManual ? parseFloat(line.area) || 0 : areaFromDimsCm(l, w)
   const ppmCents = parseMoneyToCents(line.ppm) ?? 0
   const totalCents = line.totalManual
     ? parseMoneyToCents(line.total) ?? 0
@@ -105,7 +105,7 @@ function normalize(line: Line): Line {
   const l = parseFloat(line.length) || 0
   const w = parseFloat(line.width) || 0
   const next = { ...line }
-  if (!next.areaManual) next.area = l > 0 && w > 0 ? String(floorAreaTo2(l * w)) : ''
+  if (!next.areaManual) next.area = l > 0 && w > 0 ? String(areaFromDimsCm(l, w)) : ''
   if (!next.totalManual) {
     const { areaNum, ppmCents } = lineCalc(next)
     const tc = invoiceLineTotalCents(areaNum, ppmCents)

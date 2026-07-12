@@ -20,6 +20,7 @@ import {
   formatCents,
   effectivePricePerMeterCents,
   carpetTotalPriceCents,
+  areaFromDimsCm,
   ENABLED_CURRENCIES,
   currencySymbol
 } from '@shared/accounting'
@@ -83,11 +84,11 @@ export function CarpetFormDialog({ open, onOpenChange, carpet, onSaved }: Props)
     )
   }, [open, carpet])
 
-  // ---- Live auto-calculation (CLAUDE.md: area = L×W; effective = ppm − ded; total = effective × area)
+  // ---- Live auto-calculation (area = L×W cm / 10000; effective = ppm − ded; total = effective × area)
   const calc = useMemo(() => {
     const l = parseFloat(length) || 0
     const w = parseFloat(width) || 0
-    const area = l * w
+    const area = areaFromDimsCm(l, w)
     const ppmCents = parseMoneyToCents(ppm) ?? 0
     const dedCents = parseMoneyToCents(deduction) ?? 0
     const effectiveCents = effectivePricePerMeterCents(ppmCents, dedCents)

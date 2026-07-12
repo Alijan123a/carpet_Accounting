@@ -10,6 +10,7 @@ import {
   carpetTotalPriceCents,
   carpetProfitCents,
   invoiceGrandTotalCents,
+  areaFromDimsCm,
   postingAmountCents
 } from '../../shared/accounting'
 import type {
@@ -210,7 +211,7 @@ export function getCarpet(db: DB, id: number): CarpetDetailView | null {
  * never drift apart (CLAUDE.md). Money uses integer cents.
  */
 export function createCarpet(db: DB, input: CarpetInput): { ok: boolean; id?: number; reason?: string } {
-  const area = input.length * input.width
+  const area = areaFromDimsCm(input.length, input.width)
   const totalCents = carpetTotalPriceCents(input.pricePerMeterCents, input.sortDeductionCents, area)
   const now = Date.now()
   try {
@@ -302,8 +303,9 @@ export function createCarpetsBatch(db: DB, input: CarpetsBatchInput): CarpetsBat
     const ids: number[] = []
     for (const l of lines) {
       const label = l.labelNumber.trim()
-      // Use the user's explicit «متراژ» when given; otherwise derive it (L×W).
-      const area = l.area && l.area > 0 ? l.area : l.length * l.width
+      // Use the user's explicit «متراژ» when given; otherwise derive it from
+      // the centimeter dimensions.
+      const area = l.area && l.area > 0 ? l.area : areaFromDimsCm(l.length, l.width)
       // Use the user's explicit total when given; otherwise derive it.
       const totalCents =
         l.totalCents && l.totalCents > 0
@@ -379,7 +381,7 @@ export function updateCarpet(db: DB, id: number, input: CarpetEditInput): { ok: 
         .where(eq(schema.carpets.id, id))
         .run()
     } else {
-      const area = input.length * input.width
+      const area = areaFromDimsCm(input.length, input.width)
       const totalCents = carpetTotalPriceCents(input.pricePerMeterCents, input.sortDeductionCents, area)
       db.update(schema.carpets)
         .set({
