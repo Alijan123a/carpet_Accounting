@@ -246,6 +246,11 @@ export interface CarpetsListParams extends SortParams {
 export interface CarpetsListResult {
   rows: CarpetListItem[]
   total: number
+  /** Aggregates over the WHOLE filtered set (not just the loaded page). */
+  totalSqm: number
+  /** Sum of total prices per currency (AFN/USD are never mixed), in cents. */
+  totalPriceAfnCents: number
+  totalPriceUsdCents: number
 }
 
 export interface CarpetStatus {

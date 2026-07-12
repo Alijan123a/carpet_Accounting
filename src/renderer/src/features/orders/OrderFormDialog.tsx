@@ -176,7 +176,8 @@ export function OrderFormDialog({
     [buyers]
   )
 
-  const totalSqm = useMemo(() => round4(rows.reduce((s, r) => s + rowSqm(r), 0)), [rows])
+  // Total متراژ counts every piece: Σ (row SQM × row quantity).
+  const totalSqm = useMemo(() => round4(rows.reduce((s, r) => s + rowSqm(r) * rowQty(r), 0)), [rows])
   const totalQty = useMemo(() => rows.reduce((s, r) => s + rowQty(r), 0), [rows])
 
   function patch(key: number, updater: (r: Row) => Row): void {

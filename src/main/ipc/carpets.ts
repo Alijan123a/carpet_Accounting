@@ -161,10 +161,24 @@ export function listCarpets(db: DB, params: CarpetsListParams): CarpetsListResul
     .limit(params.limit)
     .offset(params.offset)
     .all()
-  const totalRow = db.select({ c: sql<number>`COUNT(*)` }).from(schema.carpets).where(where).get()
+  // Aggregates over the WHOLE filtered set (shown as live statistics above the
+  // table). Prices are summed PER CURRENCY — AFN and USD are never mixed.
+  const statsRow = db
+    .select({
+      c: sql<number>`COUNT(*)`,
+      sqm: sql<number>`COALESCE(SUM(${schema.carpets.area}), 0)`,
+      afn: sql<number>`COALESCE(SUM(CASE WHEN ${schema.carpets.currency} = 'AFN' THEN ${schema.carpets.totalPriceCents} ELSE 0 END), 0)`,
+      usd: sql<number>`COALESCE(SUM(CASE WHEN ${schema.carpets.currency} = 'USD' THEN ${schema.carpets.totalPriceCents} ELSE 0 END), 0)`
+    })
+    .from(schema.carpets)
+    .where(where)
+    .get()
   return {
     rows: rows.map((r) => toListItem(r.carpet, Number(r.dateEpoch))),
-    total: Number(totalRow?.c ?? 0)
+    total: Number(statsRow?.c ?? 0),
+    totalSqm: Number(statsRow?.sqm ?? 0),
+    totalPriceAfnCents: Number(statsRow?.afn ?? 0),
+    totalPriceUsdCents: Number(statsRow?.usd ?? 0)
   }
 }
 

@@ -8,7 +8,7 @@ import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { formatDate } from '@renderer/lib/date'
-import { formatCents, currencySymbol } from '@shared/accounting'
+import { formatCents, formatCentsCompact, currencySymbol } from '@shared/accounting'
 import type { CarpetListItem, CarpetStatus } from '@shared/contracts'
 import { statusLabel, statusLabelByKey } from './statusLabel'
 import { StatusesDialog } from './StatusesDialog'
@@ -44,6 +44,8 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
 
   const [rows, setRows] = useState<CarpetListItem[]>([])
   const [total, setTotal] = useState(0)
+  // Aggregates over the whole FILTERED set (updates with search/status/type).
+  const [stats, setStats] = useState({ sqm: 0, afnCents: 0, usdCents: 0 })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -89,6 +91,7 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
           offset
         })
         setTotal(res.total)
+        setStats({ sqm: res.totalSqm, afnCents: res.totalPriceAfnCents, usdCents: res.totalPriceUsdCents })
         setRows((prev) => (reset ? res.rows : [...prev, ...res.rows]))
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e))
@@ -128,7 +131,23 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">{t('carpets.title', 'Carpets')}</h2>
-          <p className="text-xs text-muted-foreground">{t('carpets.total', { total, defaultValue: '{{total}} total' })}</p>
+          {/* Live statistics for the current filter (count, متراژ, per-currency value). */}
+          <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
+            <span>{t('carpets.total', { total, defaultValue: '{{total}} total' })}</span>
+            <span className="font-mono tabular-nums">
+              {t('orders.totalSqm', 'Total SQM')}: {stats.sqm.toFixed(2)}
+            </span>
+            {stats.afnCents > 0 && (
+              <span className="font-mono tabular-nums">
+                {t('carpets.totalPrice', 'Total')}: {formatCentsCompact(stats.afnCents)} {currencySymbol('AFN')}
+              </span>
+            )}
+            {stats.usdCents > 0 && (
+              <span className="font-mono tabular-nums">
+                {t('carpets.totalPrice', 'Total')}: {formatCentsCompact(stats.usdCents)} {currencySymbol('USD')}
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setStatusesOpen(true)}>

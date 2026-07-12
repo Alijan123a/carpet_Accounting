@@ -94,7 +94,8 @@ export function OrderDetail({
     for (const it of items) {
       const c = statusCounts(it)
       for (const s of ORDER_ITEM_STATUSES) counts[s] += c[s]
-      sqm += it.sqm ?? 0
+      // Every piece counts: Σ (item SQM × item quantity).
+      sqm += (it.sqm ?? 0) * (it.quantity > 0 ? it.quantity : 0)
       qty += it.quantity > 0 ? it.quantity : 0
     }
     return { count: items.length, qty, sqm, counts }

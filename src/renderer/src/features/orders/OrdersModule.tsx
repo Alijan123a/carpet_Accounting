@@ -22,10 +22,10 @@ const GRID =
   'grid grid-cols-[100px_80px_minmax(130px,1.1fr)_minmax(150px,1.4fr)_60px_84px_repeat(4,minmax(54px,0.7fr))] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:text-center [&>*]:justify-center'
 const MIN_W = 'min-w-[940px]'
 
-/** Total متراژ of an order: sum of item rows, falling back to legacy cm dims. */
+/** Total متراژ of an order: Σ (item SQM × qty), falling back to legacy cm dims. */
 function orderTotalSqm(o: OrderView): number | null {
   if (o.items.length) {
-    const s = o.items.reduce((sum, it) => sum + (it.sqm ?? 0), 0)
+    const s = o.items.reduce((sum, it) => sum + (it.sqm ?? 0) * (it.quantity > 0 ? it.quantity : 0), 0)
     return s > 0 ? s : null
   }
   return o.length && o.width ? areaFromDimsCm(o.length, o.width) : null
