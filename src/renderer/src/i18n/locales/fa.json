@@ -508,6 +508,8 @@
     "assignmentsTitle": "واگذاری‌ها",
     "addAssignment": "واگذاری به بافنده",
     "noAssignments": "هنوز به بافنده‌ای واگذار نشده.",
+    "deleteAssignmentTitle": "حذف واگذاری؟",
+    "deleteAssignmentBody": "واگذاری {{qty}} عدد به {{name}} در حال کار است. آیا از حذف آن مطمئن هستید؟",
     "qtyRequired": "تعداد را وارد کنید.",
     "qtyTooBig": "فقط {{remaining}} عدد برای واگذاری باقی مانده.",
     "statusBreakdown": "وضعیت (به تفکیک عدد)",

@@ -17,6 +17,7 @@ import { useSettings } from '@renderer/store/settings'
 import { formatDate, startOfDayEpoch } from '@renderer/lib/date'
 import type { Currency } from '@shared/accounting'
 import type { ClientListItem, OrderAssignment, OrderItem, OrderItemStatus } from '@shared/contracts'
+import { ConfirmDialog } from '@renderer/components/ConfirmDialog'
 import { orderItemStatusLabel, orderItemStatusBadge } from './orderStatus'
 import { CompleteAssignmentDialog } from './CompleteAssignmentDialog'
 
@@ -90,6 +91,8 @@ export function ItemAssignmentsDialog({
   const [error, setError] = useState<string | null>(null)
   // The hand-off currently being completed (null = complete dialog closed).
   const [completing, setCompleting] = useState<OrderAssignment | null>(null)
+  // The still-open hand-off pending delete confirmation.
+  const [deleting, setDeleting] = useState<OrderAssignment | null>(null)
 
   useEffect(() => {
     if (!open || !item) return
@@ -131,7 +134,9 @@ export function ItemAssignmentsDialog({
         sellerName: seller.name,
         quantity: n,
         assignedDate: startOfDayEpoch(date) ?? Date.now(),
-        status: 'pending'
+        // Handing off IS the start of the work — assigned pieces count as
+        // on_work; only the unassigned remainder stays «در انتظار».
+        status: 'on_work'
       }
     ])
     setSeller(null)
@@ -213,16 +218,20 @@ export function ItemAssignmentsDialog({
                     {t('complete.button', 'Complete')}
                   </Button>
                 )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                  title={t('common.delete', 'Delete')}
-                  aria-label={t('common.delete', 'Delete')}
-                  onClick={() => remove(a.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {/* Completed/delivered hand-offs already posted to the ledger —
+                    they are immutable here and get no delete button. */}
+                {canComplete(a.status) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    title={t('common.delete', 'Delete')}
+                    aria-label={t('common.delete', 'Delete')}
+                    onClick={() => setDeleting(a)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </span>
             </div>
           ))}
@@ -298,6 +307,24 @@ export function ItemAssignmentsDialog({
       item={item}
       currency={currency}
       onCompleted={(qty) => completing && handleCompleted(completing.id, qty)}
+    />
+
+    <ConfirmDialog
+      open={deleting !== null}
+      onOpenChange={(o) => !o && setDeleting(null)}
+      title={t('orders.deleteAssignmentTitle', 'Delete hand-off?')}
+      body={t('orders.deleteAssignmentBody', {
+        name: deleting?.sellerName || t('common.none', '—'),
+        qty: deleting?.quantity ?? 0,
+        defaultValue:
+          'The hand-off of {{qty}} piece(s) to {{name}} is on work. Are you sure you want to delete it?'
+      })}
+      confirmLabel={t('common.delete', 'Delete')}
+      destructive
+      onConfirm={() => {
+        if (deleting) remove(deleting.id)
+        setDeleting(null)
+      }}
     />
     </>
   )

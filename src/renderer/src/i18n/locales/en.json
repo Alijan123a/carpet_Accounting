@@ -508,6 +508,8 @@
     "assignmentsTitle": "Assignments",
     "addAssignment": "Hand off to a weaver",
     "noAssignments": "Not handed to any weaver yet.",
+    "deleteAssignmentTitle": "Delete hand-off?",
+    "deleteAssignmentBody": "The hand-off of {{qty}} piece(s) to {{name}} is on work. Are you sure you want to delete it?",
     "qtyRequired": "Enter a quantity.",
     "qtyTooBig": "Only {{remaining}} left to assign.",
     "statusBreakdown": "Status (by piece)",

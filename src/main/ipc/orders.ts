@@ -18,8 +18,16 @@ import type {
 type DB = BetterSQLite3Database<typeof schema>
 
 const ITEM_STATUSES = new Set(['pending', 'on_work', 'complete', 'delivered'])
-const asStatus = (v: unknown): OrderItemStatus =>
-  ITEM_STATUSES.has(v as string) ? (v as OrderItemStatus) : 'pending'
+/**
+ * Status of a stored hand-off. A hand-off existing at all means its pieces are
+ * with a بافنده, so it is never «در انتظار» — 'pending' (incl. legacy entries
+ * saved before this rule) reads as on_work. Only an item's still-unassigned
+ * remainder counts as pending (see statusCounts in the renderer).
+ */
+const asStatus = (v: unknown): OrderItemStatus => {
+  const s = ITEM_STATUSES.has(v as string) ? (v as OrderItemStatus) : 'on_work'
+  return s === 'pending' ? 'on_work' : s
+}
 
 /** Normalize one raw assignment row, dropping invalid entries (returns null). */
 function normalizeAssignment(raw: unknown, fallbackDate: number, seq: number): OrderAssignment | null {

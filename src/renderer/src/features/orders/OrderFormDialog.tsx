@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, RotateCcw, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { DateInput } from '@renderer/components/ui/date-input'
 import { Typeahead } from '@renderer/components/ui/typeahead'
 import { useSettings } from '@renderer/store/settings'
 import { startOfDayEpoch } from '@renderer/lib/date'
+import { cn } from '@renderer/lib/utils'
 import type { ClientListItem, OrderAssignment, OrderItem, OrderView } from '@shared/contracts'
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10)
@@ -299,6 +300,8 @@ export function OrderFormDialog({
               <span />
             </div>
 
+            {/* Scroll body so the footer buttons stay reachable with many rows. */}
+            <div className="max-h-[48vh] overflow-y-auto">
             {rows.map((r, i) => (
               <div key={r.key} className={`${TABLE_GRID} border-b border-border px-3 py-1.5`}>
                 <span className="text-center text-sm text-muted-foreground">{i + 1}</span>
@@ -326,14 +329,28 @@ export function OrderFormDialog({
                   onChange={(e) => patch(r.key, (x) => ({ ...x, length: e.target.value }))}
                   className="h-9 text-end"
                 />
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={r.sqm}
-                  onChange={(e) => patch(r.key, (x) => ({ ...x, sqm: e.target.value, sqmManual: true }))}
-                  className="h-9 text-end"
-                  title={t('invoice.areaHint', 'Defaults to L×W; edit to override.')}
-                />
+                <div className="relative min-w-0">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={r.sqm}
+                    onChange={(e) => patch(r.key, (x) => ({ ...x, sqm: e.target.value, sqmManual: true }))}
+                    className={cn('h-9 text-end', r.sqmManual && 'ps-7')}
+                    title={t('invoice.areaHint', 'Defaults to L×W; edit to override.')}
+                  />
+                  {/* Overridden متراژ: one click returns it to auto W×L. */}
+                  {r.sqmManual && (
+                    <button
+                      type="button"
+                      onClick={() => patch(r.key, (x) => ({ ...x, sqmManual: false }))}
+                      title={t('invoice.areaReset', 'Back to L×W')}
+                      aria-label={t('invoice.areaReset', 'Back to L×W')}
+                      className="absolute start-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
                 <Input
                   value={r.textColor}
                   onChange={(e) => patch(r.key, (x) => ({ ...x, textColor: e.target.value }))}
@@ -370,6 +387,7 @@ export function OrderFormDialog({
                 </Button>
               </div>
             ))}
+            </div>
 
             <div className="flex items-center justify-between px-3 py-2">
               <Button variant="outline" size="sm" onClick={addRow}>
