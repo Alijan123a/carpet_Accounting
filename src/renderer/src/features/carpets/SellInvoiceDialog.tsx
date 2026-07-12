@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, RotateCcw, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,7 @@ import {
   parseMoneyToCents,
   centsToInput,
   formatCents,
+  formatCentsCompact,
   currencySymbol,
   effectivePricePerMeterCents,
   invoiceLineTotalCents,
@@ -402,6 +403,8 @@ export function SellInvoiceDialog({
               <span />
             </div>
 
+            {/* Scroll body so the footer buttons stay reachable with many rows. */}
+            <div className="max-h-[48vh] overflow-y-auto">
             {lines.map((l) => {
               // Buy-side snapshot of the selected carpet: shown as tiny hints
               // under L / W / SQM / price / total, with the live line profit
@@ -459,14 +462,28 @@ export function SellInvoiceDialog({
                     {buyCarpet && <BuyHint>{`${buyLabel} ${buyCarpet.width}`}</BuyHint>}
                   </div>
                   <div className="min-w-0">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={l.area}
-                      onChange={(e) => patch(l.key, (x) => ({ ...x, area: e.target.value, areaManual: true }))}
-                      className="h-9 text-end"
-                      title={t('invoice.areaHint', 'Defaults to L×W; edit to override.')}
-                    />
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={l.area}
+                        onChange={(e) => patch(l.key, (x) => ({ ...x, area: e.target.value, areaManual: true }))}
+                        className={cn('h-9 text-end', l.areaManual && 'ps-7')}
+                        title={t('invoice.areaHint', 'Defaults to L×W; edit to override.')}
+                      />
+                      {/* Overridden متراژ: one click returns it to auto L×W. */}
+                      {l.areaManual && (
+                        <button
+                          type="button"
+                          onClick={() => patch(l.key, (x) => ({ ...x, areaManual: false }))}
+                          title={t('invoice.areaReset', 'Back to L×W')}
+                          aria-label={t('invoice.areaReset', 'Back to L×W')}
+                          className="absolute start-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                     {buyCarpet && <BuyHint>{`${buyLabel} ${buyCarpet.area.toFixed(2)}`}</BuyHint>}
                   </div>
                   <div className="min-w-0">
@@ -520,6 +537,7 @@ export function SellInvoiceDialog({
                 </div>
               )
             })}
+            </div>
 
             <div className="flex items-center justify-between px-3 py-2">
               <Button variant="outline" size="sm" onClick={addLine}>
@@ -529,7 +547,7 @@ export function SellInvoiceDialog({
               <div className="text-sm">
                 <span className="text-muted-foreground">{t('invoice.grandTotal', 'Grand total')}: </span>
                 <span className="font-mono text-base font-semibold tabular-nums">
-                  {formatCents(grandTotalCents)} {currencySymbol(displayCurrency)}
+                  {formatCentsCompact(grandTotalCents)} {currencySymbol(displayCurrency)}
                 </span>
               </div>
             </div>

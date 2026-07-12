@@ -18,11 +18,17 @@ describe('carpetTotalPriceCents', () => {
     expect(carpetTotalPriceCents(100000, 5000, 6)).toBe(570000)
   })
 
-  it('rounds a fractional area product to the nearest whole cent', () => {
-    // 100.00/m × 2.345 m² = 234.50 -> 23450 cents
-    expect(carpetTotalPriceCents(10000, 0, 2.345)).toBe(23450)
-    // 33.33/m × 3.3 = 109.989 -> rounds to 109.99 -> 10999 cents
-    expect(carpetTotalPriceCents(3333, 0, 3.3)).toBe(10999)
+  it('floors a fractional total down to a whole unit (no decimals)', () => {
+    // 100.00/m × 2.345 m² = 234.50 -> floored to 234.00 -> 23400 cents
+    expect(carpetTotalPriceCents(10000, 0, 2.345)).toBe(23400)
+    // 33.33/m × 3.3 = 109.989 -> floored to 109.00 -> 10900 cents
+    expect(carpetTotalPriceCents(3333, 0, 3.3)).toBe(10900)
+  })
+
+  it('a whole-unit product is unaffected by the flooring (incl. float noise)', () => {
+    // 5.00/m × 2.2 m² = 11.00 exactly — float noise (10.999999…) must not
+    // drop it to 10; the pre-round to cents protects the floor.
+    expect(carpetTotalPriceCents(500, 0, 2.2)).toBe(1100)
   })
 
   it('edge case: zero area or zero price gives zero', () => {

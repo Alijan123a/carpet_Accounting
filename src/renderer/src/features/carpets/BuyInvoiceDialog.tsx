@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, RotateCcw, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -15,10 +15,11 @@ import { DateInput } from '@renderer/components/ui/date-input'
 import { Typeahead } from '@renderer/components/ui/typeahead'
 import { useSettings } from '@renderer/store/settings'
 import { startOfDayEpoch } from '@renderer/lib/date'
+import { cn } from '@renderer/lib/utils'
 import {
   parseMoneyToCents,
   centsToInput,
-  formatCents,
+  formatCentsCompact,
   carpetTotalPriceCents,
   invoiceGrandTotalCents,
   ENABLED_CURRENCIES,
@@ -332,14 +333,28 @@ export function BuyInvoiceDialog({
                       onChange={(e) => patch(l.key, (x) => ({ ...x, width: e.target.value }))}
                       className="h-9 text-end"
                     />
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={areaValue}
-                      onChange={(e) => patch(l.key, (x) => ({ ...x, area: e.target.value, areaManual: true }))}
-                      className="h-9 text-end"
-                      title={t('invoice.areaHint', 'Defaults to L×W; edit to override.')}
-                    />
+                    <div className="relative min-w-0">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={areaValue}
+                        onChange={(e) => patch(l.key, (x) => ({ ...x, area: e.target.value, areaManual: true }))}
+                        className={cn('h-9 text-end', l.areaManual && 'ps-7')}
+                        title={t('invoice.areaHint', 'Defaults to L×W; edit to override.')}
+                      />
+                      {/* Overridden متراژ: one click returns it to auto L×W. */}
+                      {l.areaManual && (
+                        <button
+                          type="button"
+                          onClick={() => patch(l.key, (x) => ({ ...x, area: '', areaManual: false }))}
+                          title={t('invoice.areaReset', 'Back to L×W')}
+                          aria-label={t('invoice.areaReset', 'Back to L×W')}
+                          className="absolute start-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                     <select
                       value={l.grade}
                       onChange={(e) => patch(l.key, (x) => ({ ...x, grade: e.target.value }))}
@@ -397,7 +412,7 @@ export function BuyInvoiceDialog({
               <div className="text-sm">
                 <span className="text-muted-foreground">{t('invoice.grandTotal', 'Grand total')}: </span>
                 <span className="font-mono text-base font-semibold tabular-nums">
-                  {formatCents(grandTotalCents)} {currencySymbol(currency)}
+                  {formatCentsCompact(grandTotalCents)} {currencySymbol(currency)}
                 </span>
               </div>
             </div>

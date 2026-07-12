@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Plus, SlidersHorizontal, FileText, PackagePlus } from 'lucide-react'
+import { SlidersHorizontal, FileText, PackagePlus } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
@@ -10,17 +10,18 @@ import { useSettings } from '@renderer/store/settings'
 import { formatCents, currencySymbol } from '@shared/accounting'
 import type { CarpetListItem, CarpetStatus } from '@shared/contracts'
 import { statusLabel, statusLabelByKey } from './statusLabel'
-import { CarpetFormDialog } from './CarpetFormDialog'
 import { StatusesDialog } from './StatusesDialog'
 import { SellInvoiceDialog } from './SellInvoiceDialog'
 import { BuyInvoiceDialog } from './BuyInvoiceDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
-// label | L | W | area | grade | cur | price/m | ded | total | status | type | profit
+// label | area | price/m | ded | total | status | type | profit
+// (L / W / grade / currency columns dropped for space — the currency symbol
+// now rides along with the price cells; details live on the carpet page.)
 const GRID =
-  'grid grid-cols-[120px_64px_64px_72px_80px_56px_110px_100px_120px_120px_90px_100px] items-center gap-0 px-3 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
-const MIN_W = 'min-w-[1100px]'
+  'grid grid-cols-[130px_80px_140px_100px_150px_120px_90px_110px] items-center gap-0 px-3 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
+const MIN_W = 'min-w-[940px]'
 
 function Profit({ cents }: { cents: number | null }): JSX.Element {
   if (cents == null) return <span className="text-muted-foreground">—</span>
@@ -46,7 +47,6 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
 
   const [statuses, setStatuses] = useState<CarpetStatus[]>([])
 
-  const [formOpen, setFormOpen] = useState(false)
   const [statusesOpen, setStatusesOpen] = useState(false)
   const [invoiceOpen, setInvoiceOpen] = useState(false)
   const [buyInvoiceOpen, setBuyInvoiceOpen] = useState(false)
@@ -137,13 +137,9 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
             <FileText className="h-4 w-4" />
             {t('invoice.button', 'Sell invoice')}
           </Button>
-          <Button variant="outline" onClick={() => setBuyInvoiceOpen(true)}>
+          <Button onClick={() => setBuyInvoiceOpen(true)}>
             <PackagePlus className="h-4 w-4" />
             {t('buyInvoice.button', 'Add carpets')}
-          </Button>
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4" />
-            {t('carpets.addOne', 'Add one')}
           </Button>
         </div>
       </div>
@@ -195,20 +191,8 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
               <SortHeader col="labelNumber" sort={sort} onSort={setSort}>
                 {t('carpets.label', 'Label #')}
               </SortHeader>
-              <SortHeader col="length" sort={sort} onSort={setSort} align="end">
-                {t('carpets.length', 'L')}
-              </SortHeader>
-              <SortHeader col="width" sort={sort} onSort={setSort} align="end">
-                {t('carpets.width', 'W')}
-              </SortHeader>
               <SortHeader col="area" sort={sort} onSort={setSort} align="end">
                 {t('carpets.area', 'Area')}
-              </SortHeader>
-              <SortHeader col="sortGrade" sort={sort} onSort={setSort}>
-                {t('carpets.sortGrade', 'Grade')}
-              </SortHeader>
-              <SortHeader col="currency" sort={sort} onSort={setSort}>
-                {t('carpets.currency', 'Cur')}
               </SortHeader>
               <SortHeader col="pricePerMeterCents" sort={sort} onSort={setSort} align="end">
                 {t('carpets.pricePerMeter', 'Price/m')}
@@ -258,14 +242,14 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
                         </span>
                       )}
                     </span>
-                    <span className="text-end text-muted-foreground">{c.length}</span>
-                    <span className="text-end text-muted-foreground">{c.width}</span>
                     <span className="text-end text-muted-foreground">{c.area.toFixed(2)}</span>
-                    <span className="truncate text-muted-foreground">{c.sortGrade || t('common.none', '—')}</span>
-                    <span className="text-muted-foreground">{currencySymbol(c.currency)}</span>
-                    <span className="text-end font-mono tabular-nums">{formatCents(c.pricePerMeterCents)}</span>
+                    <span className="text-end font-mono tabular-nums">
+                      {formatCents(c.pricePerMeterCents)} {currencySymbol(c.currency)}
+                    </span>
                     <span className="text-end font-mono tabular-nums">{formatCents(c.sortDeductionCents)}</span>
-                    <span className="text-end font-mono tabular-nums">{formatCents(c.totalPriceCents)}</span>
+                    <span className="text-end font-mono tabular-nums">
+                      {formatCents(c.totalPriceCents)} {currencySymbol(c.currency)}
+                    </span>
                     <span className="truncate">{statusLabelByKey(statuses, c.status, language)}</span>
                     <span>
                       <span
@@ -293,7 +277,6 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
         </div>
       </div>
 
-      <CarpetFormDialog open={formOpen} onOpenChange={setFormOpen} carpet={null} onSaved={refresh} />
       <StatusesDialog open={statusesOpen} onOpenChange={setStatusesOpen} onChanged={loadMeta} />
       <SellInvoiceDialog open={invoiceOpen} onOpenChange={setInvoiceOpen} onSaved={refresh} />
       <BuyInvoiceDialog open={buyInvoiceOpen} onOpenChange={setBuyInvoiceOpen} onSaved={refresh} />

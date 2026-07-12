@@ -18,11 +18,16 @@ describe('invoiceLineTotalCents', () => {
     expect(invoiceLineTotalCents(6, 100000)).toBe(600000)
   })
 
-  it('rounds a fractional product straight back to whole cents', () => {
-    // 33.33/m × 3.3 m² = 109.989 -> 109.99 -> 10999 cents
-    expect(invoiceLineTotalCents(3.3, 3333)).toBe(10999)
-    // 100.00/m × 2.345 m² = 234.50 -> 23450 cents
-    expect(invoiceLineTotalCents(2.345, 10000)).toBe(23450)
+  it('floors a fractional product down to a whole unit (no decimals)', () => {
+    // 33.33/m × 3.3 m² = 109.989 -> floored to 109.00 -> 10900 cents
+    expect(invoiceLineTotalCents(3.3, 3333)).toBe(10900)
+    // 100.00/m × 2.345 m² = 234.50 -> floored to 234.00 -> 23400 cents
+    expect(invoiceLineTotalCents(2.345, 10000)).toBe(23400)
+  })
+
+  it('a whole-unit product is unaffected by the flooring (incl. float noise)', () => {
+    // 2.2 m² × 5.00/m = 11.00 exactly — float noise must not drop it to 10.
+    expect(invoiceLineTotalCents(2.2, 500)).toBe(1100)
   })
 
   it('edge case: zero area or zero price gives zero', () => {
@@ -33,7 +38,7 @@ describe('invoiceLineTotalCents', () => {
 
 describe('invoiceGrandTotalCents', () => {
   it('sums the (possibly overridden) line totals', () => {
-    expect(invoiceGrandTotalCents([600000, 10999, 23450])).toBe(634449)
+    expect(invoiceGrandTotalCents([600000, 10900, 23400])).toBe(634300)
   })
 
   it('honours a manually overridden line total (does not recompute)', () => {

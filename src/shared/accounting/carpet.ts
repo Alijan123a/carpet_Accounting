@@ -1,4 +1,4 @@
-import { roundCents } from './money'
+import { floorCentsToWholeUnits, roundCents } from './money'
 import type { Currency } from './types'
 
 /**
@@ -17,14 +17,16 @@ export function effectivePricePerMeterCents(ppmCents: number, deductionCents: nu
 /**
  * Total carpet price = (price/m − deduction) × area, in integer cents.
  * `area` is in square meters (m², = length × width). The single floating-point
- * multiplication is rounded straight back to whole cents.
+ * multiplication is rounded straight back to whole cents, then the total is
+ * FLOORED to a whole major unit (17.99 → 17) — carpet totals carry no decimals
+ * by business rule.
  */
 export function carpetTotalPriceCents(
   ppmCents: number,
   deductionCents: number,
   area: number
 ): number {
-  return roundCents(effectivePricePerMeterCents(ppmCents, deductionCents) * area)
+  return floorCentsToWholeUnits(roundCents(effectivePricePerMeterCents(ppmCents, deductionCents) * area))
 }
 
 /**

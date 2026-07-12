@@ -350,6 +350,7 @@
     "carpetPlaceholder": "Label…",
     "area": "Area",
     "areaHint": "Defaults to L×W; edit to override.",
+    "areaReset": "Back to L×W",
     "unitPrice": "Price/m",
     "lineTotal": "Total",
     "totalHint": "Defaults to area×price; edit to override.",

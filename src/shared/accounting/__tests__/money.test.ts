@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { roundCents, formatCents, formatMoney, parseMoneyToCents } from '../money'
+import {
+  roundCents,
+  floorCentsToWholeUnits,
+  formatCents,
+  formatCentsCompact,
+  formatMoney,
+  parseMoneyToCents
+} from '../money'
 
 describe('roundCents', () => {
   it('rounds to the nearest whole cent', () => {
@@ -10,6 +17,24 @@ describe('roundCents', () => {
 
   it('normalizes negative zero', () => {
     expect(Object.is(roundCents(-0.1), 0)).toBe(true)
+  })
+})
+
+describe('floorCentsToWholeUnits', () => {
+  it('drops the fraction, never rounds up (17.99 → 17.00)', () => {
+    expect(floorCentsToWholeUnits(1799)).toBe(1700)
+    expect(floorCentsToWholeUnits(1701)).toBe(1700)
+    expect(floorCentsToWholeUnits(1700)).toBe(1700)
+    expect(floorCentsToWholeUnits(0)).toBe(0)
+  })
+})
+
+describe('formatCentsCompact', () => {
+  it('hides a zero fraction but keeps a real one', () => {
+    expect(formatCentsCompact(1700)).toBe('17')
+    expect(formatCentsCompact(1234500)).toBe('12,345')
+    expect(formatCentsCompact(1750)).toBe('17.50')
+    expect(formatCentsCompact(0)).toBe('0')
   })
 })
 

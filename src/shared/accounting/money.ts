@@ -20,6 +20,15 @@ export function roundCents(value: number): number {
 }
 
 /**
+ * Floor integer cents down to a whole major unit (e.g. 1799 → 1700, i.e.
+ * 17.99 → 17.00). Carpet/invoice totals are always written without decimals —
+ * the fraction is dropped, never rounded up.
+ */
+export function floorCentsToWholeUnits(cents: number): number {
+  return Math.floor(cents / 100) * 100
+}
+
+/**
  * Format integer cents for DISPLAY as a 2-decimal, thousands-grouped string.
  * e.g. 4550 -> "45.50", -1234567 -> "-12,345.67".
  * Display only — never feed the result back into calculations.
@@ -31,6 +40,16 @@ export function formatCents(cents: number): string {
   const frac = abs % 100
   const grouped = whole.toLocaleString('en-US')
   return `${sign}${grouped}.${frac.toString().padStart(2, '0')}`
+}
+
+/**
+ * Like {@link formatCents} but omits a zero fraction (e.g. 1700 → "17",
+ * 1750 → "17.50"). Used where totals are floored to whole units and a trailing
+ * ".00" would only be noise (invoice grand totals).
+ */
+export function formatCentsCompact(cents: number): string {
+  const full = formatCents(cents)
+  return full.endsWith('.00') ? full.slice(0, -3) : full
 }
 
 /**
