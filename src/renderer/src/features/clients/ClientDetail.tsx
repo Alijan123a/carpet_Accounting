@@ -17,6 +17,7 @@ import { BalanceAmount } from './BalanceAmount'
 import { ClientFormDialog } from './ClientFormDialog'
 import { PaymentDialog } from './PaymentDialog'
 import { TransactionDetailDialog } from './TransactionDetailDialog'
+import { BuyerBills } from './BuyerBills'
 import { ConfirmDialog } from '@renderer/components/ConfirmDialog'
 import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 import { SellerOrders } from '@renderer/features/orders/SellerOrders'
@@ -48,6 +49,9 @@ export function ClientDetail({
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [showOrders, setShowOrders] = useState(false)
+  // Buyer detail can switch between the raw ledger statement and a bills view
+  // (sell invoices grouped by bill #). Sellers only ever see the statement.
+  const [view, setView] = useState<'statement' | 'bills'>('statement')
 
   // statement filters
   const [from, setFrom] = useState('')
@@ -197,6 +201,7 @@ export function ClientDetail({
   const balances = client?.balances ?? { AFN: 0, USD: 0 }
   const canArchive = balances.AFN === 0 && balances.USD === 0
   const isSeller = client?.kind === 'seller' || client?.kind === 'both'
+  const isBuyer = client?.kind === 'buyer' || client?.kind === 'both'
 
   if (showOrders && client) {
     return <SellerOrders clientId={clientId} clientName={client.name} onBack={() => setShowOrders(false)} />
@@ -300,6 +305,36 @@ export function ClientDetail({
         </p>
       )}
 
+      {/* Buyers can switch between the ledger statement and the grouped bills. */}
+      {isBuyer && (
+        <div className="mb-3 inline-flex w-fit rounded-lg border border-border bg-muted/40 p-0.5 text-sm">
+          <button
+            type="button"
+            onClick={() => setView('statement')}
+            className={cn(
+              'rounded-md px-3 py-1 font-medium transition-colors',
+              view === 'statement' ? 'bg-card text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {t('statement.title', 'Statement')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('bills')}
+            className={cn(
+              'rounded-md px-3 py-1 font-medium transition-colors',
+              view === 'bills' ? 'bg-card text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {t('bills.title', 'Bills')}
+          </button>
+        </div>
+      )}
+
+      {isBuyer && view === 'bills' ? (
+        <BuyerBills clientId={clientId} />
+      ) : (
+        <>
       {/* Statement filters */}
       <div className="mb-3 flex flex-wrap items-end gap-3">
         <label className="space-y-1 text-xs text-muted-foreground">
@@ -399,6 +434,8 @@ export function ClientDetail({
           {loading && <div className="p-3 text-center text-xs text-muted-foreground">{t('common.loading', 'Loading…')}</div>}
         </div>
       </div>
+        </>
+      )}
 
       <ClientFormDialog open={editOpen} onOpenChange={setEditOpen} client={client} onSaved={refreshAll} />
       <PaymentDialog open={paymentOpen} onOpenChange={setPaymentOpen} clientId={clientId} onSaved={refreshAll} />

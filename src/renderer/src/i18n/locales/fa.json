@@ -208,6 +208,26 @@
     "totalPrice": "قیمت جمله",
     "description": "تفصیل"
   },
+  "bills": {
+    "title": "بل‌ها",
+    "billNo": "نمبر بل",
+    "date": "تاریخ",
+    "buyer": "خریدار",
+    "currency": "اسعار",
+    "carpets": "تعداد قالین",
+    "carpetNo": "نمبر قالین",
+    "area": "متراژ",
+    "unitPrice": "فی متر",
+    "lineTotal": "جمله",
+    "totalSqm": "مجموع متراژ",
+    "totalPrice": "قیمت جمله",
+    "grandTotal": "مجموع کل",
+    "count": "{{count}} بل",
+    "empty": "هنوز بلی وجود ندارد.",
+    "openHint": "برای دیدن و صادر کردن بل دو بار کلیک کنید",
+    "detailTitle": "بل شماره {{number}}",
+    "export": "صادر کردن / چاپ"
+  },
   "tx": {
     "type": {
       "purchase": "خرید",

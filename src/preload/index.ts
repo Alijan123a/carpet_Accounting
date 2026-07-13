@@ -37,6 +37,12 @@ const api = {
     sellInvoice: (input: unknown) => ipcRenderer.invoke('carpets:sellInvoice', input)
   },
 
+  // Sell invoices / bills («بل فروش») grouped for the buyer page.
+  invoices: {
+    listForBuyer: (clientId: number) => ipcRenderer.invoke('invoices:listForBuyer', clientId),
+    get: (id: number) => ipcRenderer.invoke('invoices:get', id)
+  },
+
   materials: {
     list: (params: unknown) => ipcRenderer.invoke('materials:list', params),
     get: (id: number) => ipcRenderer.invoke('materials:get', id),

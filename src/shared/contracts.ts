@@ -347,6 +347,57 @@ export interface SellInvoiceResult {
   reason?: string
 }
 
+// --- Buyer bills (grouped sell invoices) ------------------------------------
+
+/** One row of a buyer's bills table: a whole sell invoice collapsed to totals. */
+export interface BuyerBillSummary {
+  id: number
+  number: string
+  transactionDate: number
+  createdAt: number
+  currency: Currency
+  /** «جمله» — printed grand total in integer cents. */
+  totalCents: number
+  /** «مجموع متراژ» — sum of the line areas (m²). */
+  totalSqm: number
+  /** Number of goods lines on the bill (تعداد قالین). */
+  carpetCount: number
+}
+
+/** One snapshot line of a stored invoice (parsed from invoices.lines_json). */
+export interface InvoiceLineView {
+  goodsType: string
+  description: string | null
+  labelNumber: string
+  length: number
+  width: number
+  area: number
+  unitPriceCents: number
+  totalCents: number
+}
+
+/** Full detail of a single stored bill — used for the detail popup + export. */
+export interface InvoiceDetailView {
+  id: number
+  number: string
+  buyerClientId: number
+  buyerName: string
+  buyerPhone: string | null
+  currency: Currency
+  totalCents: number
+  totalSqm: number
+  transactionDate: number
+  createdAt: number
+  lines: InvoiceLineView[]
+}
+
+export interface InvoicesApi {
+  /** Every sell invoice for one buyer, newest first (grouped bills view). */
+  listForBuyer: (clientId: number) => Promise<BuyerBillSummary[]>
+  /** Full detail of one bill, or null if it no longer exists. */
+  get: (id: number) => Promise<InvoiceDetailView | null>
+}
+
 // --- Payments (Phase 4) -----------------------------------------------------
 
 export type PaymentDirection = 'fromClient' | 'toClient'

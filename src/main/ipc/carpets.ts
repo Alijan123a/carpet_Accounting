@@ -26,7 +26,11 @@ import type {
   CarpetStatusInput,
   CarpetSellInput,
   SellInvoiceInput,
-  SellInvoiceResult
+  SellInvoiceResult,
+  SellInvoiceLineInput,
+  BuyerBillSummary,
+  InvoiceLineView,
+  InvoiceDetailView
 } from '../../shared/contracts'
 
 type DB = BetterSQLite3Database<typeof schema>
@@ -596,6 +600,85 @@ class InvoiceError extends Error {
   }
 }
 
+/**
+ * Parse the stored `lines_json` snapshot of a bill back into view lines. The
+ * snapshot is the printed document of record (an array of SellInvoiceLineInput);
+ * we normalise the optional `description` to `null` for the renderer.
+ */
+function parseInvoiceLines(linesJson: string): InvoiceLineView[] {
+  let raw: SellInvoiceLineInput[]
+  try {
+    raw = JSON.parse(linesJson) as SellInvoiceLineInput[]
+  } catch {
+    return []
+  }
+  if (!Array.isArray(raw)) return []
+  return raw.map((l) => ({
+    goodsType: l.goodsType ?? '',
+    description: l.description ?? null,
+    labelNumber: l.labelNumber ?? '',
+    length: Number(l.length) || 0,
+    width: Number(l.width) || 0,
+    area: Number(l.area) || 0,
+    unitPriceCents: Number(l.unitPriceCents) || 0,
+    totalCents: Number(l.totalCents) || 0
+  }))
+}
+
+/** Every sell invoice for one buyer, collapsed to per-bill totals (newest first). */
+export function listBuyerBills(db: DB, clientId: number): BuyerBillSummary[] {
+  const rows = db
+    .select({
+      id: schema.invoices.id,
+      number: schema.invoices.number,
+      transactionDate: schema.invoices.transactionDate,
+      createdAt: schema.invoices.createdAt,
+      currency: schema.invoices.currency,
+      totalCents: schema.invoices.totalCents,
+      linesJson: schema.invoices.linesJson
+    })
+    .from(schema.invoices)
+    .where(eq(schema.invoices.buyerClientId, clientId))
+    .orderBy(desc(schema.invoices.transactionDate), desc(schema.invoices.id))
+    .all()
+
+  return rows.map((r) => {
+    const lines = parseInvoiceLines(r.linesJson)
+    const totalSqm = lines.reduce((s, l) => s + l.area, 0)
+    return {
+      id: r.id,
+      number: r.number,
+      transactionDate: r.transactionDate,
+      createdAt: r.createdAt,
+      currency: r.currency,
+      totalCents: r.totalCents,
+      totalSqm,
+      carpetCount: lines.length
+    }
+  })
+}
+
+/** Full detail of one bill (buyer + parsed lines), or null when it is gone. */
+export function getInvoiceDetail(db: DB, id: number): InvoiceDetailView | null {
+  const inv = db.select().from(schema.invoices).where(eq(schema.invoices.id, id)).get()
+  if (!inv) return null
+  const buyer = db.select().from(schema.clients).where(eq(schema.clients.id, inv.buyerClientId)).get()
+  const lines = parseInvoiceLines(inv.linesJson)
+  return {
+    id: inv.id,
+    number: inv.number,
+    buyerClientId: inv.buyerClientId,
+    buyerName: buyer?.name ?? `#${inv.buyerClientId}`,
+    buyerPhone: buyer?.phone ?? null,
+    currency: inv.currency,
+    totalCents: inv.totalCents,
+    totalSqm: lines.reduce((s, l) => s + l.area, 0),
+    transactionDate: inv.transactionDate,
+    createdAt: inv.createdAt,
+    lines
+  }
+}
+
 function slugify(s: string): string {
   return (
     s
@@ -674,6 +757,10 @@ export function registerCarpetsIpc(getDb: () => DB): void {
   })
 
   ipcMain.handle('carpets:nextInvoiceNumber', () => nextInvoiceNumber(getDb()))
+
+  // Buyer bills (grouped sell invoices) — used by the buyer page.
+  ipcMain.handle('invoices:listForBuyer', (_e, clientId: number) => listBuyerBills(getDb(), clientId))
+  ipcMain.handle('invoices:get', (_e, id: number) => getInvoiceDetail(getDb(), id))
 
   ipcMain.handle('carpets:sellInvoice', (_e, input: SellInvoiceInput) => {
     const db = getDb()

@@ -208,6 +208,26 @@
     "totalPrice": "Total price",
     "description": "Description"
   },
+  "bills": {
+    "title": "Bills",
+    "billNo": "Bill #",
+    "date": "Date",
+    "buyer": "Buyer",
+    "currency": "Currency",
+    "carpets": "Carpets",
+    "carpetNo": "Carpet #",
+    "area": "Area",
+    "unitPrice": "Price/m",
+    "lineTotal": "Total",
+    "totalSqm": "Total SQM",
+    "totalPrice": "Total price",
+    "grandTotal": "Grand total",
+    "count": "{{count}} bills",
+    "empty": "No bills yet.",
+    "openHint": "Double-click to see the bill and export it",
+    "detailTitle": "Bill #{{number}}",
+    "export": "Export / Print"
+  },
   "tx": {
     "type": {
       "purchase": "Purchase",

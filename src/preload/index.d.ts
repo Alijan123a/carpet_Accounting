@@ -2,6 +2,7 @@ import type {
   ClientsApi,
   TransactionsApi,
   CarpetsApi,
+  InvoicesApi,
   CarpetStatusesApi,
   MaterialsApi,
   ExpensesApi,
@@ -24,6 +25,7 @@ export interface Api {
   clients: ClientsApi
   transactions: TransactionsApi
   carpets: CarpetsApi
+  invoices: InvoicesApi
   carpetStatuses: CarpetStatusesApi
   materials: MaterialsApi
   expenses: ExpensesApi
