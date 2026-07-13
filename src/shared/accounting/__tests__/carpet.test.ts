@@ -4,7 +4,9 @@ import {
   carpetTotalPriceCents,
   carpetProfitCents,
   carpetSellTotalCents,
-  type CarpetValuation
+  carpetRowProfitCents,
+  type CarpetValuation,
+  type CarpetProfitRow
 } from '../carpet'
 
 describe('carpetTotalPriceCents', () => {
@@ -91,5 +93,55 @@ describe('carpetProfitCents', () => {
     }
     expect(carpetSellTotalCents(c)).toBe(0)
     expect(carpetProfitCents(c)).toBe(-50000) // 0 − 500.00 (a loss)
+  })
+})
+
+describe('carpetRowProfitCents', () => {
+  const base: CarpetProfitRow = {
+    area: 9.05,
+    currency: 'USD',
+    pricePerMeterCents: 5500,
+    sortDeductionCents: 0,
+    totalPriceCents: 49700, // stored buy total (497.00)
+    sellPricePerMeterCents: null,
+    sellSortDeductionCents: null,
+    sellTotalPriceCents: null
+  }
+
+  it('returns null while the carpet is unsold', () => {
+    expect(carpetRowProfitCents(base)).toBeNull()
+  })
+
+  it('prefers the stored totals over recomputing from the area', () => {
+    // Real regression case: sell price/m equals buy price/m, so an area
+    // recompute yields 0 — but the invoice line's overridden «جمله» posted
+    // 550.00, so the true profit is 550.00 − 497.00 = 53.00.
+    const row: CarpetProfitRow = {
+      ...base,
+      sellPricePerMeterCents: 5500,
+      sellSortDeductionCents: 0,
+      sellTotalPriceCents: 55000
+    }
+    expect(carpetRowProfitCents(row)).toBe(5300)
+  })
+
+  it('falls back to the area recompute for legacy rows without a stored sell total', () => {
+    const row: CarpetProfitRow = {
+      area: 6,
+      currency: 'AFN',
+      pricePerMeterCents: 100000,
+      sortDeductionCents: 0,
+      totalPriceCents: 600000,
+      sellPricePerMeterCents: 150000,
+      sellSortDeductionCents: 0,
+      sellTotalPriceCents: null
+    }
+    // sell 9000.00 − buy 6000.00 = 3000.00
+    expect(carpetRowProfitCents(row)).toBe(300000)
+  })
+
+  it('a stored sell total below the buy total yields a negative profit (loss)', () => {
+    const row: CarpetProfitRow = { ...base, sellPricePerMeterCents: 5000, sellTotalPriceCents: 40000 }
+    expect(carpetRowProfitCents(row)).toBe(-9700)
   })
 })

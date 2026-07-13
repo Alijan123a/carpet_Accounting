@@ -95,7 +95,10 @@ const api = {
 
   // Dashboard (Phase 5).
   dashboard: {
-    summary: (params: unknown) => ipcRenderer.invoke('dashboard:summary', params)
+    summary: (params: unknown) => ipcRenderer.invoke('dashboard:summary', params),
+    balancesByClient: () => ipcRenderer.invoke('dashboard:balancesByClient'),
+    profitDetail: (params: unknown) => ipcRenderer.invoke('dashboard:profitDetail', params),
+    stockDetail: () => ipcRenderer.invoke('dashboard:stockDetail')
   },
 
   // Reports (Phase 5).

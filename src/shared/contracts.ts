@@ -717,8 +717,80 @@ export interface DashboardSummary {
   turnover: TurnoverPoint[]
 }
 
+/** One client's signed per-currency balance (dashboard detail popups). */
+export interface ClientBalanceRow {
+  id: number
+  name: string
+  AFN: number
+  USD: number
+}
+
+/** One sold carpet inside the net-profit breakdown. */
+export interface ProfitDetailCarpet {
+  id: number
+  label: string
+  date: number
+  buyerName: string | null
+  currency: Currency
+  buyTotalCents: number
+  sellTotalCents: number
+  profitCents: number
+}
+
+/** One material sell line inside the net-profit breakdown. */
+export interface ProfitDetailMaterial {
+  id: number
+  name: string
+  date: number
+  buyerName: string | null
+  currency: Currency
+  kilograms: number
+  profitCents: number
+}
+
+/** One expense subtracted from the period profit. */
+export interface ProfitDetailExpense {
+  id: number
+  category: string
+  date: number
+  currency: Currency
+  amountCents: number
+}
+
+export interface DashboardProfitDetail {
+  carpets: ProfitDetailCarpet[]
+  materials: ProfitDetailMaterial[]
+  expenses: ProfitDetailExpense[]
+}
+
+/** One in-warehouse carpet (dashboard warehouse popup). */
+export interface WarehouseCarpetRow {
+  id: number
+  label: string
+  area: number
+  sortGrade: string | null
+  currency: Currency
+  totalPriceCents: number
+}
+
+/** One material lot with its stock on hand (dashboard stock popup). */
+export interface MaterialStockRow {
+  id: number
+  name: string
+  currency: Currency
+  stockKg: number
+}
+
+export interface DashboardStockDetail {
+  carpets: WarehouseCarpetRow[]
+  materials: MaterialStockRow[]
+}
+
 export interface DashboardApi {
   summary: (params: { fromDate: number; toDate: number }) => Promise<DashboardSummary>
+  balancesByClient: () => Promise<ClientBalanceRow[]>
+  profitDetail: (params: { fromDate: number; toDate: number }) => Promise<DashboardProfitDetail>
+  stockDetail: () => Promise<DashboardStockDetail>
 }
 
 // --- Reports + PDF (Phase 5) ------------------------------------------------

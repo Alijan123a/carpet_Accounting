@@ -20,6 +20,7 @@ export function ClientsModule({ kind }: { kind: 'buyer' | 'seller' }): JSX.Eleme
     return (
       <ClientDetail
         clientId={selectedId}
+        kind={kind}
         onBack={() => {
           setSelectedId(null)
           setListKey((k) => k + 1)

@@ -18,6 +18,7 @@ import { ClientFormDialog } from './ClientFormDialog'
 import { PaymentDialog } from './PaymentDialog'
 import { TransactionDetailDialog } from './TransactionDetailDialog'
 import { BuyerBills } from './BuyerBills'
+import { ClientPayments } from './ClientPayments'
 import { ConfirmDialog } from '@renderer/components/ConfirmDialog'
 import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 import { SellerOrders } from '@renderer/features/orders/SellerOrders'
@@ -30,10 +31,13 @@ const TX_TYPES: TransactionType[] = ['purchase', 'sale', 'payment', 'reversal', 
 
 export function ClientDetail({
   clientId,
+  kind,
   onBack,
   onChanged
 }: {
   clientId: number
+  /** Which module opened this detail: buyers page → bills/payments tabs; sellers page → ledger statement. */
+  kind: 'buyer' | 'seller'
   onBack: () => void
   onChanged: () => void
 }): JSX.Element {
@@ -50,9 +54,9 @@ export function ClientDetail({
   const [actionError, setActionError] = useState<string | null>(null)
   const [showOrders, setShowOrders] = useState(false)
   // Buyer detail defaults to the bills view (sell invoices grouped by bill #,
-  // one row per bill) and can switch to the raw ledger statement. Sellers have
-  // no bills, so the toggle is hidden and they always see the statement.
-  const [view, setView] = useState<'statement' | 'bills'>('bills')
+  // one row per bill) and can switch to the payments tab. Sellers have no
+  // bills, so they always see the raw ledger statement instead.
+  const [view, setView] = useState<'bills' | 'payments'>('bills')
 
   // statement filters
   const [from, setFrom] = useState('')
@@ -84,6 +88,8 @@ export function ClientDetail({
 
   const fetchPage = useCallback(
     async (reset: boolean): Promise<void> => {
+      // The ledger statement only renders on the sellers page.
+      if (kind !== 'seller') return
       if (loadingRef.current) return
       loadingRef.current = true
       setLoading(true)
@@ -107,7 +113,7 @@ export function ClientDetail({
         setLoading(false)
       }
     },
-    [clientId, from, to, typeFilter, search, sort]
+    [clientId, kind, from, to, typeFilter, search, sort]
   )
 
   useEffect(() => {
@@ -202,7 +208,6 @@ export function ClientDetail({
   const balances = client?.balances ?? { AFN: 0, USD: 0 }
   const canArchive = balances.AFN === 0 && balances.USD === 0
   const isSeller = client?.kind === 'seller' || client?.kind === 'both'
-  const isBuyer = client?.kind === 'buyer' || client?.kind === 'both'
 
   if (showOrders && client) {
     return <SellerOrders clientId={clientId} clientName={client.name} onBack={() => setShowOrders(false)} />
@@ -306,19 +311,9 @@ export function ClientDetail({
         </p>
       )}
 
-      {/* Buyers can switch between the ledger statement and the grouped bills. */}
-      {isBuyer && (
+      {/* Buyers page: bills + payments tabs (no raw statement). */}
+      {kind === 'buyer' && (
         <div className="mb-3 inline-flex w-fit rounded-lg border border-border bg-muted/40 p-0.5 text-sm">
-          <button
-            type="button"
-            onClick={() => setView('statement')}
-            className={cn(
-              'rounded-md px-3 py-1 font-medium transition-colors',
-              view === 'statement' ? 'bg-card text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {t('statement.title', 'Statement')}
-          </button>
           <button
             type="button"
             onClick={() => setView('bills')}
@@ -329,11 +324,25 @@ export function ClientDetail({
           >
             {t('bills.title', 'Bills')}
           </button>
+          <button
+            type="button"
+            onClick={() => setView('payments')}
+            className={cn(
+              'rounded-md px-3 py-1 font-medium transition-colors',
+              view === 'payments' ? 'bg-card text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {t('payments.title', 'Payments')}
+          </button>
         </div>
       )}
 
-      {isBuyer && view === 'bills' ? (
-        <BuyerBills clientId={clientId} />
+      {kind === 'buyer' ? (
+        view === 'bills' ? (
+          <BuyerBills clientId={clientId} />
+        ) : (
+          <ClientPayments clientId={clientId} onChanged={refreshAll} />
+        )
       ) : (
         <>
       {/* Statement filters */}

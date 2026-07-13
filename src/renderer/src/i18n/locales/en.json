@@ -226,7 +226,16 @@
     "empty": "No bills yet.",
     "openHint": "Double-click to see the bill and export it",
     "detailTitle": "Bill #{{number}}",
-    "export": "Export / Print"
+    "export": "Export / Print",
+    "searchPlaceholder": "Bill #…"
+  },
+  "payments": {
+    "title": "Payments",
+    "direction": "Direction",
+    "received": "Received from client",
+    "paid": "Paid to client",
+    "empty": "No payments.",
+    "searchPlaceholder": "Note…"
   },
   "tx": {
     "type": {
@@ -462,6 +471,24 @@
       "year": "1 year",
       "all": "From beginning",
       "custom": "Custom"
+    },
+    "detail": {
+      "openHint": "Click for details",
+      "empty": "Nothing to show.",
+      "total": "Total",
+      "client": "Client",
+      "receivablesTitle": "Receivables — by client",
+      "payablesTitle": "Payables — by client",
+      "profitTitle": "Net profit — details",
+      "warehouseTitle": "Carpets in warehouse",
+      "materialTitle": "Material stock",
+      "soldCarpets": "Sold carpets",
+      "soldMaterial": "Material sales",
+      "expenses": "Expenses",
+      "gross": "Gross profit",
+      "buyer": "Buyer",
+      "sellTotal": "Sell total",
+      "warehouseSummary": "{{count}} carpets — {{sqm}} m²"
     }
   },
   "orders": {

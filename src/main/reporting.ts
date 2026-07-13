@@ -3,7 +3,7 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from './db/schema'
 import {
   periodProfit,
-  carpetProfitCents,
+  carpetRowProfitCents,
   weightedAverageBuyPricePerKgCents,
   materialLineProfitCents,
   type Currency,
@@ -86,15 +86,9 @@ export function carpetProfitEntries(db: DB, from?: number | null, to?: number | 
   const rows = db.select().from(schema.carpets).where(and(...conds)).all()
   return rows.map((c) => ({
     currency: c.currency,
-    profitCents:
-      carpetProfitCents({
-        area: c.area,
-        currency: c.currency,
-        buyPricePerMeterCents: c.pricePerMeterCents,
-        buyDeductionCents: c.sortDeductionCents,
-        sellPricePerMeterCents: c.sellPricePerMeterCents,
-        sellDeductionCents: c.sellSortDeductionCents
-      }) ?? 0,
+    // Stored-totals profit (sell − buy) so the dashboard/report totals always
+    // match the per-carpet profit shown in the carpets list.
+    profitCents: carpetRowProfitCents(c) ?? 0,
     date: c.soldAt as number
   }))
 }

@@ -3,7 +3,7 @@ import { and, eq, gte, lte, asc, isNull, isNotNull, sql, type SQL } from 'drizzl
 import { alias } from 'drizzle-orm/sqlite-core'
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import * as schema from '../db/schema'
-import { carpetProfitCents, materialLineProfitCents, ENABLED_CURRENCIES, type Currency } from '../../shared/accounting'
+import { carpetRowProfitCents, materialLineProfitCents, ENABLED_CURRENCIES, type Currency } from '../../shared/accounting'
 import type { ColumnKind, ReportColumn, ReportResult, ReportSection, ReportRow, ReportId, ReportParams } from '../../shared/reports'
 import {
   receivablesPayables,
@@ -217,15 +217,8 @@ function soldList(db: DB, p: ReportParams): ReportResult {
       buyer: buyerName,
       currency: c.currency,
       total: c.sellTotalPriceCents,
-      profit:
-        carpetProfitCents({
-          area: c.area,
-          currency: c.currency,
-          buyPricePerMeterCents: c.pricePerMeterCents,
-          buyDeductionCents: c.sortDeductionCents,
-          sellPricePerMeterCents: c.sellPricePerMeterCents,
-          sellDeductionCents: c.sellSortDeductionCents
-        }) ?? 0
+      // Stored-totals profit — matches the carpets list and the dashboard.
+      profit: carpetRowProfitCents(c) ?? 0
     }))
   }
 
@@ -448,18 +441,7 @@ function topClients(db: DB, p: ReportParams): ReportResult {
     .where(and(isNotNull(schema.carpets.soldAt), gte(schema.carpets.soldAt, from), lte(schema.carpets.soldAt, to)))
     .all()
   for (const c of soldCarpets) {
-    addProfit(
-      c.soldToClientId,
-      c.currency,
-      carpetProfitCents({
-        area: c.area,
-        currency: c.currency,
-        buyPricePerMeterCents: c.pricePerMeterCents,
-        buyDeductionCents: c.sortDeductionCents,
-        sellPricePerMeterCents: c.sellPricePerMeterCents,
-        sellDeductionCents: c.sellSortDeductionCents
-      }) ?? 0
-    )
+    addProfit(c.soldToClientId, c.currency, carpetRowProfitCents(c) ?? 0)
   }
   const avg = avgBuyByMaterial(db)
   const sellLines = db

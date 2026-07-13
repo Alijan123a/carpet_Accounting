@@ -226,7 +226,16 @@
     "empty": "هنوز بلی وجود ندارد.",
     "openHint": "برای دیدن و صادر کردن بل دو بار کلیک کنید",
     "detailTitle": "بل شماره {{number}}",
-    "export": "صادر کردن / چاپ"
+    "export": "صادر کردن / چاپ",
+    "searchPlaceholder": "نمبر بل…"
+  },
+  "payments": {
+    "title": "پرداخت‌ها",
+    "direction": "نوعیت",
+    "received": "دریافتی از مشتری",
+    "paid": "پرداختی به مشتری",
+    "empty": "پرداختی ثبت نشده است.",
+    "searchPlaceholder": "تفصیل…"
   },
   "tx": {
     "type": {
@@ -462,6 +471,24 @@
       "year": "۱ سال",
       "all": "از ابتدا",
       "custom": "دلخواه"
+    },
+    "detail": {
+      "openHint": "برای دیدن جزئیات کلیک کنید",
+      "empty": "چیزی برای نمایش نیست.",
+      "total": "مجموع",
+      "client": "مشتری",
+      "receivablesTitle": "باقیات — به تفکیک مشتری",
+      "payablesTitle": "بدهی‌ها — به تفکیک مشتری",
+      "profitTitle": "جزئیات سود خالص",
+      "warehouseTitle": "قالین‌های موجود در انبار",
+      "materialTitle": "موجودی تار",
+      "soldCarpets": "قالین‌های فروخته‌شده",
+      "soldMaterial": "فروش تار",
+      "expenses": "مصارف",
+      "gross": "سود ناخالص",
+      "buyer": "خریدار",
+      "sellTotal": "قیمت فروش",
+      "warehouseSummary": "{{count}} قالین — {{sqm}} متر مربع"
     }
   },
   "orders": {

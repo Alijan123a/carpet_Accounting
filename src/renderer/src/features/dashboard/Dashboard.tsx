@@ -27,6 +27,7 @@ import { cn } from '@renderer/lib/utils'
 import { useSettings } from '@renderer/store/settings'
 import { startOfDayEpoch, endOfDayEpoch } from '@renderer/lib/date'
 import type { DashboardSummary } from '@shared/contracts'
+import { StatDetailDialog, type StatKind } from './StatDetailDialog'
 
 /** Preset windows for the dashboard date filter. */
 type RangePreset = 'today' | 'week' | 'month' | 'halfYear' | 'year' | 'all' | 'custom'
@@ -70,6 +71,8 @@ export function Dashboard(): JSX.Element {
   const [data, setData] = useState<DashboardSummary | null>(null)
   // Profit-composition donut is per currency (AFN/USD are never summed).
   const [donutCur, setDonutCur] = useState<'AFN' | 'USD'>(defaultCurrency)
+  // Which KPI tile's detail popup is open (null = none).
+  const [detail, setDetail] = useState<StatKind | null>(null)
 
   const range = useMemo(() => rangeFor(preset, customFrom, customTo), [preset, customFrom, customTo])
 
@@ -147,30 +150,57 @@ export function Dashboard(): JSX.Element {
         </div>
       </div>
 
-      {/* KPI tiles */}
+      {/* KPI tiles — click any tile for its detail popup. */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <StatCard gradient="from-emerald-500 to-teal-600" icon={TrendingUp} title={t('dashboard.receivables', 'Receivables')}>
+        <StatCard
+          gradient="from-emerald-500 to-teal-600"
+          icon={TrendingUp}
+          title={t('dashboard.receivables', 'Receivables')}
+          onClick={() => setDetail('receivables')}
+        >
           <StatMoney label={currencySymbol('USD')} cents={data.receivables.USD} />
           <StatMoney label={currencySymbol('AFN')} cents={data.receivables.AFN} />
         </StatCard>
-        <StatCard gradient="from-rose-500 to-red-600" icon={TrendingDown} title={t('dashboard.payables', 'Payables')}>
+        <StatCard
+          gradient="from-rose-500 to-red-600"
+          icon={TrendingDown}
+          title={t('dashboard.payables', 'Payables')}
+          onClick={() => setDetail('payables')}
+        >
           <StatMoney label={currencySymbol('USD')} cents={data.payables.USD} />
           <StatMoney label={currencySymbol('AFN')} cents={data.payables.AFN} />
         </StatCard>
-        <StatCard gradient="from-indigo-500 to-violet-600" icon={PiggyBank} title={t('dashboard.netProfit', 'Net profit')}>
+        <StatCard
+          gradient="from-indigo-500 to-violet-600"
+          icon={PiggyBank}
+          title={t('dashboard.netProfit', 'Net profit')}
+          onClick={() => setDetail('profit')}
+        >
           <StatMoney label={currencySymbol('USD')} cents={data.periodProfit.USD.netProfitCents} />
           <StatMoney label={currencySymbol('AFN')} cents={data.periodProfit.AFN.netProfitCents} />
         </StatCard>
-        <StatCard gradient="from-sky-500 to-blue-600" icon={Package} title={t('dashboard.warehouse', 'Carpets in warehouse')}>
+        <StatCard
+          gradient="from-sky-500 to-blue-600"
+          icon={Package}
+          title={t('dashboard.warehouse', 'Carpets in warehouse')}
+          onClick={() => setDetail('warehouse')}
+        >
           <StatBig value={data.warehouseCount.toLocaleString('en-US')} unit={t('dashboard.carpetsUnit', 'carpets')} />
         </StatCard>
-        <StatCard gradient="from-amber-500 to-orange-500" icon={Boxes} title={t('dashboard.materialStock', 'Material stock (kg)')}>
+        <StatCard
+          gradient="from-amber-500 to-orange-500"
+          icon={Boxes}
+          title={t('dashboard.materialStock', 'Material stock (kg)')}
+          onClick={() => setDetail('materialStock')}
+        >
           <StatBig
             value={data.materialStockKg.toLocaleString('en-US', { maximumFractionDigits: 3 })}
             unit={t('dashboard.kgUnit', 'kg')}
           />
         </StatCard>
       </div>
+
+      <StatDetailDialog kind={detail} range={range} rangeLabel={rangeLabel} onClose={() => setDetail(null)} />
 
       {/* Charts */}
       <div className="grid gap-4 lg:grid-cols-3">
@@ -313,15 +343,27 @@ function StatCard({
   gradient,
   icon: Icon,
   title,
+  onClick,
   children
 }: {
   gradient: string
   icon: LucideIcon
   title: string
+  onClick: () => void
   children: ReactNode
 }): JSX.Element {
+  const { t } = useTranslation()
   return (
-    <div className={cn('relative overflow-hidden rounded-2xl bg-gradient-to-br p-4 text-white shadow-card', gradient)}>
+    <button
+      type="button"
+      onClick={onClick}
+      title={t('dashboard.detail.openHint', 'Click for details')}
+      className={cn(
+        'relative overflow-hidden rounded-2xl bg-gradient-to-br p-4 text-start text-white shadow-card',
+        'transition-transform duration-150 hover:scale-[1.02] hover:shadow-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        gradient
+      )}
+    >
       <div className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10" />
       <div className="pointer-events-none absolute -bottom-10 -left-6 h-24 w-24 rounded-full bg-white/5" />
       <div className="relative flex items-center gap-2.5">
@@ -331,7 +373,7 @@ function StatCard({
         <span className="text-sm font-medium text-white/90">{title}</span>
       </div>
       <div className="relative mt-3 space-y-0.5">{children}</div>
-    </div>
+    </button>
   )
 }
 

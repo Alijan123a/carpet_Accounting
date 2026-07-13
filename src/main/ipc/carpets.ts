@@ -8,7 +8,7 @@ import { addPayment } from './clients'
 import { logChange } from '../changeLog'
 import {
   carpetTotalPriceCents,
-  carpetProfitCents,
+  carpetRowProfitCents,
   invoiceGrandTotalCents,
   areaFromDimsCm,
   postingAmountCents
@@ -52,22 +52,7 @@ function isUniqueViolation(e: unknown): boolean {
 
 /** Derive sold flag + profit (null when unsold) from a carpet row. */
 function deriveProfit(row: schema.CarpetRow): { sold: boolean; profitCents: number | null } {
-  const sold = row.sellPricePerMeterCents != null
-  // Prefer the STORED totals — they equal the posted ledger amounts (including
-  // an invoice line's overridden «متراژ»/«جمله»). Recomputing from the area is
-  // only a fallback for legacy sold rows without a stored sell total.
-  const profitCents =
-    sold && row.sellTotalPriceCents != null
-      ? row.sellTotalPriceCents - row.totalPriceCents
-      : carpetProfitCents({
-          area: row.area,
-          currency: row.currency,
-          buyPricePerMeterCents: row.pricePerMeterCents,
-          buyDeductionCents: row.sortDeductionCents,
-          sellPricePerMeterCents: row.sellPricePerMeterCents,
-          sellDeductionCents: row.sellSortDeductionCents
-        })
-  return { sold, profitCents }
+  return { sold: row.sellPricePerMeterCents != null, profitCents: carpetRowProfitCents(row) }
 }
 
 function toListItem(row: schema.CarpetRow, dateEpoch?: number | null): CarpetListItem {
