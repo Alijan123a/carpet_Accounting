@@ -34,28 +34,39 @@ const DialogContent = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      // The Typeahead dropdown is portaled to <body> (so scroll containers can't
-      // clip it); clicks inside it must not count as "outside" and close the dialog.
-      onPointerDownOutside={(e) => {
-        if (isTypeaheadPortalEvent(e)) e.preventDefault()
-      }}
-      onInteractOutside={(e) => {
-        if (isTypeaheadPortalEvent(e)) e.preventDefault()
-      }}
-      className={cn(
-        'fixed start-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border border-border/70 bg-card p-6 shadow-card-hover duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 rtl:translate-x-1/2',
-        className
-      )}
-      {...props}
-    >
-      {children}
-      <DialogPrimitive.Close className="absolute end-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
+    {/*
+      Center the dialog within the CONTENT AREA, not the whole window. The app
+      shell has a fixed 16rem (w-64) sidebar on the start side, so centering on
+      the full viewport makes every dialog hug the sidebar with a big gap on the
+      other side. We pad the start by the sidebar width (+1rem gutter) and use a
+      flexbox center, so dialogs sit centred in the usable workspace in both RTL
+      and LTR. `pointer-events-none` lets clicks in the empty area fall through
+      to Radix's dismiss layer; the content re-enables its own pointer events.
+    */}
+    <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center py-4 pe-4 ps-4 sm:ps-[calc(16rem+1rem)]">
+      <DialogPrimitive.Content
+        ref={ref}
+        // The Typeahead dropdown is portaled to <body> (so scroll containers can't
+        // clip it); clicks inside it must not count as "outside" and close the dialog.
+        onPointerDownOutside={(e) => {
+          if (isTypeaheadPortalEvent(e)) e.preventDefault()
+        }}
+        onInteractOutside={(e) => {
+          if (isTypeaheadPortalEvent(e)) e.preventDefault()
+        }}
+        className={cn(
+          'pointer-events-auto relative grid max-h-[calc(100vh-2rem)] w-full max-w-lg gap-4 overflow-y-auto rounded-2xl border border-border/70 bg-card p-6 shadow-card-hover duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <DialogPrimitive.Close className="absolute end-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </div>
   </DialogPortal>
 ))
 DialogContent.displayName = DialogPrimitive.Content.displayName
