@@ -248,7 +248,7 @@ export function OrderFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl">
+      <DialogContent className="max-w-5xl [&_input]:text-center [&_select]:text-center">
         <DialogHeader>
           <DialogTitle>{order ? t('orders.edit', 'Edit order') : t('orders.add', 'New order')}</DialogTitle>
         </DialogHeader>
@@ -290,7 +290,7 @@ export function OrderFormDialog({
         {/* Item table */}
         <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-card">
           <div className="min-w-[1020px]">
-            <div className={`${TABLE_GRID} border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground`}>
+            <div className={`${TABLE_GRID} border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground [&>span]:text-center`}>
               <span className="text-center">{t('orders.rowNo', '#')}</span>
               <span>{t('orders.carpetType', 'Carpet type')}</span>
               <span>{t('orders.graph', 'Graph')}</span>

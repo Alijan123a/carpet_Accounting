@@ -102,7 +102,7 @@ export function BillDetailDialog({
             {/* Line grid */}
             <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-card">
               <div className="min-w-[640px]">
-                <div className="grid grid-cols-[minmax(110px,1.4fr)_70px_70px_80px_110px_120px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
+                <div className="grid grid-cols-[minmax(110px,1.4fr)_70px_70px_80px_110px_120px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground [&>span]:text-center">
                   <span>{t('bills.carpetNo', 'Carpet #')}</span>
                   <span className="text-end">{t('carpets.length', 'L')}</span>
                   <span className="text-end">{t('carpets.width', 'W')}</span>
@@ -114,7 +114,7 @@ export function BillDetailDialog({
                   {bill.lines.map((l, i) => (
                     <div
                       key={i}
-                      className="grid grid-cols-[minmax(110px,1.4fr)_70px_70px_80px_110px_120px] items-center gap-2 border-b border-border px-3 py-1.5 text-sm"
+                      className="grid grid-cols-[minmax(110px,1.4fr)_70px_70px_80px_110px_120px] items-center gap-2 border-b border-border px-3 py-1.5 text-sm [&>span]:text-center"
                     >
                       <span className="truncate">
                         {l.labelNumber || l.goodsType || t('common.none', '—')}

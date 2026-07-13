@@ -235,7 +235,7 @@ export function BuyInvoiceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl">
+      <DialogContent className="max-w-6xl [&_input]:text-center [&_select]:text-center">
         <DialogHeader>
           <DialogTitle>{t('buyInvoice.title', 'Add carpets (buy)')}</DialogTitle>
         </DialogHeader>
@@ -286,7 +286,7 @@ export function BuyInvoiceDialog({
         {/* Line grid */}
         <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-card">
           <div className="min-w-[960px]">
-            <div className={`${GRID} border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground`}>
+            <div className={`${GRID} border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground [&>span]:text-center`}>
               <span>{t('carpets.label', 'Label #')}</span>
               <span>{t('carpets.quality', 'Quality')}</span>
               <span className="text-end">{t('carpets.length', 'L')}</span>

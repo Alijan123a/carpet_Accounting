@@ -77,7 +77,7 @@ function emptyLine(goodsType: string): Line {
 /** Tiny gray hint under a line field: the carpet's buy-side value / profit. */
 function BuyHint({ children, className }: { children: ReactNode; className?: string }): JSX.Element {
   return (
-    <div className={cn('mt-0.5 truncate text-end text-[10px] leading-tight text-muted-foreground', className)}>
+    <div className={cn('mt-0.5 truncate text-center text-[10px] leading-tight text-muted-foreground', className)}>
       {children}
     </div>
   )
@@ -193,7 +193,13 @@ export function SellInvoiceDialog({
       label: c.labelNumber,
       length: String(c.length),
       width: String(c.width),
-      areaManual: false,
+      // Use the carpet's OWN stored متراژ (its area of record) rather than
+      // recomputing L×W here: dimensions may be metres or the area may have been
+      // overridden at buy time, so recomputing via areaFromDimsCm (a cm formula)
+      // would wrongly yield ~0. Mark it manual so normalize() keeps it, and the
+      // line total derives from this area × price.
+      area: c.area ? String(c.area) : '',
+      areaManual: true,
       ppm: centsToInput(c.pricePerMeterCents),
       totalManual: false
     }))
@@ -313,7 +319,7 @@ export function SellInvoiceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl">
+      <DialogContent className="max-w-5xl [&_input]:text-center [&_select]:text-center">
         <DialogHeader>
           <DialogTitle>{t('invoice.title', 'Sell invoice')}</DialogTitle>
         </DialogHeader>
@@ -377,7 +383,7 @@ export function SellInvoiceDialog({
         {/* Line table */}
         <div className="overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-card">
           <div className="min-w-[960px]">
-            <div className="grid grid-cols-[minmax(130px,1.2fr)_90px_90px_104px_110px_120px_minmax(140px,1.5fr)_40px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
+            <div className="grid grid-cols-[minmax(130px,1.2fr)_90px_90px_104px_110px_120px_minmax(140px,1.5fr)_40px] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground [&>span]:text-center">
               <span>{t('invoice.carpetNo', 'Carpet #')}</span>
               <span className="text-end">{t('carpets.length', 'L')}</span>
               <span className="text-end">{t('carpets.width', 'W')}</span>
