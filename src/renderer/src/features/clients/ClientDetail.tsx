@@ -49,9 +49,10 @@ export function ClientDetail({
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [showOrders, setShowOrders] = useState(false)
-  // Buyer detail can switch between the raw ledger statement and a bills view
-  // (sell invoices grouped by bill #). Sellers only ever see the statement.
-  const [view, setView] = useState<'statement' | 'bills'>('statement')
+  // Buyer detail defaults to the bills view (sell invoices grouped by bill #,
+  // one row per bill) and can switch to the raw ledger statement. Sellers have
+  // no bills, so the toggle is hidden and they always see the statement.
+  const [view, setView] = useState<'statement' | 'bills'>('bills')
 
   // statement filters
   const [from, setFrom] = useState('')
