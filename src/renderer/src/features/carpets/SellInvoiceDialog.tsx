@@ -47,8 +47,16 @@ interface Line {
   length: string
   width: string
   area: string
-  /** Sticky flag: once the user edits متراژ, stop auto-deriving it from L×W. */
+  /**
+   * Sticky flag: stop auto-deriving متراژ from L×W. Set both when the user edits
+   * متراژ AND when a carpet is picked (its stored area is authoritative).
+   */
   areaManual: boolean
+  /**
+   * True only when the USER typed in the متراژ field. Drives the reset (↺) icon
+   * — we don't want the icon just because a carpet supplied its own area.
+   */
+  areaEdited: boolean
   /** Unit price per meter (major units). */
   ppm: string
   total: string
@@ -68,6 +76,7 @@ function emptyLine(goodsType: string): Line {
     width: '',
     area: '',
     areaManual: false,
+    areaEdited: false,
     ppm: '',
     total: '',
     totalManual: false
@@ -200,6 +209,8 @@ export function SellInvoiceDialog({
       // line total derives from this area × price.
       area: c.area ? String(c.area) : '',
       areaManual: true,
+      // Not a user edit — keep the reset icon hidden after picking a carpet.
+      areaEdited: false,
       ppm: centsToInput(c.pricePerMeterCents),
       totalManual: false
     }))
@@ -447,15 +458,17 @@ export function SellInvoiceDialog({
                         type="number"
                         step="0.01"
                         value={l.area}
-                        onChange={(e) => patch(l.key, (x) => ({ ...x, area: e.target.value, areaManual: true }))}
-                        className={cn('h-9 text-end', l.areaManual && 'ps-7')}
+                        onChange={(e) =>
+                          patch(l.key, (x) => ({ ...x, area: e.target.value, areaManual: true, areaEdited: true }))
+                        }
+                        className={cn('h-9 text-end', l.areaEdited && 'ps-7')}
                         title={t('invoice.areaHint', 'Defaults to L×W; edit to override.')}
                       />
-                      {/* Overridden متراژ: one click returns it to auto L×W. */}
-                      {l.areaManual && (
+                      {/* Shown only once the user edits متراژ: reset to auto L×W. */}
+                      {l.areaEdited && (
                         <button
                           type="button"
-                          onClick={() => patch(l.key, (x) => ({ ...x, areaManual: false }))}
+                          onClick={() => patch(l.key, (x) => ({ ...x, areaManual: false, areaEdited: false }))}
                           title={t('invoice.areaReset', 'Back to L×W')}
                           aria-label={t('invoice.areaReset', 'Back to L×W')}
                           className="absolute start-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
