@@ -20,7 +20,7 @@ export function ClientsList({
   kind,
   onSelect
 }: {
-  kind: 'buyer' | 'seller'
+  kind: 'buyer' | 'seller' | 'tar_seller'
   onSelect: (id: number) => void
 }): JSX.Element {
   const { t } = useTranslation()
@@ -106,7 +106,11 @@ export function ClientsList({
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">
-            {kind === 'buyer' ? t('clients.buyersTitle', 'Buyers') : t('clients.sellersTitle', 'Sellers')}
+            {kind === 'buyer'
+              ? t('clients.buyersTitle', 'Buyers')
+              : kind === 'seller'
+                ? t('clients.sellersTitle', 'Sellers')
+                : t('clients.tarSellersTitle', 'Tar sellers')}
           </h2>
           <p className="text-xs text-muted-foreground">
             {t('clients.total', { total, defaultValue: '{{total}} total' })}
@@ -119,7 +123,11 @@ export function ClientsList({
           }}
         >
           <Plus className="h-4 w-4" />
-          {kind === 'buyer' ? t('clients.addBuyer', 'Add Buyer') : t('clients.addSeller', 'Add Seller')}
+          {kind === 'buyer'
+            ? t('clients.addBuyer', 'Add Buyer')
+            : kind === 'seller'
+              ? t('clients.addSeller', 'Add Seller')
+              : t('clients.addTarSeller', 'Add Tar Seller')}
         </Button>
       </div>
 

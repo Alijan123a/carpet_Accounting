@@ -7,11 +7,13 @@ import { ClientDetail } from './ClientDetail'
  * selected. (Top-level routing is sidebar-based; client detail is an in-module
  * sub-view.)
  *
- * `kind` scopes the list to buyers (we sell to) or sellers (we buy from). The
- * underlying account is unified — kind only filters the list and pre-selects the
- * role for newly created clients.
+ * `kind` scopes the list to buyers (we sell to), sellers (we buy carpets from)
+ * or tar sellers (we buy tar from). The underlying account is unified — kind
+ * only filters the list and pre-selects the role for newly created clients.
  */
-export function ClientsModule({ kind }: { kind: 'buyer' | 'seller' }): JSX.Element {
+export type ClientScreenKind = 'buyer' | 'seller' | 'tar_seller'
+
+export function ClientsModule({ kind }: { kind: ClientScreenKind }): JSX.Element {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   // Bump to force the list to remount/refresh when returning from detail.
   const [listKey, setListKey] = useState(0)

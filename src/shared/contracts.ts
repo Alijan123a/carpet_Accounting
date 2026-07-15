@@ -21,8 +21,13 @@ export interface SortParams {
 
 // --- Clients ----------------------------------------------------------------
 
-/** Buyer = we sell to them; Seller = we buy from them; Both = either role. */
-export type ClientKind = 'buyer' | 'seller' | 'both'
+/**
+ * Buyer = we sell carpets to them; Seller = we buy carpets from them (and sell
+ * them tar); Tar seller («تار فروش») = we buy tar/material from them;
+ * Both = buyer + seller. The account itself is always unified — kind only
+ * drives which list screen a client appears on.
+ */
+export type ClientKind = 'buyer' | 'seller' | 'tar_seller' | 'both'
 
 export interface ClientProfileInput {
   name: string
@@ -47,8 +52,11 @@ export interface ClientListItem {
 export interface ClientsListParams extends SortParams {
   search?: string
   includeArchived?: boolean
-  /** When set, list only clients acting in this role (matches `kind` OR 'both'). */
-  kind?: 'buyer' | 'seller'
+  /**
+   * When set, list only clients acting in this role. buyer/seller also match
+   * 'both'; tar_seller matches exactly (it is a separate role).
+   */
+  kind?: 'buyer' | 'seller' | 'tar_seller'
   limit: number
   offset: number
 }
@@ -246,6 +254,8 @@ export interface CarpetsListParams extends SortParams {
   sortGrade?: string | 'all'
   /** Filter by provenance: 'ordered' (made for a سفارش) / 'bought' (stock). */
   origin?: 'ordered' | 'bought' | 'all'
+  /** Only carpets bought/received from this client (seller-detail carpets tab). */
+  boughtFromClientId?: number
   includeArchived?: boolean
   limit: number
   offset: number
@@ -467,6 +477,20 @@ export interface MaterialDetailView extends MaterialListItem {
   lines: MaterialLineView[]
 }
 
+/** One tar/material movement of a single client (their «حساب تار» tab). */
+export interface ClientMaterialLineView {
+  id: number
+  materialId: number
+  /** Tar type / lot name. */
+  materialName: string
+  direction: 'buy' | 'sell'
+  kilograms: number
+  pricePerKgCents: number
+  totalCents: number
+  currency: Currency
+  transactionDate: number
+}
+
 export interface MaterialsListParams extends SortParams {
   search?: string
   includeArchived?: boolean
@@ -488,6 +512,8 @@ export interface MaterialsApi {
   addLine: (input: MaterialLineInput) => Promise<number>
   /** Posts a reversal for the line's transaction, then soft-deletes the line. */
   removeLine: (lineId: number) => Promise<{ ok: boolean; reason?: string }>
+  /** All non-deleted tar lines of one client, newest first (حساب تار tab). */
+  linesForClient: (clientId: number) => Promise<ClientMaterialLineView[]>
   archive: (id: number) => Promise<void>
   restore: (id: number) => Promise<void>
   /** Hard delete; refused ('has_lines') once the lot has any lines. */

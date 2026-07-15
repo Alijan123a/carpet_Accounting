@@ -18,8 +18,8 @@ interface Props {
   onOpenChange: (open: boolean) => void
   /** null/undefined = create mode; an item = edit mode. */
   client?: ClientListItem | null
-  /** Role applied to NEW clients — implied by the Buyers/Sellers screen. */
-  defaultKind?: 'buyer' | 'seller'
+  /** Role applied to NEW clients — implied by the Buyers/Sellers/Tar-sellers screen. */
+  defaultKind?: 'buyer' | 'seller' | 'tar_seller'
   onSaved: () => void
 }
 

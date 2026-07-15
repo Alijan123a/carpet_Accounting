@@ -8,6 +8,7 @@
     "clients": "مشتری‌ها",
     "buyers": "خریدارها",
     "sellers": "فروشنده‌ها",
+    "tarSellers": "تار فروشان",
     "carpets": "قالین‌ها",
     "material": "تار (مواد)",
     "orders": "سفارشات",
@@ -147,10 +148,12 @@
     "title": "مشتری‌ها",
     "buyersTitle": "خریدارها",
     "sellersTitle": "فروشنده‌ها",
+    "tarSellersTitle": "تار فروشان",
     "openHint": "برای باز کردن دوبار کلیک کنید",
     "add": "افزودن مشتری",
     "addBuyer": "افزودن خریدار",
     "addSeller": "افزودن فروشنده",
+    "addTarSeller": "افزودن تار فروش",
     "edit": "ویرایش مشتری",
     "name": "نام",
     "phone": "تلفن",
@@ -228,6 +231,13 @@
     "detailTitle": "بل شماره {{number}}",
     "export": "صادر کردن / چاپ",
     "searchPlaceholder": "نمبر بل…"
+  },
+  "tar": {
+    "tabTitle": "حساب تار",
+    "type": "نوع تار",
+    "weight": "وزن (کیلو)",
+    "totalKg": "جمع وزن (کیلو)",
+    "empty": "هنوز رکوردی برای تار ثبت نشده است."
   },
   "payments": {
     "title": "پرداخت‌ها",

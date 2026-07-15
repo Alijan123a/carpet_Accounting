@@ -51,6 +51,7 @@ const api = {
     update: (id: number, input: unknown) => ipcRenderer.invoke('materials:update', id, input),
     addLine: (input: unknown) => ipcRenderer.invoke('materials:addLine', input),
     removeLine: (lineId: number) => ipcRenderer.invoke('materials:removeLine', lineId),
+    linesForClient: (clientId: number) => ipcRenderer.invoke('materials:linesForClient', clientId),
     archive: (id: number) => ipcRenderer.invoke('materials:archive', id),
     restore: (id: number) => ipcRenderer.invoke('materials:restore', id),
     remove: (id: number) => ipcRenderer.invoke('materials:remove', id)

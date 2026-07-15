@@ -1,33 +1,30 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useVirtualizer } from '@tanstack/react-virtual'
-import { ArrowRight, Pencil, Archive, ArchiveRestore, Undo2, Wallet, Trash2, ClipboardList } from 'lucide-react'
+import { ArrowRight, Pencil, Archive, ArchiveRestore, Wallet, Trash2, ClipboardList } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
-import { Input } from '@renderer/components/ui/input'
 import { toast } from '@renderer/components/ui/toast'
-import { DateInput } from '@renderer/components/ui/date-input'
-import { SortHeader, type SortState } from '@renderer/components/ui/sort-header'
 import { cn } from '@renderer/lib/utils'
-import { useSettings } from '@renderer/store/settings'
-import { formatDate, startOfDayEpoch, endOfDayEpoch } from '@renderer/lib/date'
-import type { ClientListItem, TransactionView, TypeFilter } from '@shared/contracts'
-import { currencySymbol } from '@shared/accounting'
-import type { TransactionType } from '@shared/accounting'
+import type { ClientListItem } from '@shared/contracts'
 import { BalanceAmount } from './BalanceAmount'
 import { ClientFormDialog } from './ClientFormDialog'
 import { PaymentDialog } from './PaymentDialog'
-import { TransactionDetailDialog } from './TransactionDetailDialog'
 import { BuyerBills } from './BuyerBills'
 import { ClientPayments } from './ClientPayments'
+import { SellerCarpets } from './SellerCarpets'
+import { ClientMaterialLines } from './ClientMaterialLines'
 import { ConfirmDialog } from '@renderer/components/ConfirmDialog'
 import { DeleteConfirmDialog } from '@renderer/components/DeleteConfirmDialog'
 import { SellerOrders } from '@renderer/features/orders/SellerOrders'
+import type { ClientScreenKind } from './ClientsModule'
 
-const PAGE_SIZE = 100
-const ROW_HEIGHT = 48
-const GRID =
-  'grid grid-cols-[44px_110px_90px_110px_150px_minmax(140px,1fr)_72px] items-center gap-0 px-4 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
-const TX_TYPES: TransactionType[] = ['purchase', 'sale', 'payment', 'reversal', 'adjustment']
+type TabKey = 'bills' | 'carpets' | 'tar' | 'payments'
+
+/** Tabs per screen: buyers = بل‌ها/پرداخت‌ها; sellers = قالین‌ها/تار/پرداخت‌ها; tar sellers = حساب تار/پرداخت‌ها. */
+const TABS_BY_KIND: Record<ClientScreenKind, TabKey[]> = {
+  buyer: ['bills', 'payments'],
+  seller: ['carpets', 'tar', 'payments'],
+  tar_seller: ['tar', 'payments']
+}
 
 export function ClientDetail({
   clientId,
@@ -36,13 +33,12 @@ export function ClientDetail({
   onChanged
 }: {
   clientId: number
-  /** Which module opened this detail: buyers page → bills/payments tabs; sellers page → ledger statement. */
-  kind: 'buyer' | 'seller'
+  /** Which module opened this detail — decides the tab set shown. */
+  kind: ClientScreenKind
   onBack: () => void
   onChanged: () => void
 }): JSX.Element {
   const { t } = useTranslation()
-  const calendar = useSettings((s) => s.calendar)
 
   const [client, setClient] = useState<ClientListItem | null>(null)
   const [editOpen, setEditOpen] = useState(false)
@@ -53,94 +49,32 @@ export function ClientDetail({
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [showOrders, setShowOrders] = useState(false)
-  // Buyer detail defaults to the bills view (sell invoices grouped by bill #,
-  // one row per bill) and can switch to the payments tab. Sellers have no
-  // bills, so they always see the raw ledger statement instead.
-  const [view, setView] = useState<'bills' | 'payments'>('bills')
 
-  // statement filters
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
-  const [searchInput, setSearchInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [sort, setSort] = useState<SortState>({ by: 'transactionDate', dir: 'desc' })
-
-  useEffect(() => {
-    const h = setTimeout(() => setSearch(searchInput), 300)
-    return () => clearTimeout(h)
-  }, [searchInput])
-
-  const [rows, setRows] = useState<TransactionView[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [reverseTarget, setReverseTarget] = useState<TransactionView | null>(null)
-  const [detailTx, setDetailTx] = useState<TransactionView | null>(null)
-
-  const rowsRef = useRef<TransactionView[]>([])
-  const loadingRef = useRef(false)
-  rowsRef.current = rows
+  const tabs = TABS_BY_KIND[kind]
+  const [view, setView] = useState<TabKey>(tabs[0])
+  // Bump to remount the active tab after a mutation (payment added, reversal…)
+  // so its own data reloads.
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const loadClient = useCallback(async (): Promise<void> => {
     const c = await window.api.clients.get(clientId)
     setClient(c)
   }, [clientId])
 
-  const fetchPage = useCallback(
-    async (reset: boolean): Promise<void> => {
-      // The ledger statement only renders on the sellers page.
-      if (kind !== 'seller') return
-      if (loadingRef.current) return
-      loadingRef.current = true
-      setLoading(true)
-      try {
-        const offset = reset ? 0 : rowsRef.current.length
-        const res = await window.api.clients.transactions({
-          clientId,
-          fromDate: startOfDayEpoch(from),
-          toDate: endOfDayEpoch(to),
-          type: typeFilter,
-          search,
-          sortBy: sort.by,
-          sortDir: sort.dir,
-          limit: PAGE_SIZE,
-          offset
-        })
-        setTotal(res.total)
-        setRows((prev) => (reset ? res.rows : [...prev, ...res.rows]))
-      } finally {
-        loadingRef.current = false
-        setLoading(false)
-      }
-    },
-    [clientId, kind, from, to, typeFilter, search, sort]
-  )
-
   useEffect(() => {
     void loadClient()
   }, [loadClient])
 
-  useEffect(() => {
-    void fetchPage(true)
-  }, [fetchPage])
-
-  const parentRef = useRef<HTMLDivElement>(null)
-  const virtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => ROW_HEIGHT,
-    overscan: 12
-  })
-
-  function onScroll(): void {
-    const el = parentRef.current
-    if (!el || rowsRef.current.length >= total) return
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - ROW_HEIGHT * 4) void fetchPage(false)
-  }
-
   function refreshAll(): void {
     void loadClient()
-    void fetchPage(true)
+    setRefreshKey((k) => k + 1)
+    onChanged()
+  }
+
+  // For mutations a tab already handles internally (it refetches itself):
+  // refresh the balances/list without remounting the tab (keeps its filters).
+  function onTabChanged(): void {
+    void loadClient()
     onChanged()
   }
 
@@ -192,22 +126,22 @@ export function ClientDetail({
     }
   }
 
-  async function doReverse(): Promise<void> {
-    if (!reverseTarget) return
-    setBusy(true)
-    try {
-      await window.api.transactions.reverse(reverseTarget.id)
-      setReverseTarget(null)
-      toast.success(t('common.reversedToast', 'Transaction reversed.'))
-      refreshAll()
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const balances = client?.balances ?? { AFN: 0, USD: 0 }
   const canArchive = balances.AFN === 0 && balances.USD === 0
   const isSeller = client?.kind === 'seller' || client?.kind === 'both'
+
+  const tabLabel = (tab: TabKey): string => {
+    switch (tab) {
+      case 'bills':
+        return t('bills.title', 'Bills')
+      case 'carpets':
+        return t('carpets.title', 'Carpets')
+      case 'tar':
+        return t('tar.tabTitle', 'Tar account')
+      default:
+        return t('payments.title', 'Payments')
+    }
+  }
 
   if (showOrders && client) {
     return <SellerOrders clientId={clientId} clientName={client.name} onBack={() => setShowOrders(false)} />
@@ -311,145 +245,35 @@ export function ClientDetail({
         </p>
       )}
 
-      {/* Buyers page: bills + payments tabs (no raw statement). */}
-      {kind === 'buyer' && (
-        <div className="mb-3 inline-flex w-fit rounded-lg border border-border bg-muted/40 p-0.5 text-sm">
+      {/* Tabs — set depends on which screen opened this client. */}
+      <div className="mb-3 inline-flex w-fit rounded-lg border border-border bg-muted/40 p-0.5 text-sm">
+        {tabs.map((tab) => (
           <button
+            key={tab}
             type="button"
-            onClick={() => setView('bills')}
+            onClick={() => setView(tab)}
             className={cn(
               'rounded-md px-3 py-1 font-medium transition-colors',
-              view === 'bills' ? 'bg-card text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'
+              view === tab ? 'bg-card text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'
             )}
           >
-            {t('bills.title', 'Bills')}
+            {tabLabel(tab)}
           </button>
-          <button
-            type="button"
-            onClick={() => setView('payments')}
-            className={cn(
-              'rounded-md px-3 py-1 font-medium transition-colors',
-              view === 'payments' ? 'bg-card text-foreground shadow-soft' : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {t('payments.title', 'Payments')}
-          </button>
-        </div>
-      )}
+        ))}
+      </div>
 
-      {kind === 'buyer' ? (
-        view === 'bills' ? (
-          <BuyerBills clientId={clientId} />
-        ) : (
-          <ClientPayments clientId={clientId} onChanged={refreshAll} />
-        )
+      {view === 'bills' ? (
+        <BuyerBills key={`bills-${refreshKey}`} clientId={clientId} />
+      ) : view === 'carpets' ? (
+        <SellerCarpets key={`carpets-${refreshKey}`} clientId={clientId} />
+      ) : view === 'tar' ? (
+        <ClientMaterialLines key={`tar-${refreshKey}`} clientId={clientId} />
       ) : (
-        <>
-      {/* Statement filters */}
-      <div className="mb-3 flex flex-wrap items-end gap-3">
-        <label className="space-y-1 text-xs text-muted-foreground">
-          <span className="block">{t('statement.from', 'From')}</span>
-          <DateInput value={from} onChange={setFrom} className="h-9 w-56" />
-        </label>
-        <label className="space-y-1 text-xs text-muted-foreground">
-          <span className="block">{t('statement.to', 'To')}</span>
-          <DateInput value={to} onChange={setTo} className="h-9 w-56" />
-        </label>
-        <label className="space-y-1 text-xs text-muted-foreground">
-          <span className="block">{t('statement.typeFilter', 'Type')}</span>
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
-            className="h-9 rounded-lg border border-input bg-card shadow-soft px-2 text-sm"
-          >
-            <option value="all">{t('common.all', 'All')}</option>
-            {TX_TYPES.map((ty) => (
-              <option key={ty} value={ty}>
-                {t(`tx.type.${ty}`, ty)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="space-y-1 text-xs text-muted-foreground">
-          <span className="block">{t('statement.search', 'Search')}</span>
-          <Input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder={t('statement.searchPlaceholder', 'Note, carpet #, material…')}
-            className="h-9 w-52"
-          />
-        </label>
-      </div>
-
-      {/* Statement table */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
-        <div className={cn(GRID, 'h-9 shrink-0 border-b border-border bg-muted/40 text-xs font-medium text-muted-foreground')}>
-          <span>{t('statement.number', '#')}</span>
-          <SortHeader col="transactionDate" sort={sort} onSort={setSort}>
-            {t('statement.date', 'Date')}
-          </SortHeader>
-          <span>{t('statement.billNo', 'Bill #')}</span>
-          <span>{t('statement.carpetNo', 'Carpet #')}</span>
-          <SortHeader col="amountCents" sort={sort} onSort={setSort} align="end">
-            {t('statement.totalPrice', 'Total price')}
-          </SortHeader>
-          <span>{t('statement.description', 'Description')}</span>
-          <span />
-        </div>
-        <div ref={parentRef} onScroll={onScroll} className="flex-1 overflow-auto">
-          {rows.length === 0 && !loading && (
-            <div className="p-8 text-center text-sm text-muted-foreground">{t('statement.empty', 'No transactions.')}</div>
-          )}
-          <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>
-            {virtualizer.getVirtualItems().map((vi) => {
-              const tx = rows[vi.index]
-              return (
-                <div
-                  key={tx.id}
-                  onDoubleClick={() => setDetailTx(tx)}
-                  title={t('txDetail.openHint', 'Double-click for full details')}
-                  className={cn(
-                    GRID,
-                    'absolute start-0 top-0 w-full cursor-pointer border-b border-border text-sm hover:bg-accent/50'
-                  )}
-                  style={{ height: `${ROW_HEIGHT}px`, transform: `translateY(${vi.start}px)` }}
-                >
-                  <span className="text-muted-foreground">{vi.index + 1}</span>
-                  <span className="text-muted-foreground">{formatDate(tx.transactionDate, calendar)}</span>
-                  <span className="truncate">{tx.invoiceNumber || t('common.none', '—')}</span>
-                  <span className="truncate">{tx.carpetLabel || t('common.none', '—')}</span>
-                  <span className="text-end">
-                    <BalanceAmount cents={tx.amountCents} />
-                    <span className="ms-1 text-xs text-muted-foreground">{currencySymbol(tx.currency)}</span>
-                  </span>
-                  <span className="truncate text-muted-foreground">{tx.note || t('common.none', '—')}</span>
-                  <span className="flex justify-end">
-                    {tx.type !== 'reversal' && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        title={t('statement.reverse', 'Reverse')}
-                        onDoubleClick={(e) => e.stopPropagation()}
-                        onClick={() => setReverseTarget(tx)}
-                      >
-                        <Undo2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-          {loading && <div className="p-3 text-center text-xs text-muted-foreground">{t('common.loading', 'Loading…')}</div>}
-        </div>
-      </div>
-        </>
+        <ClientPayments key={`payments-${refreshKey}`} clientId={clientId} onChanged={onTabChanged} />
       )}
 
       <ClientFormDialog open={editOpen} onOpenChange={setEditOpen} client={client} onSaved={refreshAll} />
       <PaymentDialog open={paymentOpen} onOpenChange={setPaymentOpen} clientId={clientId} onSaved={refreshAll} />
-      <TransactionDetailDialog tx={detailTx} open={detailTx !== null} onOpenChange={(o) => !o && setDetailTx(null)} />
       <ConfirmDialog
         open={archiveOpen}
         onOpenChange={setArchiveOpen}
@@ -468,16 +292,6 @@ export function ClientDetail({
         busy={busy}
         error={deleteError}
         onConfirm={doDelete}
-      />
-      <ConfirmDialog
-        open={reverseTarget !== null}
-        onOpenChange={(o) => !o && setReverseTarget(null)}
-        title={t('statement.reverseConfirmTitle', 'Reverse this transaction?')}
-        body={t('statement.reverseConfirmBody', 'A reversing transaction will be posted; the original is never deleted.')}
-        confirmLabel={t('statement.reverse', 'Reverse')}
-        destructive
-        busy={busy}
-        onConfirm={doReverse}
       />
     </div>
   )

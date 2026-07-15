@@ -8,6 +8,7 @@
     "clients": "Clients",
     "buyers": "Buyers",
     "sellers": "Sellers",
+    "tarSellers": "Tar sellers",
     "carpets": "Carpets",
     "material": "Material",
     "orders": "Orders",
@@ -147,10 +148,12 @@
     "title": "Clients",
     "buyersTitle": "Buyers",
     "sellersTitle": "Sellers",
+    "tarSellersTitle": "Tar sellers",
     "openHint": "Double-click to open",
     "add": "Add Client",
     "addBuyer": "Add Buyer",
     "addSeller": "Add Seller",
+    "addTarSeller": "Add Tar Seller",
     "edit": "Edit Client",
     "name": "Name",
     "phone": "Phone",
@@ -228,6 +231,13 @@
     "detailTitle": "Bill #{{number}}",
     "export": "Export / Print",
     "searchPlaceholder": "Bill #…"
+  },
+  "tar": {
+    "tabTitle": "Tar account",
+    "type": "Tar type",
+    "weight": "Weight (kg)",
+    "totalKg": "Total kg",
+    "empty": "No tar records yet."
   },
   "payments": {
     "title": "Payments",

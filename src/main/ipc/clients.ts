@@ -200,9 +200,14 @@ const CLIENT_SORTS: Record<string, SQL | AnyColumn> = {
 export function listClients(db: DB, params: ClientsListParams): ClientsListResult {
   const conds: (SQL | undefined)[] = []
   if (!params.includeArchived) conds.push(eq(schema.clients.archived, false))
-  // Role filter: a buyer/seller screen also shows 'both'-kind unified accounts.
+  // Role filter: buyer/seller screens also show 'both'-kind unified accounts;
+  // tar sellers («تار فروشان») are a separate role and match exactly.
   if (params.kind) {
-    conds.push(or(eq(schema.clients.kind, params.kind), eq(schema.clients.kind, 'both')))
+    conds.push(
+      params.kind === 'tar_seller'
+        ? eq(schema.clients.kind, 'tar_seller')
+        : or(eq(schema.clients.kind, params.kind), eq(schema.clients.kind, 'both'))
+    )
   }
   const search = params.search?.trim()
   if (search) {

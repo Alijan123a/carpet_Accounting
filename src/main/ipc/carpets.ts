@@ -99,6 +99,9 @@ const CARPET_SORTS: Record<string, AnyColumn> = {
 export function listCarpets(db: DB, params: CarpetsListParams): CarpetsListResult {
   const conds: (SQL | undefined)[] = []
   if (!params.includeArchived) conds.push(eq(schema.carpets.archived, false))
+  if (params.boughtFromClientId != null) {
+    conds.push(eq(schema.carpets.boughtFromClientId, params.boughtFromClientId))
+  }
   if (params.status && params.status !== 'all') conds.push(eq(schema.carpets.status, params.status))
   if (params.sortGrade && params.sortGrade !== 'all') conds.push(eq(schema.carpets.sortGrade, params.sortGrade))
   if (params.origin && params.origin !== 'all') {

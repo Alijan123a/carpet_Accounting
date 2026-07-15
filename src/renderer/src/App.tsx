@@ -28,6 +28,8 @@ function MainApp(): JSX.Element {
         <ClientsModule kind="buyer" />
       ) : route === 'sellers' ? (
         <ClientsModule kind="seller" />
+      ) : route === 'tarSellers' ? (
+        <ClientsModule kind="tar_seller" />
       ) : route === 'carpets' ? (
         <CarpetsModule />
       ) : route === 'material' ? (

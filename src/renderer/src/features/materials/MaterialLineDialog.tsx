@@ -58,10 +58,12 @@ export function MaterialLineDialog({
     setPpk('')
     setDate(todayStr())
     setError(null)
+    // Buys come from tar sellers («تار فروشان»); sells go to (carpet) sellers —
+    // the record then shows on that client's «حساب تار» tab.
     void window.api.clients
-      .list({ includeArchived: false, limit: 1000, offset: 0 })
+      .list({ kind: direction === 'buy' ? 'tar_seller' : 'seller', includeArchived: false, limit: 1000, offset: 0 })
       .then((r) => setClients(r.rows))
-  }, [open])
+  }, [open, direction])
 
   const clientItems = useMemo(
     () => clients.map((c) => ({ id: c.id, label: c.name, sublabel: c.phone ?? undefined })),

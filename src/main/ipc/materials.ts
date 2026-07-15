@@ -19,6 +19,7 @@ import type {
   MaterialListItem,
   MaterialDetailView,
   MaterialLineView,
+  ClientMaterialLineView,
   MaterialsListParams,
   MaterialsListResult
 } from '../../shared/contracts'
@@ -160,6 +161,32 @@ export function getMaterial(db: DB, id: number): MaterialDetailView | null {
   }
 }
 
+/**
+ * Every non-deleted tar/material line of one client, newest first — the
+ * client's «حساب تار» tab (buys for tar sellers, sells for sellers; a mixed
+ * history shows both, distinguished by direction).
+ */
+export function linesForClient(db: DB, clientId: number): ClientMaterialLineView[] {
+  const rows = db
+    .select({ line: schema.materialLines, materialName: schema.materials.name })
+    .from(schema.materialLines)
+    .innerJoin(schema.materials, eq(schema.materialLines.materialId, schema.materials.id))
+    .where(and(eq(schema.materialLines.clientId, clientId), eq(schema.materialLines.deleted, false)))
+    .orderBy(desc(schema.materialLines.transactionDate), desc(schema.materialLines.id))
+    .all()
+  return rows.map(({ line, materialName }) => ({
+    id: line.id,
+    materialId: line.materialId,
+    materialName,
+    direction: line.direction,
+    kilograms: line.kilograms,
+    pricePerKgCents: line.pricePerKgCents,
+    totalCents: line.totalCents,
+    currency: line.currency,
+    transactionDate: line.transactionDate
+  }))
+}
+
 export function createMaterial(db: DB, input: MaterialInput): number {
   const res = db
     .insert(schema.materials)
@@ -265,6 +292,7 @@ export function registerMaterialsIpc(getDb: () => DB): void {
 
   ipcMain.handle('materials:list', (_e, params: MaterialsListParams) => listMaterials(getDb(), params))
   ipcMain.handle('materials:get', (_e, id: number) => getMaterial(getDb(), id))
+  ipcMain.handle('materials:linesForClient', (_e, clientId: number) => linesForClient(getDb(), clientId))
 
   ipcMain.handle('materials:create', (_e, input: MaterialInput) => {
     const db = getDb()
