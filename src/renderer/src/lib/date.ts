@@ -26,6 +26,11 @@ export function startOfDayEpoch(value: string): number | null {
   return Number.isNaN(t) ? null : t
 }
 
+/** Epoch-ms → the Gregorian "yyyy-MM-dd" value a date input expects. */
+export function epochToDateInput(epochMs: number): string {
+  return format(new Date(epochMs), 'yyyy-MM-dd')
+}
+
 export function endOfDayEpoch(value: string): number | null {
   if (!value) return null
   const t = new Date(`${value}T23:59:59.999`).getTime()

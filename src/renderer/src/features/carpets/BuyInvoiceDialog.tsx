@@ -146,6 +146,20 @@ export function BuyInvoiceDialog({
     [lines]
   )
 
+  // Quantity + متراژ over the rows the user actually started (any content),
+  // so blank filler rows never count.
+  const { totalQty, totalSqm } = useMemo(() => {
+    let qty = 0
+    let sqm = 0
+    for (const l of lines) {
+      const { areaNum, totalCents } = lineCalc(l)
+      if (!l.label.trim() && areaNum <= 0 && totalCents <= 0) continue
+      qty += 1
+      sqm += areaNum
+    }
+    return { totalQty: qty, totalSqm: sqm }
+  }, [lines])
+
   function patch(key: number, updater: (l: Line) => Line): void {
     setLines((prev) => prev.map((l) => (l.key === key ? updater(l) : l)))
   }
@@ -408,10 +422,20 @@ export function BuyInvoiceDialog({
                 <Plus className="h-4 w-4" />
                 {t('invoice.addLine', 'Add row')}
               </Button>
-              <div className="text-sm">
-                <span className="text-muted-foreground">{t('invoice.grandTotal', 'Grand total')}: </span>
-                <span className="font-mono text-base font-semibold tabular-nums">
-                  {formatCentsCompact(grandTotalCents)} {currencySymbol(currency)}
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+                <span>
+                  <span className="text-muted-foreground">{t('orders.totalQty', 'Total qty')}: </span>
+                  <span className="font-mono text-base font-semibold tabular-nums">{totalQty}</span>
+                </span>
+                <span>
+                  <span className="text-muted-foreground">{t('orders.totalSqm', 'Total SQM')}: </span>
+                  <span className="font-mono text-base font-semibold tabular-nums">{totalSqm.toFixed(2)}</span>
+                </span>
+                <span>
+                  <span className="text-muted-foreground">{t('invoice.grandTotal', 'Grand total')}: </span>
+                  <span className="font-mono text-base font-semibold tabular-nums">
+                    {formatCentsCompact(grandTotalCents)} {currencySymbol(currency)}
+                  </span>
                 </span>
               </div>
             </div>

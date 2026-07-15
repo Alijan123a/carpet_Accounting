@@ -17,6 +17,8 @@ import type {
 } from '../../shared/contracts'
 
 type DB = BetterSQLite3Database<typeof schema>
+/** A drizzle transaction handle — same query surface as the root DB. */
+type Tx = Parameters<Parameters<DB['transaction']>[0]>[0]
 
 const zeroBalances = (): PerCurrency => ({ AFN: 0, USD: 0 })
 
@@ -77,7 +79,7 @@ function toListItem(row: schema.ClientRow, balances: PerCurrency): ClientListIte
  * Direction encodes who paid whom; the sign convention reduces the open balance
  * for that currency. AFN and USD never mix.
  */
-export function addPayment(db: DB, input: PaymentInput): number {
+export function addPayment(db: DB | Tx, input: PaymentInput): number {
   const kind = input.direction === 'fromClient' ? 'paymentFromClient' : 'paymentToClient'
   return postTransaction(db, {
     clientId: input.clientId,
@@ -106,6 +108,14 @@ export function queryTransactions(db: DB, params: ClientTransactionsParams): Cli
   }
   if (params.fromDate != null) conds.push(gte(schema.transactions.transactionDate, params.fromDate))
   if (params.toDate != null) conds.push(lte(schema.transactions.transactionDate, params.toDate))
+  // The payments tab hides rows that were later reversed (e.g. after an "edit"),
+  // so only the live, corrected payment remains visible there. The full
+  // statement still shows originals and reversals.
+  if (params.excludeReversed) {
+    conds.push(
+      sql`NOT EXISTS (SELECT 1 FROM transactions r WHERE r.reverses_transaction_id = ${schema.transactions.id})`
+    )
+  }
   const search = params.search?.trim()
   if (search) {
     const pat = `%${search}%`
@@ -354,6 +364,54 @@ export function registerClientsIpc(getDb: () => DB): void {
       after: tx
     })
     return txId
+  })
+
+  // "Edit" a payment. The ledger is immutable (CLAUDE.md §3), so an edit is
+  // implemented as: post a reversal of the original payment + post a corrected
+  // payment, both inside one DB transaction. Returns the new payment's id.
+  ipcMain.handle('clients:updatePayment', (_e, transactionId: number, input: PaymentInput): number => {
+    const db = getDb()
+    const original = db
+      .select()
+      .from(schema.transactions)
+      .where(eq(schema.transactions.id, transactionId))
+      .get()
+    if (!original) throw new Error(`Transaction #${transactionId} not found`)
+    if (original.type !== 'payment') throw new Error('Only payments can be edited')
+    if (original.clientId !== input.clientId) throw new Error('Client mismatch')
+    const alreadyReversed = db
+      .select({ c: sql<number>`COUNT(*)` })
+      .from(schema.transactions)
+      .where(eq(schema.transactions.reversesTransactionId, transactionId))
+      .get()
+    if (Number(alreadyReversed?.c ?? 0) > 0) throw new Error('This payment was already reversed')
+
+    const { reversalId, newId } = db.transaction((tx) => ({
+      reversalId: reverseTransaction(tx, transactionId),
+      newId: addPayment(tx, input)
+    }))
+
+    const client = db.select().from(schema.clients).where(eq(schema.clients.id, input.clientId)).get()
+    const reversal = db.select().from(schema.transactions).where(eq(schema.transactions.id, reversalId)).get()
+    const newTx = db.select().from(schema.transactions).where(eq(schema.transactions.id, newId)).get()
+    // Two log entries mirroring what actually happened, so the undo engine's
+    // existing 'reverse'/'payment' handling applies to each posted row.
+    logChange(db, {
+      entity: 'transaction',
+      entityId: transactionId,
+      action: 'reverse',
+      summary: original.note ?? `#${transactionId}`,
+      before: original,
+      after: reversal
+    })
+    logChange(db, {
+      entity: 'transaction',
+      entityId: newId,
+      action: 'payment',
+      summary: `${client?.name ?? `#${input.clientId}`} — ${(input.amountCents / 100).toFixed(2)} ${input.currency}`,
+      after: newTx
+    })
+    return newId
   })
 
   // Immutable ledger: a transaction is undone by POSTING a reversal, never edited.

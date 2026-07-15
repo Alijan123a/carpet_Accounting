@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/lib/utils'
 import { NAV_ITEMS, type Route } from '@renderer/config/nav'
+import logo from '@renderer/assets/logo.jpg'
 
 interface SidebarProps {
   current: Route
@@ -23,11 +24,12 @@ export function Sidebar({ current, onNavigate }: SidebarProps): JSX.Element {
     <aside className="flex h-full w-64 shrink-0 flex-col border-e border-border/60 bg-sidebar">
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 py-5">
+        {/* Company logo (white artwork background, so keep a white plate in dark mode too). */}
         <span
-          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-gradient text-xl font-bold text-white shadow-glow"
+          className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-glow ring-1 ring-border/60"
           aria-hidden
         >
-          ق
+          <img src={logo} alt="" className="h-full w-full object-cover" />
         </span>
         <div className="leading-tight">
           <div className="text-[15px] font-bold tracking-tight">{t('app.name', 'Carpet Accounting')}</div>

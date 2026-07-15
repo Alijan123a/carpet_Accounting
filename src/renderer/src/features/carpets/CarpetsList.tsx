@@ -24,6 +24,16 @@ const GRID =
   'grid grid-cols-[130px_130px_80px_140px_100px_150px_120px_90px_110px] items-center gap-0 px-3 [&>*]:border-e [&>*]:border-border [&>*:last-child]:border-e-0 [&>*]:px-2 [&>*]:!text-center [&>*]:!justify-center'
 const MIN_W = 'min-w-[1070px]'
 
+/** One prominent header statistic: small label + big bold value. */
+function HeaderStat({ label, value }: { label: string; value: string }): JSX.Element {
+  return (
+    <span className="flex items-baseline gap-1.5">
+      <span className="text-xs font-medium text-muted-foreground">{label}:</span>
+      <span className="font-mono text-xl font-extrabold tabular-nums text-foreground">{value}</span>
+    </span>
+  )
+}
+
 function Profit({ cents }: { cents: number | null }): JSX.Element {
   if (cents == null) return <span className="text-muted-foreground">—</span>
   const color = cents > 0 ? 'text-green-600 dark:text-green-400' : cents < 0 ? 'text-red-600 dark:text-red-400' : ''
@@ -132,22 +142,22 @@ export function CarpetsList({ onSelect }: { onSelect: (id: number) => void }): J
         <div>
           <h2 className="text-2xl font-bold tracking-tight">{t('carpets.title', 'Carpets')}</h2>
           {/* Live statistics for the current filter (count, متراژ, per-currency value). */}
-          <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
-            <span>{t('carpets.total', { total, defaultValue: '{{total}} total' })}</span>
-            <span className="font-mono tabular-nums">
-              {t('orders.totalSqm', 'Total SQM')}: {stats.sqm.toFixed(2)}
-            </span>
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-6 gap-y-1">
+            <HeaderStat label={t('orders.totalQty', 'Total qty')} value={String(total)} />
+            <HeaderStat label={t('orders.totalSqm', 'Total SQM')} value={stats.sqm.toFixed(2)} />
             {stats.afnCents > 0 && (
-              <span className="font-mono tabular-nums">
-                {t('carpets.totalPrice', 'Total')}: {formatCentsCompact(stats.afnCents)} {currencySymbol('AFN')}
-              </span>
+              <HeaderStat
+                label={t('carpets.totalPrice', 'Total')}
+                value={`${formatCentsCompact(stats.afnCents)} ${currencySymbol('AFN')}`}
+              />
             )}
             {stats.usdCents > 0 && (
-              <span className="font-mono tabular-nums">
-                {t('carpets.totalPrice', 'Total')}: {formatCentsCompact(stats.usdCents)} {currencySymbol('USD')}
-              </span>
+              <HeaderStat
+                label={t('carpets.totalPrice', 'Total')}
+                value={`${formatCentsCompact(stats.usdCents)} ${currencySymbol('USD')}`}
+              />
             )}
-          </p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setStatusesOpen(true)}>

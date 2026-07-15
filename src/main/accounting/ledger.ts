@@ -9,6 +9,9 @@ import {
 } from '../../shared/accounting'
 
 type DB = BetterSQLite3Database<typeof schema>
+/** A drizzle transaction handle — same query surface as the root DB. */
+type Tx = Parameters<Parameters<DB['transaction']>[0]>[0]
+type DbOrTx = DB | Tx
 
 /**
  * Main-process ledger: all DB reads/writes delegate the actual accounting math
@@ -16,7 +19,7 @@ type DB = BetterSQLite3Database<typeof schema>
  */
 
 /** Insert a (already-signed) transaction and return its new id. */
-export function postTransaction(db: DB, payload: LedgerTransaction): number {
+export function postTransaction(db: DbOrTx, payload: LedgerTransaction): number {
   const res = db
     .insert(schema.transactions)
     .values({
@@ -51,7 +54,7 @@ export function getClientBalances(db: DB, clientId: number): PerCurrency {
  * the original — enforced both here and by the DB triggers). Returns the new
  * reversal transaction id.
  */
-export function reverseTransaction(db: DB, transactionId: number): number {
+export function reverseTransaction(db: DbOrTx, transactionId: number): number {
   const original = db
     .select()
     .from(schema.transactions)

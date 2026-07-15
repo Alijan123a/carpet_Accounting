@@ -14,7 +14,8 @@ const api = {
     restore: (id: number) => ipcRenderer.invoke('clients:restore', id),
     remove: (id: number) => ipcRenderer.invoke('clients:remove', id),
     transactions: (params: unknown) => ipcRenderer.invoke('clients:transactions', params),
-    addPayment: (input: unknown) => ipcRenderer.invoke('clients:addPayment', input)
+    addPayment: (input: unknown) => ipcRenderer.invoke('clients:addPayment', input),
+    updatePayment: (id: number, input: unknown) => ipcRenderer.invoke('clients:updatePayment', id, input)
   },
 
   transactions: {

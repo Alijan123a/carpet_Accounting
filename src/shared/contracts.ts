@@ -88,6 +88,8 @@ export interface ClientTransactionsParams extends SortParams {
   type?: TypeFilter
   /** Matches note, linked carpet label, or linked material name. */
   search?: string
+  /** Hide transactions that were later reversed (used by the payments tab). */
+  excludeReversed?: boolean
   limit: number
   offset: number
 }
@@ -109,6 +111,12 @@ export interface ClientsApi {
   remove: (id: number) => Promise<{ ok: boolean; reason?: string }>
   transactions: (params: ClientTransactionsParams) => Promise<ClientTransactionsResult>
   addPayment: (input: PaymentInput) => Promise<number>
+  /**
+   * "Edit" a posted payment: atomically posts a reversal of the original plus a
+   * corrected payment (the ledger is immutable — nothing is ever updated).
+   * Returns the corrected payment's transaction id.
+   */
+  updatePayment: (transactionId: number, input: PaymentInput) => Promise<number>
 }
 
 export interface TransactionsApi {

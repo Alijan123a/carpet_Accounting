@@ -235,7 +235,8 @@
     "received": "Received from client",
     "paid": "Paid to client",
     "empty": "No payments.",
-    "searchPlaceholder": "Note…"
+    "searchPlaceholder": "Note…",
+    "editHint": "Double-click to edit"
   },
   "tx": {
     "type": {
@@ -441,7 +442,10 @@
     "date": "Date",
     "note": "Note",
     "add": "Add payment",
-    "amountRequired": "Enter an amount greater than 0."
+    "amountRequired": "Enter an amount greater than 0.",
+    "editTitle": "Edit payment",
+    "saveEdit": "Save changes",
+    "editHint": "Saving reverses the original payment and records a corrected one — the ledger itself is never edited."
   },
   "dashboard": {
     "title": "Dashboard",

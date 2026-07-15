@@ -13,7 +13,7 @@ import { useSettings } from '@renderer/store/settings'
 import { formatDate, startOfDayEpoch, endOfDayEpoch } from '@renderer/lib/date'
 import { formatCents, currencySymbol } from '@shared/accounting'
 import type { TransactionView } from '@shared/contracts'
-import { TransactionDetailDialog } from './TransactionDetailDialog'
+import { PaymentDialog } from './PaymentDialog'
 
 const PAGE_SIZE = 100
 const ROW_HEIGHT = 48
@@ -24,7 +24,9 @@ const GRID =
  * Payments tab of a client: every `payment` transaction with date-range /
  * search filters and sortable columns, like the statement. The sign convention
  * tells the direction: amount < 0 → the client paid us, amount > 0 → we paid
- * the client (see shared/accounting/sign.ts). Double-click opens full details.
+ * the client (see shared/accounting/sign.ts). Double-click opens the payment in
+ * an editable dialog (saving posts a reversal + a corrected payment); reversed
+ * payments are hidden here so only live ones show — the statement keeps all.
  */
 export function ClientPayments({ clientId, onChanged }: { clientId: number; onChanged: () => void }): JSX.Element {
   const { t } = useTranslation()
@@ -46,7 +48,7 @@ export function ClientPayments({ clientId, onChanged }: { clientId: number; onCh
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
   const [reverseTarget, setReverseTarget] = useState<TransactionView | null>(null)
-  const [detailTx, setDetailTx] = useState<TransactionView | null>(null)
+  const [editTx, setEditTx] = useState<TransactionView | null>(null)
 
   const rowsRef = useRef<TransactionView[]>([])
   const loadingRef = useRef(false)
@@ -64,6 +66,7 @@ export function ClientPayments({ clientId, onChanged }: { clientId: number; onCh
           fromDate: startOfDayEpoch(from),
           toDate: endOfDayEpoch(to),
           type: 'payment',
+          excludeReversed: true,
           search,
           sortBy: sort.by,
           sortDir: sort.dir,
@@ -160,8 +163,8 @@ export function ClientPayments({ clientId, onChanged }: { clientId: number; onCh
               return (
                 <div
                   key={tx.id}
-                  onDoubleClick={() => setDetailTx(tx)}
-                  title={t('txDetail.openHint', 'Double-click for full details')}
+                  onDoubleClick={() => setEditTx(tx)}
+                  title={t('payments.editHint', 'Double-click to edit')}
                   className={cn(
                     GRID,
                     'absolute start-0 top-0 w-full cursor-pointer border-b border-border text-sm hover:bg-accent/50'
@@ -200,7 +203,16 @@ export function ClientPayments({ clientId, onChanged }: { clientId: number; onCh
         </div>
       </div>
 
-      <TransactionDetailDialog tx={detailTx} open={detailTx !== null} onOpenChange={(o) => !o && setDetailTx(null)} />
+      <PaymentDialog
+        open={editTx !== null}
+        onOpenChange={(o) => !o && setEditTx(null)}
+        clientId={clientId}
+        editTx={editTx}
+        onSaved={() => {
+          void fetchPage(true)
+          onChanged()
+        }}
+      />
       <ConfirmDialog
         open={reverseTarget !== null}
         onOpenChange={(o) => !o && setReverseTarget(null)}

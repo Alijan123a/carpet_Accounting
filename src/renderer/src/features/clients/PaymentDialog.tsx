@@ -12,23 +12,30 @@ import { Input } from '@renderer/components/ui/input'
 import { RequiredMark } from '@renderer/components/ui/required-mark'
 import { toast } from '@renderer/components/ui/toast'
 import { DateInput } from '@renderer/components/ui/date-input'
-import { startOfDayEpoch } from '@renderer/lib/date'
-import { parseMoneyToCents, ENABLED_CURRENCIES, currencySymbol } from '@shared/accounting'
+import { startOfDayEpoch, epochToDateInput } from '@renderer/lib/date'
+import { parseMoneyToCents, centsToInput, ENABLED_CURRENCIES, currencySymbol } from '@shared/accounting'
 import type { Currency } from '@shared/accounting'
-import type { PaymentDirection } from '@shared/contracts'
+import type { PaymentDirection, TransactionView } from '@shared/contracts'
 import { useSettings } from '@renderer/store/settings'
 
 const todayStr = (): string => new Date().toISOString().slice(0, 10)
 
+/**
+ * Add — or, when `editTx` is given, edit — a payment. The ledger is immutable,
+ * so saving an edit posts a reversal of the original payment plus a corrected
+ * one (via clients:updatePayment); the form itself is identical either way.
+ */
 export function PaymentDialog({
   open,
   onOpenChange,
   clientId,
+  editTx = null,
   onSaved
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   clientId: number
+  editTx?: TransactionView | null
   onSaved: () => void
 }): JSX.Element {
   const { t } = useTranslation()
@@ -43,14 +50,24 @@ export function PaymentDialog({
 
   useEffect(() => {
     if (open) {
-      setAmount('')
-      setCurrency(defaultCurrency)
-      setDirection('fromClient')
-      setDate(todayStr())
-      setNote('')
+      if (editTx) {
+        // Prefill from the existing payment. Sign convention: amount < 0 → the
+        // client paid us (fromClient); amount > 0 → we paid the client.
+        setAmount(centsToInput(Math.abs(editTx.amountCents)))
+        setCurrency(editTx.currency)
+        setDirection(editTx.amountCents < 0 ? 'fromClient' : 'toClient')
+        setDate(epochToDateInput(editTx.transactionDate))
+        setNote(editTx.note ?? '')
+      } else {
+        setAmount('')
+        setCurrency(defaultCurrency)
+        setDirection('fromClient')
+        setDate(todayStr())
+        setNote('')
+      }
       setError(null)
     }
-  }, [open, defaultCurrency])
+  }, [open, editTx, defaultCurrency])
 
   async function submit(): Promise<void> {
     const cents = parseMoneyToCents(amount)
@@ -61,14 +78,16 @@ export function PaymentDialog({
     setBusy(true)
     setError(null)
     try {
-      await window.api.clients.addPayment({
+      const input = {
         clientId,
         currency,
         amountCents: cents,
         direction,
         transactionDate: startOfDayEpoch(date),
         note: note.trim() || null
-      })
+      }
+      if (editTx) await window.api.clients.updatePayment(editTx.id, input)
+      else await window.api.clients.addPayment(input)
       toast.success(t('common.saved', 'Saved.'))
       onSaved()
       onOpenChange(false)
@@ -83,8 +102,19 @@ export function PaymentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{t('payment.title', 'Add payment')}</DialogTitle>
+          <DialogTitle>
+            {editTx ? t('payment.editTitle', 'Edit payment') : t('payment.title', 'Add payment')}
+          </DialogTitle>
         </DialogHeader>
+
+        {editTx && (
+          <p className="text-xs text-muted-foreground">
+            {t(
+              'payment.editHint',
+              'Saving reverses the original payment and records a corrected one — the ledger itself is never edited.'
+            )}
+          </p>
+        )}
 
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -161,7 +191,7 @@ export function PaymentDialog({
             {t('common.cancel', 'Cancel')}
           </Button>
           <Button onClick={submit} busy={busy}>
-            {t('payment.add', 'Add payment')}
+            {editTx ? t('payment.saveEdit', 'Save changes') : t('payment.add', 'Add payment')}
           </Button>
         </DialogFooter>
       </DialogContent>
